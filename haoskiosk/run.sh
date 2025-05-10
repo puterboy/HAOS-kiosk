@@ -130,6 +130,9 @@ bashio::log.info "X started successfully..."
 #Stop console blinking cursor (this projects through the X-screen)
 echo -e "\033[?25l" > /dev/console
 
+# hide mouse curser
+sleep 2 && unclutter-xfixes --start-hidden --timeout 0 &
+
 ### Start Openbox in the background
 openbox &
 O_PID=$!

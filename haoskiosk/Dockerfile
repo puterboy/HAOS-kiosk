@@ -1,7 +1,7 @@
 ################################################################################
 # Add-on: HAOS Kiosk Display (haoskiosk)
 # File: Dockerfile
-# Version: 0.9.7
+# Version: 0.9.8
 # Copyright Jeff Kosowsky
 # Date: April 2025
 ################################################################################
@@ -20,6 +20,7 @@ RUN apk update && apk add --no-cache \
     util-linux \
     xset \
     bash \
+    unclutter-xfixes \
     && rm -rf /var/cache/apk/*
 
 # Set the display and dbus environment variables
