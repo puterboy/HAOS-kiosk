@@ -21,6 +21,7 @@ RUN apk update && apk add --no-cache \
     xset \
     bash \
     unclutter-xfixes \
+    xsetroot \
     && rm -rf /var/cache/apk/*
 
 # Set the display and dbus environment variables
