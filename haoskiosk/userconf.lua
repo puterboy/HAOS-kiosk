@@ -52,9 +52,7 @@ settings.webview.zoom_level = zoom_level
 settings.application.prefer_dark_mode = true
 
 -- Set preferred language for Accept-Language HTTP header
-webview.override_webview_settings{
-    accept_language = "de-DE,de;q=0.9"
-}
+settings.webview.accept_language = "de-DE,de;q=0.9"
 
 -- -----------------------------------------------------------------------
 local first_window = true
