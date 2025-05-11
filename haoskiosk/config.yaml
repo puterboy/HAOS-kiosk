@@ -1,7 +1,7 @@
 name: "HAOS Kiosk Display"
 description: >
   Start X server and browser on local HAOS server and display dashboards in kiosk mode (Jeff Kosowsky)
-version: "0.9.15"
+version: "0.9.16"
 slug: "haoskiosk"
 
 arch:

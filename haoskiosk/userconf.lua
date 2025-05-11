@@ -47,8 +47,14 @@ end)
 
 -- Set zoom level for windows (default 100%)
 settings.webview.zoom_level = zoom_level
+
+-- enable dark mode
 settings.application.prefer_dark_mode = true
 
+-- set browser language
+webview.override_webview_settings{
+    accept_language = "de-DE,de;q=0.9"
+}
 
 -- -----------------------------------------------------------------------
 local first_window = true
