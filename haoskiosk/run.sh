@@ -159,4 +159,5 @@ fi
 
 ### Run Luakit in the foreground
 bashio::log.info "Launching Luakit browser..."
+export LANG=de_DE.UTF-8
 exec luakit -U "$HA_URL/$HA_DASHBOARD"
