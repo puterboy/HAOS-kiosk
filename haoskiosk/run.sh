@@ -159,3 +159,8 @@ fi
 ### Run Luakit in the foreground
 bashio::log.info "Launching Luakit browser..."
 exec luakit -U "$HA_URL/$HA_DASHBOARD"
+
+
+
+
+(sleep 10 && chvt 1 && sleep 1 && chvt 7) &
