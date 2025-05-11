@@ -150,15 +150,10 @@ if [ "$SCREEN_TIMEOUT" -eq 0 ]; then #Disable screen saver and DPMS for no timeo
     xset -dpms
     bashio::log.info "Screen timeout disabled..."
 else
-xsetroot -solid black
+    xsetroot -solid black
     xset s on
     xset s "$SCREEN_TIMEOUT"
     xset s noblank
-
-
-    #xset s "$SCREEN_TIMEOUT"
-    #xset dpms "$SCREEN_TIMEOUT" "$SCREEN_TIMEOUT" "$SCREEN_TIMEOUT"  #DPMS standby, suspend, off
-    #xset +dpms
     bashio::log.info "Screen timeout after $SCREEN_TIMEOUT seconds..."
 fi
 

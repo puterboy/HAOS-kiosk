@@ -18,6 +18,9 @@ Code does the following:
       NOTE: this is important since console messages overwrite dashboards
 ]]
 
+
+
+
 -- -----------------------------------------------------------------------
 -- Load required Luakit modules
 local window = require "window"
@@ -44,6 +47,8 @@ end)
 
 -- Set zoom level for windows (default 100%)
 settings.webview.zoom_level = zoom_level
+settings.application.prefer_dark_mode = true
+
 
 -- -----------------------------------------------------------------------
 local first_window = true
