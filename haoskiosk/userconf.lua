@@ -51,8 +51,16 @@ settings.webview.zoom_level = zoom_level
 -- enable dark mode
 settings.application.prefer_dark_mode = true
 
--- Set preferred language for Accept-Language HTTP header
-settings.webview.accept_language = "de-DE,de;q=0.9"
+local soup = require("lgi").require("Soup")
+
+-- Add German Accept-Language header to all outgoing HTTP requests
+webview.add_signal("init", function(view)
+    view:add_signal("resource-request-starting", function(_, req)
+        local headers = req:get_http_headers()
+        headers:append("Accept-Language", "de-DE,de;q=0.9")
+    end)
+end)
+
 
 -- -----------------------------------------------------------------------
 local first_window = true
