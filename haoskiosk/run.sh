@@ -131,7 +131,7 @@ bashio::log.info "X started successfully..."
 echo -e "\033[?25l" > /dev/console
 
 # hide mouse curser
-sleep 2 && unclutter-xfixes --start-hidden --timeout 0 &
+unclutter-xfixes --start-hidden --hide-on-touch --timeout 0 &
 
 ### Start Openbox in the background
 openbox &
@@ -154,6 +154,8 @@ else
     xset s on
     xset s "$SCREEN_TIMEOUT"
     xset s noblank
+    xset dpms "$SCREEN_TIMEOUT" "$SCREEN_TIMEOUT" "$SCREEN_TIMEOUT"
+    xset +dpms
     bashio::log.info "Screen timeout after $SCREEN_TIMEOUT seconds..."
 fi
 
