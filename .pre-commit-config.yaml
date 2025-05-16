@@ -60,7 +60,7 @@ repos:
     rev: v0.1.0  # Local version
     hooks:
       - id: copy-readme-root-to-haoskiosk
-        name: Copy README.md: root -> haoskiosk
+        name: "Copy README.md: root -> haoskiosk"
         entry: cp -a README.md haoskiosk/
         language: system  # Allows system commands like `cp`
         types: [markdown]
@@ -71,7 +71,7 @@ repos:
     rev: v0.1.0  # Local version
     hooks:
       - id: copy-readme-haoskiosk-to-root
-        name: Copy README.md: haoskiosk->root
+        name: "Copy README.md: haoskiosk -> root"
         entry: cp -a haoskiosk/README.md .
         language: system  # Allows system commands like `cp`
         types: [markdown]
