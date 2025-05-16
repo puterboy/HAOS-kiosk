@@ -56,6 +56,14 @@ repos:
 
   #### JJK: Add hook to copy changes in README.md from root->haoskiosk and vice-versa
   - repo: local
+  hooks:
+    - id: debug-haoskiosk
+      name: "Debug: Check haoskiosk directory and files"
+      entry: bash -c "pwd && ls -ld haoskiosk && ls -l haoskiosk/README.md || echo 'haoskiosk/README.md not found'"
+      language: system
+      files: ^haoskiosk/README\.md$
+
+  - repo: local
     hooks:
       - id: copy-readme-root-to-haoskiosk
         name: "Copy README.md: root -> haoskiosk"
