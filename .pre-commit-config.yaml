@@ -56,7 +56,6 @@ repos:
 
   #### JJK: Add hook to copy changes in README.md from root->haoskiosk and vice-versa
   - repo: local
-    rev: v0.1.0  # Local version
     hooks:
       - id: copy-readme-root-to-haoskiosk
         name: "Copy README.md: root -> haoskiosk"
@@ -67,7 +66,6 @@ repos:
 
   # Copy README.md: haoskiosk -> root
   - repo: local
-    rev: v0.1.0  # Local version
     hooks:
       - id: copy-readme-haoskiosk-to-root
         name: "Copy README.md: haoskiosk -> root"
