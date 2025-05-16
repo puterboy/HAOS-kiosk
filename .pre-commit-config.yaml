@@ -73,4 +73,3 @@ repos:
         language: system  # Allows system commands like `cp`
         types: [markdown]
         files: ^haoskiosk/README\.md$  # Only trigger when README.md changes
-
