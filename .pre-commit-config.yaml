@@ -1,12 +1,15 @@
 ---
-exclude: (?x)^(__NONE__|\.pre-commit-config\.yaml)$
+exclude:
+  (?x)^(
+  __NONE__)$
 repos:
   - repo: https://github.com/executablebooks/mdformat
+    # Do this before other tools "fixing" the line endings
     rev: 0.7.22
     hooks:
       - id: mdformat
         name: Format Markdown
-        entry: mdformat
+        entry: mdformat  # Executable to run, with fixed options
         language: python
         types: [markdown]
         args: [--wrap, '75', --number]
@@ -19,11 +22,12 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
+      # - id: no-commit-to-branch
+      #  args: [--branch, main]
       - id: debug-statements
       - id: end-of-file-fixer
-        exclude: ^\.pre-commit-config\.yaml$
       - id: trailing-whitespace
-        exclude: ^(\.pre-commit-config\.yaml$|.*\.md$)
+        exclude: .*\.md$
       - id: check-json
       - id: mixed-line-ending
       - id: check-builtin-literals
@@ -35,19 +39,16 @@ repos:
         exclude: ^(test/.*)$
       - id: fix-byte-order-marker
       - id: check-case-conflict
-
   - repo: https://github.com/lovesegfault/beautysh.git
     rev: v6.2.1
     hooks:
       - id: beautysh
         additional_dependencies:
           - setuptools
-
   - repo: https://github.com/codespell-project/codespell
     rev: v2.4.1
     hooks:
       - id: codespell
-
   - repo: https://github.com/shellcheck-py/shellcheck-py
     rev: v0.10.0.1
     hooks:
@@ -56,27 +57,20 @@ repos:
   #### JJK: Add hook to copy changes in README.md from root->haoskiosk and vice-versa
   - repo: local
     hooks:
-      - id: debug-haoskiosk
-        name: Debug: Check haoskiosk directory and files
-        entry: bash -c "echo 'Working directory:'; pwd; echo 'haoskiosk status:'; ls -ld haoskiosk; echo 'haoskiosk/README.md status:'; ls -l haoskiosk/README.md || echo 'haoskiosk/README.md not found'; echo 'README.md status:'; ls -l README.md || echo 'README.md not found'; echo 'Git index:'; git ls-files README.md haoskiosk/README.md"
-        language: system
-        files: ^(README\.md|haoskiosk/README\.md)$
-        verbose: true
-
-  - repo: local
-    hooks:
       - id: copy-readme-root-to-haoskiosk
-        name: Copy README.md: root -> haoskiosk
-        entry: bash -c "[ -f README.md ] && cp -av README.md haoskiosk/README.md && echo 'Copy succeeded: root -> haoskiosk' || echo 'Copy skipped: README.md not found'"
-        language: system
+        name: "Copy README.md: root -> haoskiosk"
+        entry: bash -c "cp -a README.md haoskiosk/README.md"
+        language: system  # Allows system commands like `cp`
         types: [markdown]
-        files: ^README\.md$
+        files: ^README\.md$  # Only trigger when README.md changes
 
+  # Copy README.md: haoskiosk -> root
   - repo: local
     hooks:
       - id: copy-readme-haoskiosk-to-root
-        name: Copy README.md: haoskiosk -> root
-        entry: bash -c "[ -f haoskiosk/README.md ] && cp -av haoskiosk/README.md README.md && echo 'Copy succeeded: haoskiosk -> root' || echo 'Copy skipped: haoskiosk/README.md not found'"
-        language: system
+        name: "Copy README.md: haoskiosk -> root"
+        entry: bash -c "cp -a haoskiosk/README.md README.md"
+        language: system  # Allows system commands like `cp`
         types: [markdown]
-        files: ^haoskiosk/README\.md$
+        files: ^haoskiosk/README\.md$  # Only trigger when README.md changes
+
