@@ -59,7 +59,7 @@ repos:
     hooks:
       - id: copy-readme-root-to-haoskiosk
         name: "Copy README.md: root -> haoskiosk"
-        entry: cp -a README.md haoskiosk/
+        entry: cp -a README.md haoskiosk
         language: system  # Allows system commands like `cp`
         types: [markdown]
         files: ^README\.md$  # Only trigger when README.md changes
