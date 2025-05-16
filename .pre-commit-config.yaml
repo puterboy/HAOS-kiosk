@@ -53,3 +53,27 @@ repos:
     rev: v0.10.0.1
     hooks:
       - id: shellcheck
+
+  #### JJK: Add custom hook to copy changes in README.md from root->haoskiosk and vice-versa
+  # Copy README.md: root->haoskiosk (this prioritized root over haoskiosk version)
+  - repo: local
+    rev: v0.1.0  # Local version
+    hooks:
+      - id: copy-readme-root-to-haoskiosk
+        name: Copy README.md: root -> haoskiosk
+        entry: cp -a README.md haoskiosk/
+        language: system  # Allows system commands like `cp`
+        types: [markdown]
+        files: ^README\.md$  # Only trigger when README.md changes
+
+# Copy README.md: root->haoskiosk (this prioritized root over haoskiosk version)
+- repo: local
+    rev: v0.1.0  # Local version
+    hooks:
+      - id: copy-readme-haoskiosk-to-root
+        name: Copy README.md: haoskiosk->root
+        entry: cp -a haoskiosk/README.md .
+        language: system  # Allows system commands like `cp`
+        types: [markdown]
+        files: ^haoskiosk/README\.md$  # Only trigger when README.md changes
+
