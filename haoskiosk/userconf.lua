@@ -55,14 +55,15 @@ settings.application.prefer_dark_mode = true
 local first_window = true
 webview.add_signal("init", function(view)
 
-    if status == "committed" then
-        view:eval_js([[
-            localStorage.setItem("browser_mod-browser-id", "kiosk");
-        ]])
-    end
-
     -- Listen for page load events
     view:add_signal("load-status", function(v, status)
+
+        if status == "committed" then
+            view:eval_js([[
+                localStorage.setItem("browser_mod-browser-id", "kiosk");
+            ]])
+        end
+
         if status ~= "finished" then return end  -- Only proceed when the page is fully loaded
 --	msg.info("URI: " .. v.uri) -- DEBUG
 
