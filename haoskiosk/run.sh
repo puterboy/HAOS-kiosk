@@ -163,3 +163,19 @@ fi
 bashio::log.info "Launching Luakit browser..."
 export LANG=de_DE.UTF-8
 exec luakit -U "$HA_URL/$HA_DASHBOARD"
+
+# erste Touch deaktivieren um zu vermeiden, dass beim Bildschirm aktivieren eine Funktion ausgeführt wird.
+TOUCH_DEVICE_ID=$(xinput list | grep -i 'core pointer' | grep -o 'id=[0-9]*' | cut -d= -f2)
+IDLE_THRESHOLD=$(($SCREEN_TIMEOUT * 1000))  # ms
+while true; do
+    IDLE_TIME=$(xprintidle)
+    if [ "$IDLE_TIME" -ge "$IDLE_THRESHOLD" ]; then
+        # Bildschirm dunkel, Touch deaktivieren
+        xinput disable "$TOUCH_DEVICE_ID"
+    else
+        # Bildschirm ist aktiv, kurze Wartezeit vor Reaktivierung der Touch-Eingabe
+        sleep 0.5
+        xinput enable "$TOUCH_DEVICE_ID"
+    fi
+    sleep 1
+done
