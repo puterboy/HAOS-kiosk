@@ -113,17 +113,13 @@ webview.add_signal("init", function(view)
         end
     end)
 
-    local function setup_localstorage(w)
-        view:add_signal("load-status", function(v, status)
-            if status == "committed" then
-                view:eval_js([[
-                    localStorage.setItem("browser_mod-browser-id", "kiosk");
-                ]])
-            end
-        end)
-    end
-    window.add_signal("init", setup_localstorage)
-
+    view:add_signal("load-status", function(v, status)
+        if status == "committed" then
+            view:eval_js([[
+                localStorage.setItem("browser_mod-browser-id", "kiosk");
+            ]])
+        end
+    end)
 
 end)
 
