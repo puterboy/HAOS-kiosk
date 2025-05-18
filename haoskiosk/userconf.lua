@@ -59,7 +59,7 @@ webview.add_signal("init", function(view)
     view:add_signal("load-status", function(v, status)
 
         if status == "committed" then
-            view:eval_js([[
+            v:eval_js([[
                 localStorage.setItem("browser_mod-browser-id", "kiosk");
             ]])
         end
