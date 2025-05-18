@@ -57,13 +57,6 @@ webview.add_signal("init", function(view)
 
     -- Listen for page load events
     view:add_signal("load-status", function(v, status)
-
-        if status == "committed" then
-            v:eval_js([[
-                localStorage.setItem("browser_mod-browser-id", "kiosk");
-            ]])
-        end
-
         if status ~= "finished" then return end  -- Only proceed when the page is fully loaded
 --	msg.info("URI: " .. v.uri) -- DEBUG
 
@@ -94,6 +87,7 @@ webview.add_signal("init", function(view)
             -- JavaScript to auto-fill and submit the login form
             local js_auto_login = string.format([[
                 setTimeout(function() {
+                    localStorage.setItem("browser_mod-browser-id", "kiosk");
                     var usernameField = document.querySelector('input[name="username"]');
                     var passwordField = document.querySelector('input[name="password"]');
                     var submitButton = document.querySelector('mwc-button');
