@@ -54,6 +54,13 @@ settings.application.prefer_dark_mode = true
 -- -----------------------------------------------------------------------
 local first_window = true
 webview.add_signal("init", function(view)
+
+    if status == "committed" then
+        view:eval_js([[
+            localStorage.setItem("browser_mod-browser-id", "kiosk");
+        ]])
+    end
+
     -- Listen for page load events
     view:add_signal("load-status", function(v, status)
         if status ~= "finished" then return end  -- Only proceed when the page is fully loaded
@@ -111,16 +118,7 @@ webview.add_signal("init", function(view)
             ]], browser_refresh * 1000)
             v:eval_js(js_refresh, { source = "auto_refresh.js" })  -- Execute the refresh script
         end
-    end)
-
-    view:add_signal("load-status", function(v, status)
-        if status == "committed" then
-            view:eval_js([[
-                localStorage.setItem("browser_mod-browser-id", "kiosk");
-            ]])
-        end
-    end)
-
+    end)    
 end)
 
 
