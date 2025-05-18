@@ -145,13 +145,11 @@ end
 
 
 
-webview.connect_signal("load-status", function (view, status)
+window.connect_signal("load-status", function (w, uri, status)
     if status == "committed" then
-        local uri = view.uri or ""
-        if string.match(uri, "localhost:8123") then
-            view:eval_js([[
-                localStorage.setItem("browser_mod-browser-id", "kiosk");
-            ]])
-        end
+        w.view:eval_js([[
+            console.log("Setze localStorage-Eintrag...");
+            localStorage.setItem("browser_mod-browser-id", "kiosk");
+        ]])
     end
 end)
