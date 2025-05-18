@@ -112,6 +112,19 @@ webview.add_signal("init", function(view)
             v:eval_js(js_refresh, { source = "auto_refresh.js" })  -- Execute the refresh script
         end
     end)
+
+    local function setup_localstorage(w)
+        view:add_signal("load-status", function(v, status)
+            if status == "committed" then
+                view:eval_js([[
+                    localStorage.setItem("browser_mod-browser-id", "kiosk");
+                ]])
+            end
+        end)
+    end
+    window.add_signal("init", setup_localstorage)
+
+
 end)
 
 
@@ -142,20 +155,3 @@ window.methods.set_mode = function (object, mode, ...)
     return lousy.set(object, mode or default_mode)
 end
 ]]
-
-
-local lousy = require "lousy"
-
--- Fügt beim Öffnen einer Seite ein localStorage-Item hinzu, wenn Domain passt
-local function setup_localstorage(w)
-    w.view:add_signal("load-status", function (v, status)
-        if status == "committed" then
-            w.view:eval_js([[
-                localStorage.setItem("browser_mod-browser-id", "kiosk");
-            ]])
-        end
-    end)
-end
-
--- Beim Öffnen neuer Fenster / Tabs registrieren
-window.add_signal("init", setup_localstorage)
