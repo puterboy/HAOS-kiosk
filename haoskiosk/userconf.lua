@@ -144,14 +144,11 @@ end
 ]]
 
 
+local lousy = require "lousy"
 
--- In ~/.config/luakit/rc.lua
-
--- Funktion wird bei jedem neuen Fenster (Tab) ausgeführt
-local window = require "window"
-
-window.init_funcs[#window.init_funcs + 1] = function (w)
-    w:add_signal("load-status", function (view, status)
+-- Fügt beim Öffnen einer Seite ein localStorage-Item hinzu, wenn Domain passt
+local function setup_localstorage(w)
+    w.view:add_signal("load-status", function (v, status)
         if status == "committed" then
             w.view:eval_js([[
                 localStorage.setItem("browser_mod-browser-id", "kiosk");
@@ -159,3 +156,6 @@ window.init_funcs[#window.init_funcs + 1] = function (w)
         end
     end)
 end
+
+-- Beim Öffnen neuer Fenster / Tabs registrieren
+window.add_signal("init", setup_localstorage)
