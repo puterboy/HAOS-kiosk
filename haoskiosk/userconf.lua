@@ -142,3 +142,16 @@ window.methods.set_mode = function (object, mode, ...)
     return lousy.set(object, mode or default_mode)
 end
 ]]
+
+
+
+webview.connect_signal("load-status", function (view, status)
+    if status == "committed" then
+        local uri = view.uri or ""
+        if string.match(uri, "localhost:8123") then
+            view:eval_js([[
+                localStorage.setItem("browser_mod-browser-id", "kiosk");
+            ]])
+        end
+    end
+end)
