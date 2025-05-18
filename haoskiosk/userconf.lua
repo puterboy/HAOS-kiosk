@@ -145,11 +145,17 @@ end
 
 
 
-window.connect_signal("load-status", function (w, uri, status)
-    if status == "committed" then
-        w.view:eval_js([[
-            console.log("Setze localStorage-Eintrag...");
-            localStorage.setItem("browser_mod-browser-id", "kiosk");
-        ]])
-    end
-end)
+-- In ~/.config/luakit/rc.lua
+
+-- Funktion wird bei jedem neuen Fenster (Tab) ausgeführt
+local window = require "window"
+
+window.init_funcs[#window.init_funcs + 1] = function (w)
+    w:add_signal("load-status", function (view, status)
+        if status == "committed" then
+            w.view:eval_js([[
+                localStorage.setItem("browser_mod-browser-id", "kiosk");
+            ]])
+        end
+    end)
+end
