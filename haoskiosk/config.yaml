@@ -1,7 +1,7 @@
 name: "HAOS Kiosk Display"
 description: >
   Start X server and browser on local HAOS server and display dashboards in kiosk mode (Jeff Kosowsky)
-version: "0.9.32"
+version: "0.9.33"
 slug: "haoskiosk"
 
 arch:
@@ -25,6 +25,7 @@ devices:
 privileged:
   - SYS_ADMIN
   - SYS_RAWIO
+  - SYS_RESOURCE
 
 security_opt:
   - apparmor:unconfined
