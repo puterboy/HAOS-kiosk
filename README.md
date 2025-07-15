@@ -24,6 +24,9 @@ You can then return to *passthrough* mode by pressing `ctl-Z` or enter
 See luakit documentation for available commands.\
 In general, you want to stay in `passthrough` mode.
 
+**NOTE:** Should support any standard mouse, touchscreen, keypad and
+touchpad so long as their /dev/input/eventN number is less than 25.
+
 ## Configuration Options
 
 ### HA Username [required]
