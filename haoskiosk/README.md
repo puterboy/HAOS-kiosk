@@ -93,6 +93,22 @@ Options include: (Default: None)
 - Narrow (icons only)
 - None (hidden)
 
+### ROTATE
+
+Rotate the display relative to standard view.\
+Options include: (Default: Normal)
+
+- Normal (No rotation)
+- Left (Rotate 90 degrees clockwise)
+- Right (Rotate 90 degrees counter-clockwise)
+- Inverted (Rotate 180 degrees)
+
+### XORG.CONF
+
+Append to or replace existing, default xorg.conf file.\
+Select 'Append' or 'Replace options.\
+To restore default, set to empty and select 'Append' option.
+
 ### DEBUG
 
 For debugging purposes, launches `Xorg` and `openbox` and then sleeps

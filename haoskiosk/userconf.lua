@@ -1,7 +1,7 @@
 --[[
 Add-on: HAOS Kiosk Display (haoskiosk)
 File: userconf.lua for HA minimal browser run on server
-Version: 0.9.9
+Version: 1.0.0
 Copyright Jeff Kosowsky
 Date: July 2025
 
@@ -175,7 +175,7 @@ webview.add_signal("init", function(view)
 
                 }, %d);
             ]], single_quote_escape(username), single_quote_escape(password), login_delay * 1000)
-            v:eval_js(js_auto_login, { source = "auto_login.js" })  -- Execute the login script
+            v:eval_js(js_auto_login, { source = "auto_login.js", no_return = true })  -- Execute the login script
         end
 
         -- Set Home Assistant theme and sidebar visibility after dashboard load
@@ -235,7 +235,7 @@ webview.add_signal("init", function(view)
                 }
             ]], single_quote_escape(theme), single_quote_escape(sidebar))
 
-            v:eval_js(js_settings, { source = "ha_settings.js" })
+            v:eval_js(js_settings, { source = "ha_settings.js", no_return = true })
             ha_settings_applied[v] = true   -- Mark in Lua session as settings applied
         end
 
@@ -250,7 +250,7 @@ webview.add_signal("init", function(view)
                     clearInterval(window.ha_refresh_id);
                 });
             ]], browser_refresh * 1000)
-            v:eval_js(js_refresh, { source = "auto_refresh.js" })  -- Execute the refresh script
+            v:eval_js(js_refresh, { source = "auto_refresh.js", no_return = true })  -- Execute the refresh script
         end
 
     end)

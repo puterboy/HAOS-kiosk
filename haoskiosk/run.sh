@@ -6,7 +6,7 @@ trap '[ -n "$(jobs -p)" ] && kill $(jobs -p); [ -n "$TTY0_DELETED" ] && mknod -m
 ################################################################################
 # Add-on: HAOS Kiosk Display (haoskiosk)
 # File: run.sh
-# Version: 0.9.9
+# Version: 1.0.0
 # Copyright Jeff Kosowsky
 # Date: July 2025
 #
@@ -23,17 +23,29 @@ trap '[ -n "$(jobs -p)" ] && kill $(jobs -p); [ -n "$TTY0_DELETED" ] && mknod -m
 #         BROWSER_REFRESH
 #         SCREEN_TIMEOUT
 #         HDMI_PORT
+#         ROTATE
+#         XORG_CONF
+#         XORG_APPEND_REPLACE
 #         DEBUG_MODE
-#     - Hack to delete (and later restore) /dev/tty0 (needed for X to start)
+#
+#     - Hack to delete (and later restore) /dev/tty0 (needed for X to start
+#       and to prevent udev permission errors))
+#     - Start udev
+#     - Hack to manually tag USB input devices (in /dev/input) for libinput
 #     - Start X window system
+#     - Stop console cursor blinking
 #     - Start Openbox window manager
+#     - Set up (enable/disable) screen timeouts
+#     - Rotate screen as appropriate
 #     - Poll to check if monitor wakes up and if so, reload luakit browser
 #     - Launch fresh Luakit browser for url: $HA_URL/$HA_DASHBOARD
+#       [If not in DEBUG_MODE; Otherwise, just sleep]
 #
 ################################################################################
-bashio::log.info "Starting haoskiosk..."
+echo "." #Note totally blank or white space lines are swallowed
+bashio::log.info "######## Starting HAOSKiosk ########"
 ### Get config variables from HA add-on & set environment variables
-function get_config () {
+function get_config() {
     # First, use existing variable if already set (for debugging purposes)
     # If not set, lookup configuration value
     # If null, use optional second parameter or else ""
@@ -41,15 +53,21 @@ function get_config () {
     local DEFAULT="${2:-}"
     local MASK="${3:-}"
 
-    local VALUE="${!VAR_NAME:-}" #Existing value for variable if set (note need default since running as 'nounset')
-    if [ -z "$VALUE" ]; then
-        VALUE=$(bashio::config "${VAR_NAME,,}")
+    local VALUE
+    #Check if $VAR_NAME exists before getting its value since 'set +x' mode
+    if declare -p "$VAR_NAME" >/dev/null 2>&1; then #Variable exist, get its value
+        VALUE="${!VAR_NAME}"
+    else # Try to get it from HA config using lowercase of key name
+        VALUE="$(bashio::config "${VAR_NAME,,}")"
     fi
-    if [ "$VALUE" = "null" ] || [ "$VALUE" = "" ]; then
+
+    if [ "$VALUE" = "null" ] || [ -z "$VALUE" ]; then
         VALUE="$DEFAULT"
     fi
 
-    export "$VAR_NAME=$VALUE"
+    # Assign and export safely using 'printf -v' and 'declare -x'
+    printf -v "$VAR_NAME" '%s' "$VALUE"
+    declare -x "$VAR_NAME"
 
     if [ -z "$MASK" ]; then
         bashio::log.info "$VAR_NAME=$VALUE"
@@ -59,7 +77,7 @@ function get_config () {
 }
 
 get_config HA_USERNAME
-get_config HA_PASSWORD "" 1 #Don't log password
+get_config HA_PASSWORD "" 1 Mask password in log
 get_config HA_URL
 get_config HA_DASHBOARD
 get_config HA_THEME
@@ -68,10 +86,14 @@ get_config LOGIN_DELAY
 get_config ZOOM_LEVEL
 get_config BROWSER_REFRESH
 get_config SCREEN_TIMEOUT 600 # Default to 600 seconds
-get_config HDMI_PORT 0 # Default to 0
-#NOTE: For now, both HDMI ports are mirrored and there is only /dev/fb0
-#      Not sure how to get them unmirrored so that console can be on /dev/fb0 and X on /dev/fb1
-#      As a result, setting HDMI=0 vs. 1 has no effect
+get_config HDMI_PORT 1 # Default to 1 (Can be 1 or 2, corresponding to HDMI-1 and HDMI-2)
+#NOTE: For now, both HDMI ports are mirrored so no difference between HDMI-1 and HDMI-2
+#      Not sure how to get them unmirrored short of editing /boot/config.txt for the
+#      underlying HAOS which is not accessible
+#      As a result, setting HDMI=1 vs. 2 has no effect for now
+get_config ROTATE normal
+get_config XORG_CONF
+get_config XORG_APPEND_REPLACE append
 get_config DEBUG_MODE false
 
 #Validate environment variables set by config.yaml
@@ -84,17 +106,15 @@ fi
 ### Avoid waiting for DBUS timeouts (e.g., luakit)
 export DBUS_SESSION_BUS_ADDRESS=/dev/null
 
-### Start Xorg in the background
-rm -rf /tmp/.X*-lock #Cleanup old versions
-
 #Note first need to delete /dev/tty0 since X won't start if it is there,
 #because X doesn't have permissions to access it in the container
+#Also, prevents udev permission error warnings & issues
 #First, remount /dev as read-write since X absolutely, must have /dev/tty access
 #Note: need to use the version in util-linux, not busybox
 #Note: Do *not* later remount as 'ro' since that affect the root fs and
 #      in particular will block HAOS updates
 if [ -e "/dev/tty0" ]; then
-    bashio::log.info "Attempting to (temporarily) delete /dev/tty0..."
+    bashio::log.info "Attempting to remount /dev as 'ro' and (temporarily) delete /dev/tty0..."
     mount -o remount,rw /dev
     if ! mount -o remount,rw /dev ; then
         bashio::log.error "Failed to remount /dev as read-write..."
@@ -108,7 +128,42 @@ if [ -e "/dev/tty0" ]; then
     bashio::log.info "Deleted /dev/tty0 successfully..."
 fi
 
-Xorg "$DISPLAY" -layout "Layout${HDMI_PORT}" </dev/null &
+### Start udev (used by X)
+bashio::log.info "Starting 'udevd' and (re-)triggering..."
+udevd --daemon
+udevadm trigger
+
+# Manually tag USB input devices (in /dev/input) for libinput since
+# 'udev' doesn't necessarily trigger their tagging when run in a container.
+if [ -x "/tag-input-devices.sh" ]; then
+    bashio::log.info "Tagging USB input devices for use by 'libinput'..."
+    /tag-input-devices.sh
+fi
+
+### Start Xorg in the background
+rm -rf /tmp/.X*-lock #Cleanup old versions
+
+if [ -z "$XORG_CONF" ]; then
+    bashio::log.info "No 'xorg.conf' set, using default..."
+else
+    if [ "${XORG_APPEND_REPLACE}" = "append" ]; then
+        bashio::log.info "Appending onto default 'xorg.conf'..."
+        echo -e "\n#\n${XORG_CONF}" >> /etc/X11/xorg.conf
+
+    else
+        bashio::log.info "Starting X on '$DISPLAY'..."
+        echo "${XORG_CONF}" >| /etc/X11/xorg.conf
+    fi
+fi
+
+# Print out current 'xorg.conf'
+echo "." #Note totally blank or white space lines are swallowed
+printf '%*s xorg.conf %*s\n' 35 '' 34 '' | tr ' ' '#' #Header
+cat /etc/X11/xorg.conf
+printf '%*s\n' 80 '' | tr ' ' '#' #Trailer
+echo "."
+
+Xorg "$DISPLAY" -layout "Layout$((HDMI_PORT - 1))" </dev/null &
 
 XSTARTUP=30
 for ((i=0; i<=XSTARTUP; i++)); do
@@ -118,7 +173,7 @@ for ((i=0; i<=XSTARTUP; i++)); do
     sleep 1
 done
 
-#Restore /dev/tty0
+# Restore /dev/tty0
 if [ -n "$TTY0_DELETED" ]; then
     if mknod -m 620 /dev/tty0 c 4 0; then
         bashio::log.info "Restored /dev/tty0 successfully..."
@@ -159,6 +214,12 @@ else
     bashio::log.info "Screen timeout after $SCREEN_TIMEOUT seconds..."
 fi
 
+#Rotate screen
+if [ "$ROTATE" != normal ]; then
+    xrandr --output HDMI-"${HDMI_PORT}" --rotate "${ROTATE}"
+    bashio::log.info "Rotating HDMI-${HDMI_PORT}: ${ROTATE}"
+fi
+
 # Poll to send <Control-r> when screen unblanks to force reload of luakit page
 (
     PREV=""
@@ -172,7 +233,6 @@ fi
     done
 )&
 
-echo "DEBUG_MODE=$DEBUG_MODE" #JJKCRAP
 if [ "$DEBUG_MODE" != true ]; then
     ### Run Luakit in the foreground
     bashio::log.info "Launching Luakit browser..."

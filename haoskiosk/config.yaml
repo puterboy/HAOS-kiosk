@@ -1,7 +1,8 @@
+---
 name: "HAOS Kiosk Display"
 description: >
   Start X server and browser on local HAOS server and display dashboards in kiosk mode (Jeff Kosowsky)
-version: "0.9.9"
+version: "1.0.0"
 slug: "haoskiosk"
 
 arch:
@@ -17,10 +18,36 @@ init: false
 ingress: true
 
 devices:
-  - /dev/fb0
-  - /dev/fb1
+  - /dev/dri/card0
+  - /dev/dri/card1
+  - /dev/dri/renderD128
+
   - /dev/input/event0
   - /dev/input/event1
+  - /dev/input/event2
+  - /dev/input/event3
+  - /dev/input/event4
+  - /dev/input/event5
+  - /dev/input/event6
+  - /dev/input/event7
+  - /dev/input/event8
+  - /dev/input/event9
+  - /dev/input/event10
+  - /dev/input/event11
+  - /dev/input/event12
+  - /dev/input/event13
+  - /dev/input/event14
+  - /dev/input/event15
+  - /dev/input/event16
+  - /dev/input/event17
+  - /dev/input/event18
+  - /dev/input/event19
+  - /dev/input/event20
+  - /dev/input/event21
+  - /dev/input/event22
+  - /dev/input/event23
+  - /dev/input/event24
+  - /dev/input/event25
 
 privileged:
   - SYS_ADMIN
@@ -32,9 +59,12 @@ options:
   zoom_level: 100
   browser_refresh: 600
   screen_timeout: 0
-  hdmi_port: 0
+  hdmi_port: 1
   ha_theme: "dark"
   ha_sidebar: "none"
+  rotate: "normal"
+  xorg_conf: ""
+  xorg_append_replace: "append"
   debug_mode: false
 
 schema:
@@ -46,9 +76,12 @@ schema:
   zoom_level: int(10,1000)
   browser_refresh: int(0,)
   screen_timeout: int(0,)
-  hdmi_port: int(0,1)
+  hdmi_port: int(1,2)
   ha_theme: list(auto|dark|light|none)
   ha_sidebar: list(full|narrow|none)
+  rotate: list(normal|left|right|inverted)
+  xorg_conf: str?
+  xorg_append_replace: list(append|replace)
   debug_mode: bool
 
 translations:

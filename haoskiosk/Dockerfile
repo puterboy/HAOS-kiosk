@@ -1,7 +1,7 @@
 ################################################################################
 # Add-on: HAOS Kiosk Display (haoskiosk)
 # File: Dockerfile
-# Version: 0.9.9
+# Version: 1.0.0
 # Copyright Jeff Kosowsky
 # Date: July 2025
 ################################################################################
@@ -12,15 +12,25 @@ FROM $BUILD_FROM
 # Install Luakit and necessary dependencies
 RUN apk update && apk add --no-cache \
     xorg-server \
-    xf86-video-fbdev \
-    xf86-input-evdev \
+    xf86-video-modesetting \
+    xf86-input-libinput \
+    libinput \
+    udev \
+    libinput-udev \
+    libevdev \
+    mesa-dri-gallium \
+    mesa-egl \
+    mesa-gles \
+    libdrm \
+    libxkbcommon \
     openbox \
     ttf-dejavu \
     util-linux \
     xset \
     xdotool \
+    xrandr \
     bash \
-    && apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/v3.21/community luakit=2.3.6-r0 \
+    luakit \
     && rm -rf /var/cache/apk/*
 
 # Set the display variable
@@ -33,5 +43,8 @@ COPY translations/*.yaml /translations/
 
 COPY run.sh /
 RUN chmod a+x /run.sh
+
+COPY tag-input-devices.sh /
+RUN chmod a+x /tag-input-devices.sh
 
 CMD ["/run.sh"]
