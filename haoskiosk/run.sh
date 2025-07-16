@@ -144,7 +144,7 @@ fi
 rm -rf /tmp/.X*-lock #Cleanup old versions
 
 if [ -z "$XORG_CONF" ]; then
-    bashio::log.info "No 'xorg.conf' set, using default..."
+    bashio::log.info "No user 'xorg.conf' data provided, using default..."
 else
     if [ "${XORG_APPEND_REPLACE}" = "append" ]; then
         bashio::log.info "Appending onto default 'xorg.conf'..."
