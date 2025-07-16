@@ -77,7 +77,7 @@ function get_config() {
 }
 
 get_config HA_USERNAME
-get_config HA_PASSWORD "" 1 Mask password in log
+get_config HA_PASSWORD "" 1 #Mask password in log
 get_config HA_URL
 get_config HA_DASHBOARD
 get_config HA_THEME
