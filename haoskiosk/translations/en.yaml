@@ -33,7 +33,7 @@ configuration:
   hdmi_port:
     name: "HDMI Port"
     description: |
-      0 or HDMI1, 1 for HDMI2 [Default: 0]
+      1 or HDMI-1, 2 for HDMI-2 [Default: 1]
       Note: Doesn't work on default RPI HAOS since HDMI2 mirrors HDMI1
   ha_theme:
     name: "HA Theme"
