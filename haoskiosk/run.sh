@@ -67,7 +67,7 @@ function get_config() {
 
     # Assign and export safely using 'printf -v' and 'declare -x'
     printf -v "$VAR_NAME" '%s' "$VALUE"
-    declare -x "$VAR_NAME"
+    eval "export $VAR_NAME"
 
     if [ -z "$MASK" ]; then
         bashio::log.info "$VAR_NAME=$VALUE"
@@ -235,7 +235,7 @@ fi
 
 if [ "$DEBUG_MODE" != true ]; then
     ### Run Luakit in the foreground
-    bashio::log.info "Launching Luakit browser..."
+    bashio::log.info "Launching Luakit browser: $HA_URL/$HA_DASHBOARD"
     exec luakit -U "$HA_URL/$HA_DASHBOARD"
 else ### Debug mode
     bashio::log.info "Entering debug mode (X & Openbox but no luakit browser)..."
