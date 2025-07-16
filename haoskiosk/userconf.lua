@@ -115,7 +115,7 @@ local first_window = true
 local ha_settings_applied = setmetatable({}, { __mode = "k" }) -- Flag to track if HA settings have already been applied in this session
 
 webview.add_signal("init", function(view)
-    ha_settings_applied[view] = false  -- Set per view
+    ha_settings_applied[view] = false  -- Set theme & sidebar settings once  per view
 
     -- Listen for page load events
     view:add_signal("load-status", function(v, status)
@@ -130,7 +130,7 @@ webview.add_signal("init", function(view)
                                                       -- Otherwise, first saved (and recovered) tab gets set to passthrough mode and not the specified start url
             -- Option 1b: [NOT USED] Requires adding 'apk add xdotool' to Dockerfile -- also seems  to set for all pre-existing windows
 --          os.execute("xdotool key ctrl+z")
---          msg.info("Setting passthrough mode...") -- DEBUG
+            msg.info("Setting passthrough mode...") -- DEBUG
             first_window = false
         end
 
@@ -145,6 +145,7 @@ webview.add_signal("init", function(view)
         -- Set up auto-login for Home Assistant
         -- Check if current URL matches the Home Assistant auth page
         if v.uri:match("^" .. ha_url_base .. "/auth/authorize%?response_type=code") then
+	    msg.info("Authorizing: %s", v.uri) -- DEBUG
             -- JavaScript to auto-fill and submit the login form
             local js_auto_login = string.format([[
                 setTimeout(function() {
@@ -175,6 +176,8 @@ webview.add_signal("init", function(view)
 
                 }, %d);
             ]], single_quote_escape(username), single_quote_escape(password), login_delay * 1000)
+
+	    msg.info("Logging in: (username: %s): %s", username, v.uri) -- DEBUG
             v:eval_js(js_auto_login, { source = "auto_login.js", no_return = true })  -- Execute the login script
         end
 
@@ -183,8 +186,6 @@ webview.add_signal("init", function(view)
         if not ha_settings_applied[v]
            and (v.uri .. "/"):match("^" .. ha_url_base .. "/") -- Note ha_url was stripped of trailing slashes
            and not v.uri:match("^" .. ha_url_base .. "/auth/") then
-
-            msg.info("Applying HA settings on dashboard %s: theme=%s, sidebar=%s", v.uri, theme, sidebar) -- DEBUG
 
             local js_settings = string.format([[
                 try {
@@ -236,11 +237,15 @@ webview.add_signal("init", function(view)
             ]], single_quote_escape(theme), single_quote_escape(sidebar))
 
             v:eval_js(js_settings, { source = "ha_settings.js", no_return = true })
+            msg.info("Applying HA settings on dashboard %s: theme=%s, sidebar=%s", v.uri, theme, sidebar) -- DEBUG
+
             ha_settings_applied[v] = true   -- Mark in Lua session as settings applied
         end
 
-        -- Set up periodic page refresh if browser_interval is positive
+
+        -- Set up periodic page refresh (once per page load) if browser_refresh interval is positive
         if browser_refresh > 0 then
+            -- JavaScript to block HA reloads and set up periodic reloads
             local js_refresh = string.format([[
                 if (window.ha_refresh_id) clearInterval(window.ha_refresh_id);
                 window.ha_refresh_id = setInterval(function() {
@@ -250,12 +255,14 @@ webview.add_signal("init", function(view)
                     clearInterval(window.ha_refresh_id);
                 });
             ]], browser_refresh * 1000)
+
+            -- Inject refresh script into the webview
             v:eval_js(js_refresh, { source = "auto_refresh.js", no_return = true })  -- Execute the refresh script
+            msg.info("Injecting refresh interval: %s", v.uri)  -- DEBUG
         end
 
     end)
 end)
-
 
 -- -----------------------------------------------------------------------
 -- Redefine <Esc> to 'new_escape_key' (e.g., <Ctl-Alt-Esc>) to exit current mode and enter normal mode
