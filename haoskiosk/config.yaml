@@ -63,7 +63,7 @@ options:
   ha_theme: "dark"
   ha_sidebar: "none"
   rotate_display: "normal"
-  rotate_tocuch: "false"
+  rotate_touch: "false"
   xorg_conf: ""
   xorg_append_replace: "append"
   debug_mode: false
