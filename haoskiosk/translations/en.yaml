@@ -50,7 +50,7 @@ configuration:
       full: "Full"
       narrow: "Narrow"
       none: "None"
-  rotate:
+  rotate_display:
     name: "Rotate Display"
     description: "Rotate display [Default: Normal]"
     items:
@@ -58,6 +58,9 @@ configuration:
       left: "Left (90deg CCW)"
       right: "Right (90deg CW)"
       inverted: "Inverted (180deg)"
+  rotate_touch:
+    name: "Rotate Touch Input Devices"
+    description: If 'true', similarly rotate all valid touch input devices
   xorg_conf:
     name: "xorg.conf file"
     description: "Insert custom 'xorg.conf' code"

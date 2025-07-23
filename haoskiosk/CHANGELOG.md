@@ -2,13 +2,15 @@
 
 ## v1.0.0 - July 2025
 
-- Fixed luakit issues and reverted to latest version
+
 - Switched from (legacy) framebuffer-based video (fbdev) to OpenGL/DRI
   video
 - Switched from (legacy) evdev input handling to libinput input handling
-- Added 'rotation' configuration
-- Simp\`lified 'xorg.conf'
+- Added 'rotation' configuration to rotate display
+- Added corresponding rotation boolean to determine whether to also rotate touch inuputs
+- Simplified 'xorg.conf' to minimal necessary config
 - Added ability to append to or replace default 'xorg.conf'
+- Improved  userconf.lua code
 
 ## v0.9.9 - July 2025
 

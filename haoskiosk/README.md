@@ -96,7 +96,7 @@ Options include: (Default: None)
 - Narrow (icons only)
 - None (hidden)
 
-### ROTATE
+### ROTATE SCREEN
 
 Rotate the display relative to standard view.\
 Options include: (Default: Normal)
@@ -105,6 +105,10 @@ Options include: (Default: Normal)
 - Left (Rotate 90 degrees clockwise)
 - Right (Rotate 90 degrees counter-clockwise)
 - Inverted (Rotate 180 degrees)
+
+### ROTATE TOUCH
+
+Also rotate touch screen input devices if true
 
 ### XORG.CONF
 

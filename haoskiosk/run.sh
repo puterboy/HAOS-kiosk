@@ -23,7 +23,8 @@ trap '[ -n "$(jobs -p)" ] && kill $(jobs -p); [ -n "$TTY0_DELETED" ] && mknod -m
 #         BROWSER_REFRESH
 #         SCREEN_TIMEOUT
 #         HDMI_PORT
-#         ROTATE
+#         ROTATE_DISPLAY
+#         ROTATE_TOUCH
 #         XORG_CONF
 #         XORG_APPEND_REPLACE
 #         DEBUG_MODE
@@ -91,7 +92,8 @@ get_config HDMI_PORT 1 # Default to 1 (Can be 1 or 2, corresponding to HDMI-1 an
 #      Not sure how to get them unmirrored short of editing /boot/config.txt for the
 #      underlying HAOS which is not accessible
 #      As a result, setting HDMI=1 vs. 2 has no effect for now
-get_config ROTATE normal
+get_config ROTATE_DISPLAY normal
+get_config ROTATE_TOUCH false
 get_config XORG_CONF
 get_config XORG_APPEND_REPLACE append
 get_config DEBUG_MODE false
@@ -214,10 +216,14 @@ else
     bashio::log.info "Screen timeout after $SCREEN_TIMEOUT seconds..."
 fi
 
-#Rotate screen
-if [ "$ROTATE" != normal ]; then
-    xrandr --output HDMI-"${HDMI_PORT}" --rotate "${ROTATE}"
-    bashio::log.info "Rotating HDMI-${HDMI_PORT}: ${ROTATE}"
+#Rotate display && touchscreen inputs
+if [ "$ROTATE_DISPLAY" != normal ]; then
+    xrandr --output HDMI-"${HDMI_PORT}" --rotate "${ROTATE_DISPLAY}"
+    bashio::log.info "Rotating HDMI-${HDMI_PORT}: ${ROTATE_DISPLAY}"
+    if [ "$ROTATE_TOUCH" = true ]; then
+	./rotate_touch_input.sh "${ROTATE_DISPLAY}"
+	bashio::log.info "Rotating touch input devices: ${ROTATE_DISPLAY}"
+    fi
 fi
 
 # Poll to send <Control-r> when screen unblanks to force reload of luakit page

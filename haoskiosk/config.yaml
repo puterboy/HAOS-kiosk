@@ -62,7 +62,8 @@ options:
   hdmi_port: 1
   ha_theme: "dark"
   ha_sidebar: "none"
-  rotate: "normal"
+  rotate_display: "normal"
+  rotate_tocuch: "false"
   xorg_conf: ""
   xorg_append_replace: "append"
   debug_mode: false
@@ -79,7 +80,8 @@ schema:
   hdmi_port: int(1,2)
   ha_theme: list(auto|dark|light|none)
   ha_sidebar: list(full|narrow|none)
-  rotate: list(normal|left|right|inverted)
+  rotate_display: list(normal|left|right|inverted)
+  rotate_touch: bool
   xorg_conf: str?
   xorg_append_replace: list(append|replace)
   debug_mode: bool

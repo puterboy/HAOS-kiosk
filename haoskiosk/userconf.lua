@@ -245,7 +245,7 @@ webview.add_signal("init", function(view)
 
         -- Set up periodic page refresh (once per page load) if browser_refresh interval is positive
         if browser_refresh > 0 then
-            -- JavaScript to block HA reloads and set up periodic reloads
+            -- JavaScript to block HA reloads and set up periodic reloads	
             local js_refresh = string.format([[
                 if (window.ha_refresh_id) clearInterval(window.ha_refresh_id);
                 window.ha_refresh_id = setInterval(function() {
@@ -256,7 +256,7 @@ webview.add_signal("init", function(view)
                 });
             ]], browser_refresh * 1000)
 
-            -- Inject refresh script into the webview
+            -- Inject refresh script into the webview	    
             v:eval_js(js_refresh, { source = "auto_refresh.js", no_return = true })  -- Execute the refresh script
             msg.info("Injecting refresh interval: %s", v.uri)  -- DEBUG
         end
