@@ -221,8 +221,8 @@ if [ "$ROTATE_DISPLAY" != normal ]; then
     xrandr --output HDMI-"${HDMI_PORT}" --rotate "${ROTATE_DISPLAY}"
     bashio::log.info "Rotating HDMI-${HDMI_PORT}: ${ROTATE_DISPLAY}"
     if [ "$ROTATE_TOUCH" = true ]; then
-	./rotate_touch_input.sh "${ROTATE_DISPLAY}"
-	bashio::log.info "Rotating touch input devices: ${ROTATE_DISPLAY}"
+        ./rotate_touch_input.sh "${ROTATE_DISPLAY}"
+        bashio::log.info "Rotating touch input devices: ${ROTATE_DISPLAY}"
     fi
 fi
 
