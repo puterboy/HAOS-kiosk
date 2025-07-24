@@ -11,6 +11,8 @@
 - Simplified 'xorg.conf' to minimal necessary config
 - Added ability to append to or replace default 'xorg.conf'
 - Improved userconf.lua code
+- Added back (local) DBUS to allow for inter-process luakit communication
+  (e.g., to allow use of unique instance)
 
 ## v0.9.9 - July 2025
 

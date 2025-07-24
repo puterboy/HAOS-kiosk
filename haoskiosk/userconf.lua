@@ -111,6 +111,8 @@ local function single_quote_escape(str) -- Single quote strings before injection
 end
 
 -- -----------------------------------------------------------------------
+-- Auto-login to homeassistant (if on HA url) and set 'theme' and 'sidebar settings
+
 local first_window = true
 local ha_settings_applied = setmetatable({}, { __mode = "k" }) -- Flag to track if HA settings have already been applied in this session
 

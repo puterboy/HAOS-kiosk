@@ -105,8 +105,11 @@ if [ -z "$HA_USERNAME" ] || [ -z "$HA_PASSWORD" ]; then
 fi
 
 ################################################################################
-### Avoid waiting for DBUS timeouts (e.g., luakit)
-export DBUS_SESSION_BUS_ADDRESS=/dev/null
+### Start Dbus
+# Avoids waiting for DBUS timeouts (e.g., luakit)
+# Allows luakit to enfoce unique instance by default
+DBUS_SESSION_BUS_ADDRESS=$(dbus-daemon --session --fork --print-address)
+export DBUS_SESSION_BUS_ADDRESS
 
 #Note first need to delete /dev/tty0 since X won't start if it is there,
 #because X doesn't have permissions to access it in the container
