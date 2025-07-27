@@ -2,7 +2,13 @@
 # shellcheck shell=bash
 # Clean up on exit:
 TTY0_DELETED="" #Need to set to empty string since runs with nounset=on (like set -u)
-trap '[ -n "$(jobs -p)" ] && kill $(jobs -p); [ -n "$TTY0_DELETED" ] && mknod -m 620 /dev/tty0 c 4 0; exit' INT TERM EXIT
+cleanup() {
+    local exit_code=$?
+    [ -n "$(jobs -p)" ] && kill "$(jobs -p)"
+    [ -n "$TTY0_DELETED" ] && mknod -m 620 /dev/tty0 c 4 0
+    exit "$exit_code"
+}
+trap cleanup INT TERM EXIT
 ################################################################################
 # Add-on: HAOS Kiosk Display (haoskiosk)
 # File: run.sh
@@ -22,9 +28,10 @@ trap '[ -n "$(jobs -p)" ] && kill $(jobs -p); [ -n "$TTY0_DELETED" ] && mknod -m
 #         ZOOM_LEVEL
 #         BROWSER_REFRESH
 #         SCREEN_TIMEOUT
-#         HDMI_PORT
+#         OUTPUT_NUMBER
 #         ROTATE_DISPLAY
-#         ROTATE_TOUCH
+#         MAP_TOUCH_INPUTS
+#         KEYBOARD_LAYOUT
 #         XORG_CONF
 #         XORG_APPEND_REPLACE
 #         DEBUG_MODE
@@ -43,10 +50,11 @@ trap '[ -n "$(jobs -p)" ] && kill $(jobs -p); [ -n "$TTY0_DELETED" ] && mknod -m
 #       [If not in DEBUG_MODE; Otherwise, just sleep]
 #
 ################################################################################
-echo "." #Note totally blank or white space lines are swallowed
+echo "." #Almost blank line (Note totally blank or white space lines are swallowed)
+printf '%*s\n' 80 '' | tr ' ' '#' #Separator
 bashio::log.info "######## Starting HAOSKiosk ########"
 ### Get config variables from HA add-on & set environment variables
-function get_config() {
+function load_config_var() {
     # First, use existing variable if already set (for debugging purposes)
     # If not set, lookup configuration value
     # If null, use optional second parameter or else ""
@@ -58,11 +66,14 @@ function get_config() {
     #Check if $VAR_NAME exists before getting its value since 'set +x' mode
     if declare -p "$VAR_NAME" >/dev/null 2>&1; then #Variable exist, get its value
         VALUE="${!VAR_NAME}"
-    else # Try to get it from HA config using lowercase of key name
+    elif bashio::config.exists "${VAR_NAME,,}"; then
         VALUE="$(bashio::config "${VAR_NAME,,}")"
+    else
+        bashio::log.warning "Unknown config key: ${VAR_NAME,,}"
     fi
 
     if [ "$VALUE" = "null" ] || [ -z "$VALUE" ]; then
+        bashio::log.warning "Config key '${VAR_NAME,,}' unset, setting to default: '$DEFAULT'"
         VALUE="$DEFAULT"
     fi
 
@@ -77,28 +88,27 @@ function get_config() {
     fi
 }
 
-get_config HA_USERNAME
-get_config HA_PASSWORD "" 1 #Mask password in log
-get_config HA_URL
-get_config HA_DASHBOARD
-get_config HA_THEME
-get_config HA_SIDEBAR
-get_config LOGIN_DELAY
-get_config ZOOM_LEVEL
-get_config BROWSER_REFRESH
-get_config SCREEN_TIMEOUT 600 # Default to 600 seconds
-get_config HDMI_PORT 1 # Default to 1 (Can be 1 or 2, corresponding to HDMI-1 and HDMI-2)
-#NOTE: For now, both HDMI ports are mirrored so no difference between HDMI-1 and HDMI-2
-#      Not sure how to get them unmirrored short of editing /boot/config.txt for the
-#      underlying HAOS which is not accessible
-#      As a result, setting HDMI=1 vs. 2 has no effect for now
-get_config ROTATE_DISPLAY normal
-get_config ROTATE_TOUCH false
-get_config XORG_CONF
-get_config XORG_APPEND_REPLACE append
-get_config DEBUG_MODE false
+load_config_var HA_USERNAME
+load_config_var HA_PASSWORD "" 1 #Mask password in log
+load_config_var HA_URL
+load_config_var HA_DASHBOARD
+load_config_var HA_THEME
+load_config_var HA_SIDEBAR
+load_config_var LOGIN_DELAY
+load_config_var ZOOM_LEVEL
+load_config_var BROWSER_REFRESH
+load_config_var SCREEN_TIMEOUT 600 # Default to 600 seconds
+load_config_var OUTPUT_NUMBER 1 # Which *CONNECTED* Physical video output to use (Defaults to 1)
+#NOTE: By only considering *CONNECTED* output, this maximizes the chance of finding an output
+#      without any need to change configs. Set to 1, unless you have multiple video outputs connected.
+load_config_var ROTATE_DISPLAY normal
+load_config_var MAP_TOUCH_INPUTS true
+load_config_var KEYBOARD_LAYOUT us
+load_config_var XORG_CONF
+load_config_var XORG_APPEND_REPLACE append
+load_config_var DEBUG_MODE false
 
-#Validate environment variables set by config.yaml
+# Validate environment variables set by config.yaml
 if [ -z "$HA_USERNAME" ] || [ -z "$HA_PASSWORD" ]; then
     bashio::log.error "Error: HA_USERNAME and HA_PASSWORD must be set"
     exit 1
@@ -109,15 +119,18 @@ fi
 # Avoids waiting for DBUS timeouts (e.g., luakit)
 # Allows luakit to enfoce unique instance by default
 DBUS_SESSION_BUS_ADDRESS=$(dbus-daemon --session --fork --print-address)
+if [ -z "$DBUS_SESSION_BUS_ADDRESS" ]; then
+    bashio::log.warning "WARNING: Failed to start dbus-daemon"
+fi
 export DBUS_SESSION_BUS_ADDRESS
 
-#Note first need to delete /dev/tty0 since X won't start if it is there,
-#because X doesn't have permissions to access it in the container
-#Also, prevents udev permission error warnings & issues
-#First, remount /dev as read-write since X absolutely, must have /dev/tty access
-#Note: need to use the version in util-linux, not busybox
-#Note: Do *not* later remount as 'ro' since that affect the root fs and
-#      in particular will block HAOS updates
+# Note first need to delete /dev/tty0 since X won't start if it is there,
+# because X doesn't have permissions to access it in the container
+# Also, prevents udev permission error warnings & issues
+# First, remount /dev as read-write since X absolutely, must have /dev/tty access
+# Note: need to use the version in util-linux, not busybox
+# Note: Do *not* later remount as 'ro' since that affect the root fs and
+#       in particular will block HAOS updates
 if [ -e "/dev/tty0" ]; then
     bashio::log.info "Attempting to remount /dev as 'ro' and (temporarily) delete /dev/tty0..."
     mount -o remount,rw /dev
@@ -135,8 +148,9 @@ fi
 
 ### Start udev (used by X)
 bashio::log.info "Starting 'udevd' and (re-)triggering..."
-udevd --daemon
-udevadm trigger
+if ! udevd --daemon || ! udevadm trigger; then
+    bashio::log.warning "WARNING: Failed to start udevd or trigger udev, input devices may not work"
+fi
 
 # Manually tag USB input devices (in /dev/input) for libinput since
 # 'udev' doesn't necessarily trigger their tagging when run in a container.
@@ -148,27 +162,33 @@ fi
 ### Start Xorg in the background
 rm -rf /tmp/.X*-lock #Cleanup old versions
 
-if [ -z "$XORG_CONF" ]; then
-    bashio::log.info "No user 'xorg.conf' data provided, using default..."
+# Modify 'xorg.conf' as appropriate
+if [[ -n "$XORG_CONF" && "${XORG_APPEND_REPLACE}" = "replace" ]]; then
+    bashio::log.info "Replacing default 'xorg.conf'..."
+    echo "${XORG_CONF}" >| /etc/X11/xorg.conf
 else
-    if [ "${XORG_APPEND_REPLACE}" = "append" ]; then
+    cp -a /etc/X11/xorg.conf{.default,}
+    if [ "$(uname -m)" = "aarch64" ]; then # Add "kmsdev" line to Device Section for Rpi
+        sed -i '/Section "Device"/,/EndSection/ s#^\( *Option *"DRI" *"3"\)#\1\n    Option "kmsdev" "/dev/dri/card1"#' /etc/X11/xorg.conf
+    fi
+
+    if [ -z "$XORG_CONF" ]; then
+        bashio::log.info "No user 'xorg.conf' data provided, using default..."
+    elif [ "${XORG_APPEND_REPLACE}" = "append" ]; then
         bashio::log.info "Appending onto default 'xorg.conf'..."
         echo -e "\n#\n${XORG_CONF}" >> /etc/X11/xorg.conf
-
-    else
-        bashio::log.info "Starting X on '$DISPLAY'..."
-        echo "${XORG_CONF}" >| /etc/X11/xorg.conf
     fi
 fi
 
 # Print out current 'xorg.conf'
-echo "." #Note totally blank or white space lines are swallowed
+echo "." #Almost blank line (Note totally blank or white space lines are swallowed)
 printf '%*s xorg.conf %*s\n' 35 '' 34 '' | tr ' ' '#' #Header
 cat /etc/X11/xorg.conf
 printf '%*s\n' 80 '' | tr ' ' '#' #Trailer
 echo "."
 
-Xorg "$DISPLAY" -layout "Layout$((HDMI_PORT - 1))" </dev/null &
+bashio::log.info "Starting X on DISPLAY=$DISPLAY..."
+Xorg </dev/null &
 
 XSTARTUP=30
 for ((i=0; i<=XSTARTUP; i++)); do
@@ -191,7 +211,7 @@ if ! xset q >/dev/null 2>&1; then
     bashio::log.error "Error: X server failed to start within $XSTARTUP seconds."
     exit 1
 fi
-bashio::log.info "X started successfully..."
+bashio::log.info "X server started successfully after $i seconds..."
 
 #Stop console blinking cursor (this projects through the X-screen)
 echo -e "\033[?25l" > /dev/console
@@ -219,15 +239,62 @@ else
     bashio::log.info "Screen timeout after $SCREEN_TIMEOUT seconds..."
 fi
 
-#Rotate display && touchscreen inputs
-if [ "$ROTATE_DISPLAY" != normal ]; then
-    xrandr --output HDMI-"${HDMI_PORT}" --rotate "${ROTATE_DISPLAY}"
-    bashio::log.info "Rotating HDMI-${HDMI_PORT}: ${ROTATE_DISPLAY}"
-    if [ "$ROTATE_TOUCH" = true ]; then
-        ./rotate_touch_input.sh "${ROTATE_DISPLAY}"
-        bashio::log.info "Rotating touch input devices: ${ROTATE_DISPLAY}"
-    fi
+### Activate (+/- rotate) desired physical output number
+# Detect connected physical outputs
+
+readarray -t ALL_OUTPUTS < <(xrandr --query | awk '/^[[:space:]]*[A-Za-z0-9-]+/ {print $1}')
+bashio::log.info "All video outputs: ${ALL_OUTPUTS[*]}"
+
+readarray -t OUTPUTS < <(xrandr --query | awk '/ connected/ {print $1}') # Read in array of outputs
+if [ ${#OUTPUTS[@]} -eq 0 ]; then
+    bashio::log.info "ERROR: No connected outputs detected. Exiting.."
+    exit 1
 fi
+
+# Select the N'th connected output (fallback to last output if N exceeds actual number of outputs)
+if [ "$OUTPUT_NUMBER" -gt "${#OUTPUTS[@]}" ]; then
+    OUTPUT_NUMBER=${#OUTPUTS[@]}  # Use last output
+fi
+bashio::log.info "Connected video outputs: (Selected output marked with '*')"
+for i in "${!OUTPUTS[@]}"; do
+    marker=" "
+    [ "$i" -eq "$((OUTPUT_NUMBER - 1))" ] && marker="*"
+    bashio::log.info "  ${marker}[$((i + 1))] ${OUTPUTS[$i]}"
+done
+OUTPUT_NAME="${OUTPUTS[$((OUTPUT_NUMBER - 1))]}" #Subtract 1 since zero-based
+
+# Configure the selected output and disable others
+for OUTPUT in "${OUTPUTS[@]}"; do
+    if [ "$OUTPUT" = "$OUTPUT_NAME" ]; then #Activate
+        if [ "$ROTATE_DISPLAY" = normal ]; then
+            xrandr --output "$OUTPUT_NAME" --primary --auto
+        else
+            xrandr --output "$OUTPUT_NAME" --primary --rotate "${ROTATE_DISPLAY}"
+            bashio::log.info "Rotating $OUTPUT_NAME: ${ROTATE_DISPLAY}"
+        fi
+    else # Set as inactive output
+        xrandr --output "$OUTPUT" --off
+    fi
+done
+
+if [ "$MAP_TOUCH_INPUTS" = true ]; then #Map touch devices to physical output
+    while IFS= read -r id; do #Loop through all xinput devices
+        name=$(xinput list --name-only "$id" 2>/dev/null)
+        [[ "${name,,}" =~ (^|[^[:alnum:]_])(touch|touchscreen|stylus)([^[:alnum:]_]|$) ]] || continue #Not touch-like input
+        xinput_line=$(xinput list "$id" 2>/dev/null)
+        [[ "$xinput_line" =~ \[(slave|master)[[:space:]]+keyboard[[:space:]]+\([0-9]+\)\] ]] && continue
+        props="$(xinput list-props "$id" 2>/dev/null)"
+        [[ "$props" = *"Coordinate Transformation Matrix"* ]] ||  continue #No transformation matrix
+        xinput map-to-output "$id" "$OUTPUT_NAME" && RESULT="SUCCESS" || RESULT="FAILED"
+        bashio::log.info "Mapping: input device [$id|$name] -->  $OUTPUT_NAME [$RESULT]"
+
+    done < <(xinput list --id-only | sort -n)
+fi
+
+# Set keyboard layout
+setxkbmap "$KEYBOARD_LAYOUT"
+bashio::log.info "Setting Keyboard Layout: $KEYBOARD_LAYOUT"
+setxkbmap -query #Log layout
 
 # Poll to send <Control-r> when screen unblanks to force reload of luakit page
 (
@@ -238,7 +305,7 @@ fi
             [[ "$PREV" == "Off" && "$STATE" == "On" ]] && xdotool key --clearmodifiers ctrl+r
             PREV=$STATE
         fi
-        sleep 1
+        sleep 5; #Wait between polling attempts
     done
 )&
 

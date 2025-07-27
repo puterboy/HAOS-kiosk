@@ -71,11 +71,14 @@ Time before screen blanks in seconds. Set to `0` to never timeout.
 
 Default: 0 seconds (never timeout)
 
-### HDMI Port
+### Output Number
 
-HDMI output port. Technically can be `0` or `1` (Default: 0).\
-BUT currently has no effect on stock HAOS on RPi since configured to mirror
-HDMI0 onto HDMI1.
+Choose which of the *connected* video output ports to use. Set to 1 to use
+the first connected port. If selected number exceeds number of connected
+ports, then use last valid connected port(Default: 1)
+
+NOTE: This should always be set to 1 unless you have more than one video
+output device connected. If so, use the logs to see how they are numbered.
 
 ### HA Theme
 
@@ -106,9 +109,14 @@ Options include: (Default: Normal)
 - Right (Rotate 90 degrees counter-clockwise)
 - Inverted (Rotate 180 degrees)
 
-### ROTATE TOUCH
+### MAP TOUCH INPUTS
 
-Also rotate touch screen input devices if true
+Map touch inputs to the selected video output, so that the touch devices
+get rotated consistently with the video output. (Default: True)
+
+### KEYBOARD LAYOUT
+
+Set the keyboard layout. (Default: us)
 
 ### XORG.CONF
 

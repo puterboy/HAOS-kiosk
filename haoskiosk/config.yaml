@@ -1,7 +1,8 @@
 ---
 name: "HAOS Kiosk Display"
-description: >
-  Start X server and browser on local HAOS server and display dashboards in kiosk mode (Jeff Kosowsky)
+description: |
+  Start X server and browser on local HAOS server and display dashboards in
+  kiosk mode (Jeff Kosowsky)
 version: "1.0.0"
 slug: "haoskiosk"
 
@@ -59,14 +60,15 @@ options:
   zoom_level: 100
   browser_refresh: 600
   screen_timeout: 0
-  hdmi_port: 1
+  output_number: 1
   ha_theme: "dark"
   ha_sidebar: "none"
   rotate_display: "normal"
-  rotate_touch: "false"
+  map_touch_inputs: "true"
   xorg_conf: ""
   xorg_append_replace: "append"
   debug_mode: false
+  keyboard_layout: us
 
 schema:
   ha_username: str
@@ -77,11 +79,12 @@ schema:
   zoom_level: int(10,1000)
   browser_refresh: int(0,)
   screen_timeout: int(0,)
-  hdmi_port: int(1,2)
+  output_number: int(1,2)
   ha_theme: list(auto|dark|light|none)
   ha_sidebar: list(full|narrow|none)
   rotate_display: list(normal|left|right|inverted)
-  rotate_touch: bool
+  map_touch_inputs: bool
+  keyboard_layout: str
   xorg_conf: str?
   xorg_append_replace: list(append|replace)
   debug_mode: bool
