@@ -64,6 +64,11 @@ if theme == nil then
     theme = ''
 end
 
+if string.find(theme, '"dark":true') then
+    -- force luakit to be in dark mode
+    settings.application.prefer_dark_mode = true
+end
+
 local raw_sidebar = os.getenv("HA_SIDEBAR") or defaults.HA_SIDEBAR -- Valid entries: full (or ""), narrow, none,
 local valid_sidebars = { full = '', none = '"always_hidden"', narrow = '"auto"', [""] = '' }
 local sidebar = valid_sidebars[raw_sidebar]
