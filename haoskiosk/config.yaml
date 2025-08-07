@@ -1,8 +1,8 @@
-name: "HAOS Kiosk Display - new"
+name: "HAOS Kiosk Display"
 description: >
   Start X server and browser on local HAOS server and display dashboards in kiosk mode (Jeff Kosowsky)
-version: "0.9.37"
-slug: "haoskiosk-new"
+version: "0.9.9"
+slug: "haoskiosk"
 
 arch:
   - aarch64
@@ -13,8 +13,8 @@ arch:
 
 startup: application
 host_network: true
-host_dbus: true
 init: false
+ingress: true
 
 devices:
   - /dev/fb0
@@ -24,30 +24,35 @@ devices:
 
 privileged:
   - SYS_ADMIN
-  - SYS_RAWIO
-
-security_opt:
-  - apparmor:unconfined
 
 options:
   ha_url: "http://localhost:8123"
   ha_dashboard: ""
   login_delay: 1.0
-  hdmi_port: 0
-  screen_timeout: 600
-  browser_refresh: 600
   zoom_level: 100
+  browser_refresh: 600
+  screen_timeout: 0
+  hdmi_port: 0
+  ha_theme: "dark"
+  ha_sidebar: "none"
+  debug_mode: false
 
 schema:
   ha_username: str
   ha_password: password
   ha_url: str
-  ha_dashboard: str
+  ha_dashboard: str?
   login_delay: float(0,)
-  hdmi_port: int(0,1)
-  screen_timeout: int(0,)
+  zoom_level: int(10,1000)
   browser_refresh: int(0,)
-  zoom_level: int(0,)
+  screen_timeout: int(0,)
+  hdmi_port: int(0,1)
+  ha_theme: list(auto|dark|light|none)
+  ha_sidebar: list(full|narrow|none)
+  debug_mode: bool
+
+translations:
+  - en
 
 environment:
   DISPLAY: ":0"

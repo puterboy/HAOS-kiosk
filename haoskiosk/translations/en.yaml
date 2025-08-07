@@ -18,19 +18,39 @@ configuration:
     description: |
       Time to wait for login page to load in seconds [Default: 1.0]
       Note: Often can set to '0'
-  hdmi_port:
-    name: "HDMI Port"
-    description: |
-      0 or HDMI1, 1 for HDMI2 [Default: 0]
-      Note: Doesn't work on default RPI HAOS since HDMI2 mirrors HDMI1
-  screen_timeout:
-    name: "Screen Timeout"
-    description: "Time in seconds until screen blanks; 0 for never [Default: 600]"
+  zoom_level:
+    name: "Zoom Level"
+    description: "Zoom factor 100 = 100% [Default: 100]"
   browser_refresh:
     name: "Browser Refresh"
     description: |
       Browser refresh interval in seconds; 0 for never [Default: 600]
       Note: Recommended since on RPi, console messages can overwrite browser
-  zoom_level:
-    name: "Zoom Level"
-    description: "Zoom factor 100 = 100% [Default: 100]"
+  screen_timeout:
+    name: "Screen Timeout"
+    description: "Time in seconds until screen blanks; 0 for never [Default: 0]"
+  hdmi_port:
+    name: "HDMI Port"
+    description: |
+      0 or HDMI1, 1 for HDMI2 [Default: 0]
+      Note: Doesn't work on default RPI HAOS since HDMI2 mirrors HDMI1
+  ha_theme:
+    name: "HA Theme"
+    description: "Display theme [Default: Dark]"
+    items:
+      auto: "Auto"
+      dark: "Dark"
+      light: "Light"
+      none: "None"
+  ha_sidebar:
+    name: "HA Sidebar"
+    description: "Status of left sidebar [Default: None]"
+    items:
+      full: "Full"
+      narrow: "Narrow"
+      none: "None"
+  debug_mode:
+    name: "Debug Mode"
+    description: |
+      Launch X and Openbox but not Luakit browser.
+      Manually access using: sudo docker -exec -it addon_haoskiosk bash
