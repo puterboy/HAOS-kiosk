@@ -49,6 +49,11 @@ configuration:
       full: "Full"
       narrow: "Narrow"
       none: "None"
+  locale:
+    name: "Regional Settings (locale)"
+    description: |
+      Allows to define alternative regional settings. Changing e.g. to "de_DE.UTF-8" is 
+      changing the default language of luakit to German. [Default: en_US.UTF-8]
   debug_mode:
     name: "Debug Mode"
     description: |

@@ -23,6 +23,7 @@ trap '[ -n "$(jobs -p)" ] && kill $(jobs -p); [ -n "$TTY0_DELETED" ] && mknod -m
 #         BROWSER_REFRESH
 #         SCREEN_TIMEOUT
 #         HDMI_PORT
+#         LOCALE
 #         DEBUG_MODE
 #     - Hack to delete (and later restore) /dev/tty0 (needed for X to start)
 #     - Start X window system
@@ -72,6 +73,7 @@ get_config HDMI_PORT 0 # Default to 0
 #NOTE: For now, both HDMI ports are mirrored and there is only /dev/fb0
 #      Not sure how to get them unmirrored so that console can be on /dev/fb0 and X on /dev/fb1
 #      As a result, setting HDMI=0 vs. 1 has no effect
+get_config LOCALE
 get_config DEBUG_MODE false
 
 #Validate environment variables set by config.yaml
@@ -171,6 +173,9 @@ fi
         sleep 1
     done
 )&
+
+# setup locale to force the browser to use the correct language
+export LANG=$LOCALE
 
 echo "DEBUG_MODE=$DEBUG_MODE" #JJKCRAP
 if [ "$DEBUG_MODE" != true ]; then

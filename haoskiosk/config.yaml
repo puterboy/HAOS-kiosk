@@ -35,6 +35,7 @@ options:
   hdmi_port: 0
   ha_theme: "dark"
   ha_sidebar: "none"
+  locale: "en_US.UTF-8"
   debug_mode: false
 
 schema:
@@ -49,6 +50,7 @@ schema:
   hdmi_port: int(0,1)
   ha_theme: list(auto|dark|light|none)
   ha_sidebar: list(full|narrow|none)
+  locale: str
   debug_mode: bool
 
 translations:

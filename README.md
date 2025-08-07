@@ -93,6 +93,13 @@ Options include: (Default: None)
 - Narrow (icons only)
 - None (hidden)
 
+### Regional Settings (locale)
+
+Allows to change the default regional settings (locale) in the browser. \
+Changing e.g. to de_DE.UTF-8 is changing the default language of luakit to German. 
+
+Default: en_US.UTF-8
+
 ### DEBUG
 
 For debugging purposes, launches `Xorg` and `openbox` and then sleeps
