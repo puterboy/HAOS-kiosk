@@ -93,6 +93,10 @@ Options include: (Default: None)
 - Narrow (icons only)
 - None (hidden)
 
+### Hide Mouse Pointer
+
+Shows or hide the mouse pointer in the UI. Espesially usefull for touch screens.
+
 ### DEBUG
 
 For debugging purposes, launches `Xorg` and `openbox` and then sleeps

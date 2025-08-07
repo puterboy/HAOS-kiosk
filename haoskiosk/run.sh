@@ -23,6 +23,7 @@ trap '[ -n "$(jobs -p)" ] && kill $(jobs -p); [ -n "$TTY0_DELETED" ] && mknod -m
 #         BROWSER_REFRESH
 #         SCREEN_TIMEOUT
 #         HDMI_PORT
+#         HIDE_MOUSE_POINTER
 #         DEBUG_MODE
 #     - Hack to delete (and later restore) /dev/tty0 (needed for X to start)
 #     - Start X window system
@@ -72,6 +73,7 @@ get_config HDMI_PORT 0 # Default to 0
 #NOTE: For now, both HDMI ports are mirrored and there is only /dev/fb0
 #      Not sure how to get them unmirrored so that console can be on /dev/fb0 and X on /dev/fb1
 #      As a result, setting HDMI=0 vs. 1 has no effect
+get_config HIDE_MOUSE_POINTER false
 get_config DEBUG_MODE false
 
 #Validate environment variables set by config.yaml
@@ -135,6 +137,11 @@ bashio::log.info "X started successfully..."
 
 #Stop console blinking cursor (this projects through the X-screen)
 echo -e "\033[?25l" > /dev/console
+
+# hide mouse pointer
+if [ "$HIDE_MOUSE_POINTER" == true ]; then
+    unclutter-xfixes --start-hidden --hide-on-touch --timeout 0 &
+fi
 
 ### Start Openbox in the background
 openbox &

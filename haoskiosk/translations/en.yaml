@@ -49,6 +49,9 @@ configuration:
       full: "Full"
       narrow: "Narrow"
       none: "None"
+  hide_mouse_pointer:
+    name: "Hide Mouse Pointer"
+    description: "Enabling this option will hide the mouse pointer in the UI. Espesially usefull for touch screens."
   debug_mode:
     name: "Debug Mode"
     description: |
