@@ -29,6 +29,15 @@ configuration:
   screen_timeout:
     name: "Screen Timeout"
     description: "Time in seconds until screen blanks; 0 for never [Default: 0]"
+  screen_timeout_mode:
+    name: "Screen Timeout Mode"
+    description: |
+      Specifies which mode should be used for the screen timeout. If Display Power Management Signaling (dpms)
+      does not work for your screen, you can switch as an alternative to a black screensaver mode. This will 
+      prevent your monitor to go into any sleep mode. This option only works if "Screen Timeout" is set.
+    items:
+      dpms: "DPMS"
+      screensaver: "Black Screensaver"
   hdmi_port:
     name: "HDMI Port"
     description: |

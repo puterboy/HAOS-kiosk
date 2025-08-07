@@ -32,6 +32,7 @@ options:
   zoom_level: 100
   browser_refresh: 600
   screen_timeout: 0
+  screen_timeout_mode: dpms
   hdmi_port: 0
   ha_theme: "dark"
   ha_sidebar: "none"
@@ -46,6 +47,7 @@ schema:
   zoom_level: int(10,1000)
   browser_refresh: int(0,)
   screen_timeout: int(0,)
+  screen_timeout_mode: list(screensaver|dpms)
   hdmi_port: int(0,1)
   ha_theme: list(auto|dark|light|none)
   ha_sidebar: list(full|narrow|none)

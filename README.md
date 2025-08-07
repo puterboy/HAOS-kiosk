@@ -68,6 +68,17 @@ Time before screen blanks in seconds. Set to `0` to never timeout.
 
 Default: 0 seconds (never timeout)
 
+### Screen Timeout Mode
+
+Specifies which mode should be used for the screen timeout. If Display Power Management Signaling (dpms)
+does not work for your screen, you can switch as an alternative to a black screensaver mode. This will 
+prevent your monitor to go into any sleep mode. This option only works if "Screen Timeout" is set.
+
+Options include: (Default: dpms)
+
+- dpms
+- screensaver
+
 ### HDMI Port
 
 HDMI output port. Technically can be `0` or `1` (Default: 0).\

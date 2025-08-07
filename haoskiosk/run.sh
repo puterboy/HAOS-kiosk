@@ -22,6 +22,7 @@ trap '[ -n "$(jobs -p)" ] && kill $(jobs -p); [ -n "$TTY0_DELETED" ] && mknod -m
 #         ZOOM_LEVEL
 #         BROWSER_REFRESH
 #         SCREEN_TIMEOUT
+#         SCREEN_TIMEOUT_MODE
 #         HDMI_PORT
 #         DEBUG_MODE
 #     - Hack to delete (and later restore) /dev/tty0 (needed for X to start)
@@ -68,6 +69,7 @@ get_config LOGIN_DELAY
 get_config ZOOM_LEVEL
 get_config BROWSER_REFRESH
 get_config SCREEN_TIMEOUT 600 # Default to 600 seconds
+get_config SCREEN_TIMEOUT_MODE
 get_config HDMI_PORT 0 # Default to 0
 #NOTE: For now, both HDMI ports are mirrored and there is only /dev/fb0
 #      Not sure how to get them unmirrored so that console can be on /dev/fb0 and X on /dev/fb1
@@ -154,8 +156,14 @@ if [ "$SCREEN_TIMEOUT" -eq 0 ]; then #Disable screen saver and DPMS for no timeo
     bashio::log.info "Screen timeout disabled..."
 else
     xset s "$SCREEN_TIMEOUT"
-    xset dpms "$SCREEN_TIMEOUT" "$SCREEN_TIMEOUT" "$SCREEN_TIMEOUT"  #DPMS standby, suspend, off
-    xset +dpms
+    #Depending on the option either enable DPMS or use a black screensaver to turn off the display
+    if [ "$SCREEN_TIMEOUT_MODE" == "dpms" ]; then
+        xset dpms "$SCREEN_TIMEOUT" "$SCREEN_TIMEOUT" "$SCREEN_TIMEOUT"  #DPMS standby, suspend, off
+        xset +dpms
+    else
+        xsetroot -solid black
+        xset s noblank
+    fi
     bashio::log.info "Screen timeout after $SCREEN_TIMEOUT seconds..."
 fi
 
