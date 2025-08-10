@@ -91,6 +91,9 @@ if browser_refresh < 0 then
 end
 
 -- -----------------------------------------------------------------------
+-- Forward console messages to stdout
+settings.set_setting("webview.enable_write_console_messages_to_stdout", true)
+
 -- Set window to fullscreen
 window.add_signal("init", function(w)
     w.win.fullscreen = true

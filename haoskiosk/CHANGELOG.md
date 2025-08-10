@@ -14,7 +14,8 @@
 - Attempted to maximize compatibility across RPi and x86
 - Added ability to append to or replace default 'xorg.conf'
 - Added ability to set keyboard layout. (default: 'us')
-- Improved userconf.lua code
+- Updated & improved userconf.lua code
+- Extensive changes and improvements to 'run.sh' code
 - Added back (local) DBUS to allow for inter-process luakit communication
   (e.g., to allow use of unique instance)
 
