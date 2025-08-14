@@ -21,20 +21,13 @@ for dev in /dev/input/event*; do
     devname=$(basename "$dev")
     input_num=${devname#event}
 
-    # Get device path to check if USB
+    # Get device path
     devpath=$(udevadm info "$dev" | grep -m1 DEVPATH | cut -d= -f2)
-    if [[ ! $devpath =~ /usb[0-9]+.*[0-9]{4}:[0-9A-Fa-f]{4}:[0-9A-Fa-f]{4} ]]; then
-        echo "$devname: Skipped (non-USB)"
-        continue
-    fi
 
-    # Extract vendor and product IDs from 0003:vendor:product
-    vendor_product=$(echo "$devpath" | grep -oE '0003:[0-9A-Fa-f]{4}:[0-9A-Fa-f]{4}' | head -1)
-    vendor=$(echo "$vendor_product" | cut -d: -f2)
-    vendor=${vendor:-unknown}
-    product=$(echo "$vendor_product" | cut -d: -f3)
-    product=${product:-unknown}
-    group="3/${vendor,,}/${product,,}:usb-xhci-hcd.0-1"
+    # Extract vendor and product IDs  (works for USB, I²C and  platform-devices)
+    vendor=$(cat /sys/class/input/$devname/device/id/vendor 2>/dev/null || echo "unknown")
+    product=$(cat /sys/class/input/$devname/device/id/product 2>/dev/null || echo "unknown")
+    group="bus-${vendor,,}-${product,,}"
 
     # Read sysfs capabilities for device type
     syspath="/sys${devpath%/event*}/capabilities"
@@ -51,7 +44,12 @@ for dev in /dev/input/event*; do
     elif [[ $rel != none && $key_count -le 2 && $abs = 0 ]]; then
         device_type=mouse
     elif [[ $ev = 1b || $abs != none ]]; then
-        device_type=joystick
+        # Touchscreens often appears as 'abs' devices
+        if grep -qi touchscreen "/sys/class/input/$devname/device/name" 2>/dev/null; then
+            device_type=touchscreen
+        else
+            device_type=joystick
+        fi
     fi
 
     # Skip unclassified devices
