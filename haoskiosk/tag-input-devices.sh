@@ -29,6 +29,7 @@ for dev in /dev/input/event*; do
         #Get Devtype
         dev_type=$(echo $udevadm_info | grep -m1 ID_INPUT_ | cut -d= -f1)
         echo $dev_type
+        : '
         # Write tags to udev data
         {
             echo "ID_INPUT=1"
@@ -38,7 +39,7 @@ for dev in /dev/input/event*; do
         
         # Trigger udev to process existing tags
         udevadm test "$devpath" >/dev/null 2>&1
-
+        '
         echo "$devname: Skipped (non-USB)"
         continue
     fi
