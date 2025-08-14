@@ -36,14 +36,9 @@ configuration:
     description: |
       Choose which of the *connected* video output ports to use.
       Set to 1 to use the first connected port. (Default: 1)
-  ha_theme:
-    name: "HA Theme"
-    description: "Display theme [Default: Dark]"
-    items:
-      auto: "Auto"
-      dark: "Dark"
-      light: "Light"
-      none: "None"
+  dark_mode:
+    name: "Dark Mode"
+    description: "Forces the use of dark mode in the Luakit browser (Default: false)"
   ha_sidebar:
     name: "HA Sidebar"
     description: "Status of left sidebar [Default: None]"

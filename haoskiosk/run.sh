@@ -22,7 +22,7 @@ trap cleanup INT TERM EXIT
 #         HA_PASSWORD
 #         HA_URL
 #         HA_DASHBOARD
-#         HA_THEME
+#         DARK_MODE
 #         HA_SIDEBAR
 #         LOGIN_DELAY
 #         ZOOM_LEVEL
@@ -92,7 +92,7 @@ load_config_var HA_USERNAME
 load_config_var HA_PASSWORD "" 1 #Mask password in log
 load_config_var HA_URL
 load_config_var HA_DASHBOARD
-load_config_var HA_THEME
+load_config_var DARK_MODE
 load_config_var HA_SIDEBAR
 load_config_var LOGIN_DELAY
 load_config_var ZOOM_LEVEL

@@ -61,7 +61,7 @@ options:
   browser_refresh: 600
   screen_timeout: 0
   output_number: 1
-  ha_theme: "dark"
+  dark_mode: false
   ha_sidebar: "none"
   rotate_display: "normal"
   map_touch_inputs: "true"
@@ -80,7 +80,7 @@ schema:
   browser_refresh: int(0,)
   screen_timeout: int(0,)
   output_number: int(1,2)
-  ha_theme: list(auto|dark|light|none)
+  dark_mode: bool
   ha_sidebar: list(full|narrow|none)
   rotate_display: list(normal|left|right|inverted)
   map_touch_inputs: bool

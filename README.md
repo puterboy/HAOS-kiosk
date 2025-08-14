@@ -80,15 +80,9 @@ ports, then use last valid connected port(Default: 1)
 NOTE: This should always be set to 1 unless you have more than one video
 output device connected. If so, use the logs to see how they are numbered.
 
-### HA Theme
+### Dark Mode
 
-Theme used by HA frontend (device-specific).\
-Options include: (Default: Dark)
-
-- Auto
-- Dark
-- Light
-- None
+Forces the use of dark mode in the Luakit browser (Default: false)
 
 ### HA Sidebar
 

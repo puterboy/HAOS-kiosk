@@ -18,7 +18,8 @@ Code does the following:
     - Set up periodic browser refresh every $BROWSWER_REFRESH seconds (disabled if 0)
       NOTE: this is important since console messages overwrite dashboards
     - Allows for configurable browser $ZOOM_LEVEL
-    - Sets Home Assistant theme and sidebar visibility using $THEME and $SIDEBAR environment variables
+    - ensbles browser dark mode if $DARK_MODE is set to true
+    - Sets Home Assistant sidebar visibility using $SIDEBAR environment variables
 ]]
 
 -- -----------------------------------------------------------------------
@@ -37,7 +38,7 @@ local defaults = {
     HA_USERNAME = "",
     HA_PASSWORD = "",
     HA_URL = "http://localhost:8123",
-    HA_THEME = "",
+    DARK_MODE = false,
     HA_SIDEBAR = "",
 
     LOGIN_DELAY = 1,
@@ -56,13 +57,10 @@ ha_url = string.gsub(ha_url, "/+$", "") -- Strip trailing '/'
 local ha_url_base = ha_url:match("^(https?://[%w%.%-%%:]+)") or ha_url
 ha_url_base = string.gsub(ha_url_base, "/+$", "") -- Strip trailing '/'
 
-local raw_theme = os.getenv("HA_THEME") or defaults.HA_THEME -- Valid entries: auto, dark, light, none (or "")
-local valid_themes = { auto = '{}', dark = '{"dark":true}', light = '{"dark":false}', none = '', [""] = ''}
-local theme = valid_themes[raw_theme]
-if theme == nil then
-    msg.warn("Invalid HA_THEME value: '%s'; defaulting to unset", raw_theme)
-    theme = ''
-end
+-- force luakit to be in dark mode if environment variable it set to true
+msg.info("Environment variable for dark mode is set to: %s", os.getenv("DARK_MODE"))
+local dark_mode = (os.getenv("DARK_MODE") == "true") or defaults.DARK_MODE
+settings.application.prefer_dark_mode = dark_mode
 
 local raw_sidebar = os.getenv("HA_SIDEBAR") or defaults.HA_SIDEBAR -- Valid entries: full (or ""), narrow, none,
 local valid_sidebars = { full = '', none = '"always_hidden"', narrow = '"auto"', [""] = '' }
@@ -114,13 +112,13 @@ local function single_quote_escape(str) -- Single quote strings before injection
 end
 
 -- -----------------------------------------------------------------------
--- Auto-login to homeassistant (if on HA url) and set 'theme' and 'sidebar settings
+-- Auto-login to homeassistant (if on HA url) and set 'sidebar' settings
 
 local first_window = true
 local ha_settings_applied = setmetatable({}, { __mode = "k" }) -- Flag to track if HA settings have already been applied in this session
 
 webview.add_signal("init", function(view)
-    ha_settings_applied[view] = false  -- Set theme & sidebar settings once  per view
+    ha_settings_applied[view] = false  -- Set sidebar settings once  per view
 
     -- Listen for page load events
     view:add_signal("load-status", function(v, status)
@@ -186,7 +184,7 @@ webview.add_signal("init", function(view)
             v:eval_js(js_auto_login, { source = "auto_login.js", no_return = true })  -- Execute the login script
         end
 
-        -- Set Home Assistant theme and sidebar visibility after dashboard load
+        -- Set Home Assistant sidebar visibility after dashboard load
         -- Check if current URL starts with ha_url but not an auth page
         if not ha_settings_applied[v]
            and (v.uri .. "/"):match("^" .. ha_url_base .. "/") -- Note ha_url was stripped of trailing slashes
@@ -194,24 +192,12 @@ webview.add_signal("init", function(view)
 
             local js_settings = string.format([[
                 try {
-                    // Set theme and sidebar visibility
-		    const theme = '%s';
 		    const sidebar = '%s';
 
-                    const currentTheme = localStorage.getItem('selectedTheme') || '';
                     const currentSidebar = localStorage.getItem('dockedSidebar') || '';
 
 		    let needsDispatch = false;
                     let needsReload = false;
-
-                    if (theme !== currentTheme) {
-                        needsDispatch = true;
-                        if (theme !== "") {
-                            localStorage.setItem('selectedTheme', theme);
-                        } else {
-                            localStorage.removeItem('selectedTheme');
-                        }
-                    }
 
                     if (sidebar !== currentSidebar) {
 //                        needsReload = true;
@@ -222,27 +208,24 @@ webview.add_signal("init", function(view)
                         }
                     }
 
-//                  localStorage.setItem('DebugLog', "Setting: Theme: " + currentTheme + " -> " + theme +
-//                                   " ;Sidebar: " + currentSidebar + " -> " + sidebar + " [Reload: " + needsReload + "]"); // DEBUG
+//                  localStorage.setItem('DebugLog', "Setting: Sidebar: " + currentSidebar + " -> " + sidebar + " [Reload: " + needsReload + "]"); // DEBUG
 
 
-                    if (needsReload) { // Reload to apply Sidebar (+/ Theme) settings (Dispatch won't work)
+                    if (needsReload) { // Reload to apply Sidebar settings (Dispatch won't work)
                         setTimeout(function() {
                             location.reload();
                         }, 500);
-                    } else if (needsDispatch) { // Dispatch is good enough for Theme
-    		        window.dispatchEvent(new CustomEvent('settheme', { detail: { theme } }));
-		    }
+                    }
 
                 } catch (err) {
 		    console.error(err);
-		    console.log("FAILED to set: Theme: " + theme + " ;Sidebar: " + sidebar + "[" + err + "]"); // DEBUG
-                    localStorage.setItem('DebugLog', "FAILED to set: Theme: " + theme + " ;Sidebar: " + sidebar); // DEBUG
+		    console.log("FAILED to set: Sidebar: " + sidebar + "[" + err + "]"); // DEBUG
+                    localStorage.setItem('DebugLog', "FAILED to set: Sidebar: " + sidebar); // DEBUG
                 }
-            ]], single_quote_escape(theme), single_quote_escape(sidebar))
+            ]], single_quote_escape(sidebar))
 
             v:eval_js(js_settings, { source = "ha_settings.js", no_return = true })
-            msg.info("Applying HA settings on dashboard %s: theme=%s, sidebar=%s", v.uri, theme, sidebar) -- DEBUG
+            msg.info("Applying HA settings on dashboard %s: sidebar=%s", v.uri, sidebar) -- DEBUG
 
             ha_settings_applied[v] = true   -- Mark in Lua session as settings applied
         end
