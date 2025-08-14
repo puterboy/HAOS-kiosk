@@ -22,10 +22,13 @@ for dev in /dev/input/event*; do
     input_num=${devname#event}
 
     # Get device path to check if USB
-    udevadm_info=$(udevadm info "$dev")
-    devpath=$(echo $udevadm_info | grep -m1 DEVPATH | cut -d= -f2)
+    devpath=$((udevadm info "$dev" | grep -m1 DEVPATH | cut -d= -f2)
     if [[ ! $devpath =~ /usb[0-9]+.*[0-9]{4}:[0-9A-Fa-f]{4}:[0-9A-Fa-f]{4} ]]; then
-        echo $udevadm_info
+        # Write tags to udev data
+        {
+            echo "ID_INPUT=1"
+        } > "/run/udev/data/+input:input$input_num"
+        
         # Trigger udev to process existing tags
         udevadm test "$devpath" >/dev/null 2>&1
 
