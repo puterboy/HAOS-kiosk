@@ -25,8 +25,8 @@ for dev in /dev/input/event*; do
     devpath=$(udevadm info "$dev" | grep -m1 DEVPATH | cut -d= -f2)
     if [[ ! $devpath =~ /usb[0-9]+.*[0-9]{4}:[0-9A-Fa-f]{4}:[0-9A-Fa-f]{4} ]]; then
         # Trigger udev to process existing tags
-        udevadm test "$devpath" >/dev/null 2>&
-        
+        udevadm test "$devpath" >/dev/null 2>&1
+
         echo "$devname: Skipped (non-USB)"
         continue
     fi
