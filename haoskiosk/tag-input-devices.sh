@@ -24,6 +24,7 @@ for dev in /dev/input/event*; do
     # Get device path to check if USB
     devpath=$(udevadm info "$dev" | grep -m1 DEVPATH | cut -d= -f2)
     if [[ ! $devpath =~ /usb[0-9]+.*[0-9]{4}:[0-9A-Fa-f]{4}:[0-9A-Fa-f]{4} ]]; then
+        echo $dev 
         # Trigger udev to process existing tags
         udevadm test "$devpath" >/dev/null 2>&1
 
