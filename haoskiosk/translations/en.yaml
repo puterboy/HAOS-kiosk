@@ -31,6 +31,11 @@ configuration:
   screen_timeout:
     name: "Screen Timeout"
     description: "Time in seconds until screen blanks; 0 for never [Default: 0]"
+  mouse_pointer_timeout:
+    name: "Mouse Pointer Timeout"
+    description: |
+      Time in seconds until the mouse pointer is hidden. Mouse pointer disapiers
+      after the the specified time if user does not move the mouse. Set to `0` to never timeout. (Default: 30)
   output_number:
     name: "Output Number"
     description: |
