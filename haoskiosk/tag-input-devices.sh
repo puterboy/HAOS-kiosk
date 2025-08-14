@@ -23,12 +23,12 @@ for dev in /dev/input/event*; do
 
     # Get device path to check if USB
     udevadm_info=$(udevadm info "$dev")
-    echo $udevadm_info
-    devpath=$(echo $udevadm_info | grep -m1 DEVPATH | cut -d= -f2)
+    echo "$udevadm_info"
+    devpath=$(echo "$udevadm_info" | grep -m1 DEVPATH | cut -d= -f2)
     if [[ ! $devpath =~ /usb[0-9]+.*[0-9]{4}:[0-9A-Fa-f]{4}:[0-9A-Fa-f]{4} ]]; then
         #Get Devtype
-        dev_type=$(echo $udevadm_info | grep -m1 ID_INPUT_ | cut -d= -f1)
-        echo $dev_type
+        dev_type=$(echo "$udevadm_info" | grep -m1 ID_INPUT_ | cut -d= -f1)
+        echo "$dev_type"
         
         # Write tags to udev data
         {
