@@ -295,6 +295,7 @@ fi
 setxkbmap "$KEYBOARD_LAYOUT"
 bashio::log.info "Setting Keyboard Layout: $KEYBOARD_LAYOUT"
 setxkbmap -query #Log layout
+export LANG=$KEYBOARD_LAYOUT
 
 # Poll to send <Control-r> when screen unblanks to force reload of luakit page
 (
