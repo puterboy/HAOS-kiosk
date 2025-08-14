@@ -22,27 +22,12 @@ for dev in /dev/input/event*; do
     input_num=${devname#event}
 
     # Get device path to check if USB
-    udevadm_info=$(udevadm info "$dev")
-    echo "$udevadm_info"
-    devpath=$(echo "$udevadm_info" | grep -m1 DEVPATH | cut -d= -f2)
+    devpath=$(udevadm info "$dev" | grep -m1 DEVPATH | cut -d= -f2)
     if [[ ! $devpath =~ /usb[0-9]+.*[0-9]{4}:[0-9A-Fa-f]{4}:[0-9A-Fa-f]{4} ]]; then
-        : '
-        #Get Devtype
-        dev_type=$(echo "$udevadm_info" | grep -m1 ID_INPUT_ | cut -d= -f1)
-        echo "$dev_type"
-        
-        # Write tags to udev data
-        {
-            echo "ID_INPUT=1"
-            echo "$device_type=1"
-            echo "LIBINPUT_DEVICE_GROUP=input"
-        } > "/run/udev/data/+input:input$input_num"
-        '
-        
-        # Trigger udev to process existing tags
+        # Trigger a reload of all properties according to existing tags
         udevadm test "$devpath" >/dev/null 2>&1
         
-        echo "$devname: Skipped (non-USB)"
+        echo "$devname: Reloaded (non-USB)"
         continue
     fi
 
