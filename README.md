@@ -71,6 +71,13 @@ Time before screen blanks in seconds. Set to `0` to never timeout.
 
 Default: 0 seconds (never timeout)
 
+### Mouse Pointer Timeout
+
+Time in seconds until the mouse pointer is hidden. Mouse pointer disapiers \
+after the the specified time if user does not move the mouse. Set to `0` to never timeout.
+
+Default: 30 seconds
+
 ### Output Number
 
 Choose which of the *connected* video output ports to use. Set to 1 to use

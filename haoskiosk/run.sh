@@ -35,6 +35,7 @@ trap cleanup INT TERM EXIT
 #         XORG_CONF
 #         XORG_APPEND_REPLACE
 #         DEBUG_MODE
+#         MOUSE_POINTER_TIMEOUT
 #
 #     - Hack to delete (and later restore) /dev/tty0 (needed for X to start
 #       and to prevent udev permission errors))
@@ -107,6 +108,7 @@ load_config_var KEYBOARD_LAYOUT us
 load_config_var XORG_CONF
 load_config_var XORG_APPEND_REPLACE append
 load_config_var DEBUG_MODE false
+load_config_var MOUSE_POINTER_TIMEOUT 30 # Default to 30 seconds
 
 # Validate environment variables set by config.yaml
 if [ -z "$HA_USERNAME" ] || [ -z "$HA_PASSWORD" ]; then
@@ -215,6 +217,11 @@ bashio::log.info "X server started successfully after $i seconds..."
 
 #Stop console blinking cursor (this projects through the X-screen)
 echo -e "\033[?25l" > /dev/console
+
+# hide mouse pointer
+if [ "$MOUSE_POINTER_TIMEOUT" -ne 0 ]; then
+    unclutter-xfixes --start-hidden --hide-on-touch --timeout $MOUSE_POINTER_TIMEOUT  &
+fi
 
 ### Start Openbox in the background
 openbox &

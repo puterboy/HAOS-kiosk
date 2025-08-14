@@ -60,6 +60,7 @@ options:
   zoom_level: 100
   browser_refresh: 600
   screen_timeout: 0
+  mouse_pointer_timeout: 30
   output_number: 1
   ha_theme: "dark"
   ha_sidebar: "none"
@@ -79,6 +80,7 @@ schema:
   zoom_level: int(10,1000)
   browser_refresh: int(0,)
   screen_timeout: int(0,)
+  mouse_pointer_timeout: int(0,)
   output_number: int(1,2)
   ha_theme: list(auto|dark|light|none)
   ha_sidebar: list(full|narrow|none)
