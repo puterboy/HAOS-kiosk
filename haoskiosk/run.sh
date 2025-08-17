@@ -173,6 +173,8 @@ for dev in $(ls /dev/input/event* | sort -V); do # Loop through all input device
     udevadm test "$devpath" >/dev/null 2>&1 || echo "$dev: No valid udev rule found..."
 done
 
+udevadm settle --timeout=10 #Wait for udev event processing to complete
+
 # Show discovered libinput devices
 echo "libinput list-devices found:"
 libinput list-devices 2>/dev/null | awk '
