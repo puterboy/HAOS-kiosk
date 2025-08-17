@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.1 - August 2025
+- Simplified and generalzedlibinput discovery tagging and merged resulting
+  code into 'run.sh' (Thanks to GuntherSchulz01 and tacher4000)
+
 ## v1.0.0 - July 2025
 
 - Switched from (legacy) framebuffer-based video (fbdev) to OpenGL/DRI

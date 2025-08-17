@@ -1,9 +1,9 @@
 ################################################################################
 # Add-on: HAOS Kiosk Display (haoskiosk)
 # File: Dockerfile
-# Version: 1.0.0
+# Version: 1.0.1
 # Copyright Jeff Kosowsky
-# Date: July 2025
+# Date: August 2025
 ################################################################################
 
 ARG BUILD_FROM
@@ -45,8 +45,5 @@ COPY translations/*.yaml /translations/
 
 COPY run.sh /
 RUN chmod a+x /run.sh
-
-COPY tag-input-devices.sh /
-RUN chmod a+x /tag-input-devices.sh
 
 CMD ["/run.sh"]

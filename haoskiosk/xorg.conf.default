@@ -1,9 +1,9 @@
 ################################################################################
 # Add-on: HAOS Kiosk Display (haoskiosk)
 # File: xorg.conf
-# Version: 1.0.0
+# Version: 1.0.1
 # Copyright Jeff Kosowsky
-# Date: July 2025
+# Date: August 2025
 #
 # Minimal xorg.conf to work with OpenGL/DRI video and libinput mice & keyboards
 #

@@ -1,20 +1,11 @@
 #!/usr/bin/with-contenv bashio
 # shellcheck shell=bash
-# Clean up on exit:
-TTY0_DELETED="" #Need to set to empty string since runs with nounset=on (like set -u)
-cleanup() {
-    local exit_code=$?
-    [ -n "$(jobs -p)" ] && kill "$(jobs -p)"
-    [ -n "$TTY0_DELETED" ] && mknod -m 620 /dev/tty0 c 4 0
-    exit "$exit_code"
-}
-trap cleanup INT TERM EXIT
 ################################################################################
 # Add-on: HAOS Kiosk Display (haoskiosk)
 # File: run.sh
-# Version: 1.0.0
+# Version: 1.0.1
 # Copyright Jeff Kosowsky
-# Date: July 2025
+# Date: August 2025
 #
 #  Code does the following:
 #     - Import and sanity-check the following variables from HA/config.yaml
@@ -53,7 +44,19 @@ trap cleanup INT TERM EXIT
 echo "." #Almost blank line (Note totally blank or white space lines are swallowed)
 printf '%*s\n' 80 '' | tr ' ' '#' #Separator
 bashio::log.info "######## Starting HAOSKiosk ########"
-### Get config variables from HA add-on & set environment variables
+
+#### Clean up on exit:
+TTY0_DELETED="" #Need to set to empty string since runs with nounset=on (like set -u)
+cleanup() {
+    local exit_code=$?
+    [ -n "$(jobs -p)" ] && kill "$(jobs -p)"
+    [ -n "$TTY0_DELETED" ] && mknod -m 620 /dev/tty0 c 4 0
+    exit "$exit_code"
+}
+trap cleanup INT TERM EXIT
+
+################################################################################
+#### Get config variables from HA add-on & set environment variables
 function load_config_var() {
     # First, use existing variable if already set (for debugging purposes)
     # If not set, lookup configuration value
@@ -115,24 +118,28 @@ if [ -z "$HA_USERNAME" ] || [ -z "$HA_PASSWORD" ]; then
 fi
 
 ################################################################################
-### Start Dbus
+#### Start Dbus
 # Avoids waiting for DBUS timeouts (e.g., luakit)
 # Allows luakit to enfoce unique instance by default
 DBUS_SESSION_BUS_ADDRESS=$(dbus-daemon --session --fork --print-address)
 if [ -z "$DBUS_SESSION_BUS_ADDRESS" ]; then
     bashio::log.warning "WARNING: Failed to start dbus-daemon"
 fi
+bashio::log.info "DBus started with: DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS"
 export DBUS_SESSION_BUS_ADDRESS
 
+#### Hack to get writable /dev/tty0 for X
 # Note first need to delete /dev/tty0 since X won't start if it is there,
 # because X doesn't have permissions to access it in the container
 # Also, prevents udev permission error warnings & issues
+# Note that remounting rw is not sufficient
+
 # First, remount /dev as read-write since X absolutely, must have /dev/tty access
-# Note: need to use the version in util-linux, not busybox
+# Note: need to use the version of 'mount' in util-linux, not busybox
 # Note: Do *not* later remount as 'ro' since that affect the root fs and
 #       in particular will block HAOS updates
 if [ -e "/dev/tty0" ]; then
-    bashio::log.info "Attempting to remount /dev as 'ro' and (temporarily) delete /dev/tty0..."
+    bashio::log.info "Attempting to remount /dev as 'rw' so we can (temporarily) delete /dev/tty0..."
     mount -o remount,rw /dev
     if ! mount -o remount,rw /dev ; then
         bashio::log.error "Failed to remount /dev as read-write..."
@@ -146,20 +153,36 @@ if [ -e "/dev/tty0" ]; then
     bashio::log.info "Deleted /dev/tty0 successfully..."
 fi
 
-### Start udev (used by X)
+#### Start udev (used by X)
 bashio::log.info "Starting 'udevd' and (re-)triggering..."
 if ! udevd --daemon || ! udevadm trigger; then
     bashio::log.warning "WARNING: Failed to start udevd or trigger udev, input devices may not work"
 fi
 
-# Manually tag USB input devices (in /dev/input) for libinput since
-# 'udev' doesn't necessarily trigger their tagging when run in a container.
-if [ -x "/tag-input-devices.sh" ]; then
-    bashio::log.info "Tagging USB input devices for use by 'libinput'..."
-    /tag-input-devices.sh
-fi
+# Force tagging of event input devices (in /dev/input) to enable recognition by
+# libinput since 'udev' doesn't necessarily trigger their tagging when run from a container.
+echo "/dev/input event devices:"
+for dev in $(ls /dev/input/event* | sort -V); do # Loop through all input devices
+    devpath_output=$(udevadm info --query=path --name="$dev" 2>/dev/null; echo -n $?)
+    return_status=${devpath_output##*$'\n'}
+    [ "$return_status" -eq 0 ] || { echo "  $dev: Failed to get device path"; continue; }
+    devpath=${devpath_output%$'\n'*}
+    echo "  $dev: $devpath"
+    
+    # Simulate a udev event to trigger (re)load of all properties
+    udevadm test "$devpath" >/dev/null 2>&1 || echo "$dev: No valid udev rule found..."
+done
 
-### Start Xorg in the background
+# Show discovered libinput devices
+echo "libinput list-devices found:"
+libinput list-devices 2>/dev/null | awk '
+  /^Device:/ {devname=substr($0, 9)}
+  /^Kernel:/ {
+    split($2, a, "/");
+    printf "  %s: %s\n", a[length(a)], devname
+}' | sort -V
+
+#### Start Xorg in the background
 rm -rf /tmp/.X*-lock #Cleanup old versions
 
 # Modify 'xorg.conf' as appropriate
@@ -216,7 +239,7 @@ bashio::log.info "X server started successfully after $i seconds..."
 #Stop console blinking cursor (this projects through the X-screen)
 echo -e "\033[?25l" > /dev/console
 
-### Start Openbox in the background
+#### Start Openbox in the background
 openbox &
 O_PID=$!
 sleep 0.5  #Ensure Openbox starts
@@ -226,7 +249,7 @@ if ! kill -0 "$O_PID" 2>/dev/null; then #Checks if process alive
 fi
 bashio::log.info "Openbox started successfully..."
 
-### Configure screen timeout (Note: DPMS needs to be enabled/disabled *after* starting Openbox)
+#### Configure screen timeout (Note: DPMS needs to be enabled/disabled *after* starting Openbox)
 if [ "$SCREEN_TIMEOUT" -eq 0 ]; then #Disable screen saver and DPMS for no timeout
     xset s 0
     xset dpms 0 0 0
@@ -239,7 +262,7 @@ else
     bashio::log.info "Screen timeout after $SCREEN_TIMEOUT seconds..."
 fi
 
-### Activate (+/- rotate) desired physical output number
+#### Activate (+/- rotate) desired physical output number
 # Detect connected physical outputs
 
 readarray -t ALL_OUTPUTS < <(xrandr --query | awk '/^[[:space:]]*[A-Za-z0-9-]+/ {print $1}')
@@ -291,12 +314,11 @@ if [ "$MAP_TOUCH_INPUTS" = true ]; then #Map touch devices to physical output
     done < <(xinput list --id-only | sort -n)
 fi
 
-# Set keyboard layout
+#### Set keyboard layout
 setxkbmap "$KEYBOARD_LAYOUT"
 bashio::log.info "Setting Keyboard Layout: $KEYBOARD_LAYOUT"
 setxkbmap -query #Log layout
-
-# Poll to send <Control-r> when screen unblanks to force reload of luakit page
+#### Poll to send <Control-r> when screen unblanks to force reload of luakit page
 (
     PREV=""
     while true; do
