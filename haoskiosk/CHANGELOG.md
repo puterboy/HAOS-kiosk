@@ -1,11 +1,12 @@
 # Changelog
 
 ## v1.0.1 - August 2025
-
 - Simplified and generalzedlibinput discovery tagging and merged resulting
   code into 'run.sh' (Thanks to GuntherSchulz01 and tacher4000)
 - Added "CURSOR_TIMEOUT" to hide cursor (Thanks tacher4000)
 - Set LANG consistent with keyboard layout (Thanks tacher4000)
+- Added additional logging to help debug any future screen or input (touch
+  or mouse) issues
 
 ## v1.0.0 - July 2025
 
