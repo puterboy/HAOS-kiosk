@@ -122,7 +122,7 @@ cursor. (Default: 5 seconds)
 
 ### KEYBOARD LAYOUT
 
-Set the keyboard layout. (Default: us)
+Set the keyboard layout and language. (Default: us)
 
 ### XORG.CONF
 

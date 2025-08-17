@@ -4,6 +4,7 @@
 - Simplified and generalzedlibinput discovery tagging and merged resulting
   code into 'run.sh' (Thanks to GuntherSchulz01 and tacher4000)
 - Added "CURSOR_TIMEOUT" to hide cursor (Thanks tacher4000)
+- Set LANG consistent with keyboard layout (Thanks tacher4000)
 
 ## v1.0.0 - July 2025
 

@@ -170,7 +170,7 @@ for dev in $(find /dev/input/event* | sort -V); do # Loop through all input devi
     [ "$return_status" -eq 0 ] || { echo "  $dev: Failed to get device path"; continue; }
     devpath=${devpath_output%$'\n'*}
     echo "  $dev: $devpath"
-    
+
     # Simulate a udev event to trigger (re)load of all properties
     udevadm test "$devpath" >/dev/null 2>&1 || echo "$dev: No valid udev rule found..."
 done
@@ -251,7 +251,7 @@ echo -e "\033[?25l" > /dev/console
 
 #Hide cursor dynamically after CURSOR_TIMEOUT seconds if positive
 if [ "$CURSOR_TIMEOUT" -gt 0 ]; then
-    unclutter-xfixes --start-hidden --hide-on-touch --fork --timeout $CURSOR_TIMEOUT
+    unclutter-xfixes --start-hidden --hide-on-touch --fork --timeout "$CURSOR_TIMEOUT"
 fi
 
 #### Start Openbox in the background
@@ -331,8 +331,10 @@ fi
 
 #### Set keyboard layout
 setxkbmap "$KEYBOARD_LAYOUT"
-bashio::log.info "Setting Keyboard Layout: $KEYBOARD_LAYOUT"
-setxkbmap -query #Log layout
+export LANG=$KEYBOARD_LAYOUT
+bashio::log.info "Setting keyboard layout and language to: $KEYBOARD_LAYOUT"
+setxkbmap -query  | sed 's/^/  /' #Log layout
+
 #### Poll to send <Control-r> when screen unblanks to force reload of luakit page
 (
     PREV=""

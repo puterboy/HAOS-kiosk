@@ -73,7 +73,7 @@ configuration:
       show cursor. [Default: 5 seconds]
   keyboard_layout:
     name: "Keyboard Layout"
-    description: "Set the Keyboard Layout [Default: us]"
+    description: "Set the keyboard layout and language [Default: us]"
   xorg_conf:
     name: "xorg.conf file"
     description: "Insert custom 'xorg.conf' code"
