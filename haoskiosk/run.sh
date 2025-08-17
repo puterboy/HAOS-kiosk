@@ -162,7 +162,7 @@ fi
 # Force tagging of event input devices (in /dev/input) to enable recognition by
 # libinput since 'udev' doesn't necessarily trigger their tagging when run from a container.
 echo "/dev/input event devices:"
-for dev in $(ls /dev/input/event* | sort -V); do # Loop through all input devices
+for dev in $(find /dev/input/event* | sort -V); do # Loop through all input devices
     devpath_output=$(udevadm info --query=path --name="$dev" 2>/dev/null; echo -n $?)
     return_status=${devpath_output##*$'\n'}
     [ "$return_status" -eq 0 ] || { echo "  $dev: Failed to get device path"; continue; }
