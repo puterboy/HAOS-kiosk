@@ -35,7 +35,7 @@ configuration:
     name: "Output Number"
     description: |
       Choose which of the *connected* video output ports to use.
-      Set to 1 to use the first connected port. (Default: 1)
+      Set to 1 to use the first connected port. [Default: 1]
   ha_theme:
     name: "HA Theme"
     description: "Display theme [Default: Dark]"
@@ -65,9 +65,15 @@ configuration:
       If 'true', then map all touch pointer inputs to the selected
       video output. In particular, this rotates touch input devices
       consistently with the video output.
+  cursor_timeout:
+    name: "Cursor Timeout"
+    description: |
+      Time in seconds for cursor to re-hide after last mouse movement
+      or touch. Set to '0' to always show cursor. Set to '-1' to never
+      show cursor. [Default: 5 seconds]
   keyboard_layout:
     name: "Keyboard Layout"
-    description: "Set the Keyboard Layout (Default: us)"
+    description: "Set the Keyboard Layout [Default: us]"
   xorg_conf:
     name: "xorg.conf file"
     description: "Insert custom 'xorg.conf' code"

@@ -65,6 +65,7 @@ options:
   ha_sidebar: "none"
   rotate_display: "normal"
   map_touch_inputs: "true"
+  cursor_timeout: 5
   xorg_conf: ""
   xorg_append_replace: "append"
   debug_mode: false
@@ -84,6 +85,7 @@ schema:
   ha_sidebar: list(full|narrow|none)
   rotate_display: list(normal|left|right|inverted)
   map_touch_inputs: bool
+  cursor_timeout: int
   keyboard_layout: str
   xorg_conf: str?
   xorg_append_replace: list(append|replace)

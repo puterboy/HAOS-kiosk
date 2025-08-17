@@ -46,38 +46,37 @@ local server.
 ### HA Dashboard
 
 Name of starting dashboard.\
-Default:"" (loads the default `Lovelace` dashboard)
+(Default: "" - loads the default `Lovelace` dashboard)
 
 ### Login Delay
 
 Delay in seconds to allow login page to load.\
-Default: 1 second
+(Default: 1 second)
 
 ### Zoom Level
 
 Level of zoom with `100` being 100%.\
-Default: 100%
+(Default: 100%)
 
 ### Browser Refresh
 
 Time between browser refreshes. Set to `0` to disable.\
 Recommended because with the default RPi config, console errors *may*
 overwrite the dashboard.\
-Default: 600 seconds
+(Default: 600 seconds)
 
 ### Screen Timeout
 
 Time before screen blanks in seconds. Set to `0` to never timeout.
-
-Default: 0 seconds (never timeout)
+(Default: 0 seconds - never timeout)
 
 ### Output Number
 
-Choose which of the *connected* video output ports to use. Set to 1 to use
-the first connected port. If selected number exceeds number of connected
-ports, then use last valid connected port(Default: 1)
+Choose which of the *connected* video output ports to use. Set to `1` to 
+use the first connected port. If selected number exceeds number of
+connected ports, then use last valid connected port. (Default: 1)
 
-NOTE: This should always be set to 1 unless you have more than one video
+NOTE: This should always be set to `1` unless you have more than one video
 output device connected. If so, use the logs to see how they are numbered.
 
 ### HA Theme
@@ -113,6 +112,13 @@ Options include: (Default: Normal)
 
 Map touch inputs to the selected video output, so that the touch devices
 get rotated consistently with the video output. (Default: True)
+
+### CURSOR TIMEOUT
+
+Time in seconds for cursor to be hidden after last mouse movement or
+touch. Cursor will reappear when mouse moved or screen touched again.
+Set to `0` to *always* show cursor. Set to `-1` to *never* show
+cursor. (Default: 5 seconds)
 
 ### KEYBOARD LAYOUT
 

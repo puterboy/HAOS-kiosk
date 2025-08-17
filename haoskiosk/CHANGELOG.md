@@ -3,6 +3,7 @@
 ## v1.0.1 - August 2025
 - Simplified and generalzedlibinput discovery tagging and merged resulting
   code into 'run.sh' (Thanks to GuntherSchulz01 and tacher4000)
+- Added "CURSOR_TIMEOUT" to hide cursor (Thanks tacher4000)
 
 ## v1.0.0 - July 2025
 

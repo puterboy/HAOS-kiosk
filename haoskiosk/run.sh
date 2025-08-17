@@ -22,6 +22,7 @@
 #         OUTPUT_NUMBER
 #         ROTATE_DISPLAY
 #         MAP_TOUCH_INPUTS
+#         CURSOR_TIMEOUT
 #         KEYBOARD_LAYOUT
 #         XORG_CONF
 #         XORG_APPEND_REPLACE
@@ -106,6 +107,7 @@ load_config_var OUTPUT_NUMBER 1 # Which *CONNECTED* Physical video output to use
 #      without any need to change configs. Set to 1, unless you have multiple video outputs connected.
 load_config_var ROTATE_DISPLAY normal
 load_config_var MAP_TOUCH_INPUTS true
+load_config_var CURSOR_TIMEOUT 5 #Default to 5 seconds
 load_config_var KEYBOARD_LAYOUT us
 load_config_var XORG_CONF
 load_config_var XORG_APPEND_REPLACE append
@@ -213,7 +215,9 @@ printf '%*s\n' 80 '' | tr ' ' '#' #Trailer
 echo "."
 
 bashio::log.info "Starting X on DISPLAY=$DISPLAY..."
-Xorg </dev/null &
+NOCURSOR=""
+[ "$CURSOR_TIMEOUT" -lt 0 ] && NOCURSOR="-nocursor" #No cursor if <0
+Xorg $NOCURSOR </dev/null &
 
 XSTARTUP=30
 for ((i=0; i<=XSTARTUP; i++)); do
@@ -238,8 +242,17 @@ if ! xset q >/dev/null 2>&1; then
 fi
 bashio::log.info "X server started successfully after $i seconds..."
 
+# List xinput devices
+echo "xinput list:"
+xinput list | sed 's/^/  /'
+
 #Stop console blinking cursor (this projects through the X-screen)
 echo -e "\033[?25l" > /dev/console
+
+#Hide cursor dynamically after CURSOR_TIMEOUT seconds if positive
+if [ "$CURSOR_TIMEOUT" -gt 0 ]; then
+    unclutter-xfixes --start-hidden --hide-on-touch --fork --timeout $CURSOR_TIMEOUT
+fi
 
 #### Start Openbox in the background
 openbox &
