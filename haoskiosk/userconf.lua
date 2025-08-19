@@ -101,13 +101,13 @@ end
 
 msg.info("USERNAME=%s; URL=%s; DARK_MODE=%s; SIDEBAR=%s; LOGIN_DELAY=%.1f, ZOOM_LEVEL=%d, BROWSER_REFRESH=%d",
     username, ha_url, tostring(dark_mode), sidebar, login_delay, zoom_level, browser_refresh)
-    
+
 -- -----------------------------------------------------------------------
 -- Forward console messages to stdout
 settings.set_setting("webview.enable_write_console_messages_to_stdout", true)
 
 -- Prefer Dark mode if set to true
-settings.application.prefer_dark_mode = dark_mode 
+settings.application.prefer_dark_mode = dark_mode
 
 -- Set window to fullscreen
 window.add_signal("init", function(w)
