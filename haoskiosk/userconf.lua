@@ -213,10 +213,7 @@ webview.add_signal("init", function(view)
 		    const sidebar = '%s';
                     const currentSidebar = localStorage.getItem('dockedSidebar') || '';
 
-                    let needsReload = false;
-
                     if (sidebar !== currentSidebar) {
-//                        needsReload = true;
                         if (sidebar !== "") {
                             localStorage.setItem('dockedSidebar', sidebar);
                         } else {
@@ -224,13 +221,8 @@ webview.add_signal("init", function(view)
                         }
                     }
 
-//                  localStorage.setItem('DebugLog', "Setting: : " + currentSidebar + " -> " + sidebar + " [Reload: " + needsReload + "]"); // DEBUG
+//                  localStorage.setItem('DebugLog', "Setting: : " + currentSidebar + " -> " + sidebar); // DEBUG
 
-                    if (needsReload) { // Reload to apply Sidebar settings (Dispatch won't work)
-                        setTimeout(function() {
-                            location.reload();
-                        }, 500);
-                    }
                 } catch (err) {
 		    console.error(err);
 		    console.log("FAILED to set: Sidebar: " + sidebar + "[" + err + "]"); // DEBUG
