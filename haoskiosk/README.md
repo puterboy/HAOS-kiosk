@@ -72,22 +72,16 @@ Time before screen blanks in seconds. Set to `0` to never timeout.
 
 ### Output Number
 
-Choose which of the *connected* video output ports to use. Set to `1` to
+Choose which of the *connected* video output ports to use. Set to `1` to 
 use the first connected port. If selected number exceeds number of
 connected ports, then use last valid connected port. (Default: 1)
 
 NOTE: This should always be set to `1` unless you have more than one video
 output device connected. If so, use the logs to see how they are numbered.
 
-### HA Theme
+### Dark Mode
 
-Theme used by HA frontend (device-specific).\
-Options include: (Default: Dark)
-
-- Auto
-- Dark
-- Light
-- None
+Prefer dark mode where supported if `true` (Default: true)
 
 ### HA Sidebar
 
@@ -115,10 +109,10 @@ get rotated consistently with the video output. (Default: True)
 
 ### CURSOR TIMEOUT
 
-Time in seconds for cursor to be hidden after last mouse movement or touch.
-Cursor will reappear when mouse moved or screen touched again. Set to `0`
-to *always* show cursor. Set to `-1` to *never* show cursor. (Default: 5
-seconds)
+Time in seconds for cursor to be hidden after last mouse movement or
+touch. Cursor will reappear when mouse moved or screen touched again.
+Set to `0` to *always* show cursor. Set to `-1` to *never* show
+cursor. (Default: 5 seconds)
 
 ### KEYBOARD LAYOUT
 

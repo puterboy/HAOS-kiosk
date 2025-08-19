@@ -14,13 +14,13 @@ VERSION="1.0.1"
 #         HA_PASSWORD
 #         HA_URL
 #         HA_DASHBOARD
-#         HA_THEME
-#         HA_SIDEBAR
 #         LOGIN_DELAY
 #         ZOOM_LEVEL
 #         BROWSER_REFRESH
 #         SCREEN_TIMEOUT
 #         OUTPUT_NUMBER
+#         DARK_MODE
+#         HA_SIDEBAR
 #         ROTATE_DISPLAY
 #         MAP_TOUCH_INPUTS
 #         CURSOR_TIMEOUT
@@ -96,22 +96,22 @@ function load_config_var() {
 
 load_config_var HA_USERNAME
 load_config_var HA_PASSWORD "" 1 #Mask password in log
-load_config_var HA_URL
-load_config_var HA_DASHBOARD
-load_config_var HA_THEME
-load_config_var HA_SIDEBAR
-load_config_var LOGIN_DELAY
-load_config_var ZOOM_LEVEL
-load_config_var BROWSER_REFRESH
+load_config_var HA_URL "http://localhost:8123"
+load_config_var HA_DASHBOARD ""
+load_config_var LOGIN_DELAY 1.0
+load_config_var ZOOM_LEVEL 100
+load_config_var BROWSER_REFRESH 600
 load_config_var SCREEN_TIMEOUT 600 # Default to 600 seconds
 load_config_var OUTPUT_NUMBER 1 # Which *CONNECTED* Physical video output to use (Defaults to 1)
 #NOTE: By only considering *CONNECTED* output, this maximizes the chance of finding an output
 #      without any need to change configs. Set to 1, unless you have multiple video outputs connected.
+load_config_var DARK_MODE true
+load_config_var HA_SIDEBAR "none"
 load_config_var ROTATE_DISPLAY normal
 load_config_var MAP_TOUCH_INPUTS true
 load_config_var CURSOR_TIMEOUT 5 #Default to 5 seconds
 load_config_var KEYBOARD_LAYOUT us
-load_config_var XORG_CONF
+load_config_var XORG_CONF ""
 load_config_var XORG_APPEND_REPLACE append
 load_config_var DEBUG_MODE false
 
