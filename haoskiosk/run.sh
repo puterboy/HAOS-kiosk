@@ -342,8 +342,8 @@ setxkbmap -query  | sed 's/^/  /' #Log layout
 
 #### Launch matchbox-keyboard deamon if needed
 if [ "$USE_VIRTUAL_KEYBOARD" = true ]; then
-    matchbox-keyboard --daemon &
-    bashio::log.info "Starting matchbox-keyboard deamon"
+    florence &
+    bashio::log.info "Starting Florence keyboard"
 fi
 
 #### Poll to send <Control-r> when screen unblanks to force reload of luakit page
