@@ -337,18 +337,21 @@ export LANG=$KEYBOARD_LAYOUT
 bashio::log.info "Setting keyboard layout and language to: $KEYBOARD_LAYOUT"
 setxkbmap -query  | sed 's/^/  /' #Log layout
 
-#### Poll to send <Control-r> when screen unblanks to force reload of luakit page
-(
-    PREV=""
-    while true; do
-        if pgrep luakit > /dev/null; then
-            STATE=$(xset -q | awk '/Monitor is/ {print $3}')
-            [[ "$PREV" == "Off" && "$STATE" == "On" ]] && xdotool key --clearmodifiers ctrl+r
-            PREV=$STATE
-        fi
-        sleep 5; #Wait between polling attempts
-    done
-)&
+#### Poll to send <Control-r> when screen unblanks to force reload of luakit page if BROWSWER_REFRESH set
+if [ "$BROWSER_REFRESH" -ne 0 ]; then
+    (
+	PREV=""
+	while true; do
+            if pgrep luakit > /dev/null; then
+		STATE=$(xset -q | awk '/Monitor is/ {print $3}')
+		[[ "$PREV" == "Off" && "$STATE" == "On" ]] && xdotool key --clearmodifiers ctrl+r
+		PREV=$STATE
+            fi
+            sleep 5; #Wait between polling attempts
+	done
+    )&
+    bashio::log.info "Polling to refresh Luakit browser after wakeup..."
+fi
 
 if [ "$DEBUG_MODE" != true ]; then
     ### Run Luakit in the foreground
