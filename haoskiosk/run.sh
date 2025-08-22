@@ -342,8 +342,8 @@ setxkbmap -query  | sed 's/^/  /' #Log layout
 
 #### Launch matchbox-keyboard deamon if needed
 if [ "$USE_VIRTUAL_KEYBOARD" = true ]; then
-    squeekboard &
-    busctl call --user sm.puri.OSK0 /sm/puri/OSK0 sm.puri.OSK0 SetVisible b true
+    echo "$(squeekboard &)"
+    echo "$(busctl call --user sm.puri.OSK0 /sm/puri/OSK0 sm.puri.OSK0 SetVisible b true)"
     bashio::log.info "Starting Squeekboard keyboard"
 fi
 
