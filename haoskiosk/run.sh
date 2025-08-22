@@ -28,6 +28,7 @@ VERSION="1.0.1"
 #         XORG_CONF
 #         XORG_APPEND_REPLACE
 #         DEBUG_MODE
+#         USE_VIRTUAL_KEYBOARD
 #
 #     - Hack to delete (and later restore) /dev/tty0 (needed for X to start
 #       and to prevent udev permission errors))
@@ -39,6 +40,7 @@ VERSION="1.0.1"
 #     - Set up (enable/disable) screen timeouts
 #     - Rotate screen as appropriate
 #     - Poll to check if monitor wakes up and if so, reload luakit browser
+#     - Start a matchbox-keyboard if USE_VIRTUAL_KEYBOARD is True
 #     - Launch fresh Luakit browser for url: $HA_URL/$HA_DASHBOARD
 #       [If not in DEBUG_MODE; Otherwise, just sleep]
 #
@@ -114,6 +116,7 @@ load_config_var KEYBOARD_LAYOUT us
 load_config_var XORG_CONF ""
 load_config_var XORG_APPEND_REPLACE append
 load_config_var DEBUG_MODE false
+load_config_var USE_VIRTUAL_KEYBOARD false
 
 # Validate environment variables set by config.yaml
 if [ -z "$HA_USERNAME" ] || [ -z "$HA_PASSWORD" ]; then
@@ -336,6 +339,12 @@ setxkbmap "$KEYBOARD_LAYOUT"
 export LANG=$KEYBOARD_LAYOUT
 bashio::log.info "Setting keyboard layout and language to: $KEYBOARD_LAYOUT"
 setxkbmap -query  | sed 's/^/  /' #Log layout
+
+#### Launch matchbox-keyboard deamon if needed
+if [ "$USE_VIRTUAL_KEYBOARD" = true ]; then
+    matchbox-keyboard --daemon &
+    bashio::log.info "Starting matchbox-keyboard deamon"
+fi
 
 #### Poll to send <Control-r> when screen unblanks to force reload of luakit page
 (
