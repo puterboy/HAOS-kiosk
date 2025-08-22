@@ -70,6 +70,7 @@ options:
   xorg_append_replace: "append"
   debug_mode: false
   keyboard_layout: us
+  use_virtual_keyboard: false
 
 schema:
   ha_username: str
@@ -90,6 +91,7 @@ schema:
   xorg_conf: str?
   xorg_append_replace: list(append|replace)
   debug_mode: bool
+  use_virtual_keyboard: bool
 
 translations:
   - en
