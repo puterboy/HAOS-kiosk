@@ -40,7 +40,7 @@ VERSION="1.0.1"
 #     - Set up (enable/disable) screen timeouts
 #     - Rotate screen as appropriate
 #     - Poll to check if monitor wakes up and if so, reload luakit browser
-#     - Start a matchbox-keyboard if USE_VIRTUAL_KEYBOARD is True
+#     - Start a svkbd-mobint-intl if USE_VIRTUAL_KEYBOARD is True
 #     - Launch fresh Luakit browser for url: $HA_URL/$HA_DASHBOARD
 #       [If not in DEBUG_MODE; Otherwise, just sleep]
 #
