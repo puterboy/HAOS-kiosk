@@ -132,7 +132,7 @@ Manually, launch `luakit` (e.g.,
 `luakit -U localhost:8123/<your-dashboard>`) from Docker container.\
 E.g., `sudo docker exec -it addon_haoskiosk bash`
 
-### SUPPORT VIRTUAL KEYBOARD
+### USE VIRTUAL KEYBOARD
 
 Launch a matchbox-keyboard deamon to spawn a virtual keyboard.
 (Typically used for stand-alone touch screens). (Default: False)
