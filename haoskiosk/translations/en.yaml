@@ -36,7 +36,7 @@ configuration:
     description: |
       Choose which of the *connected* video output ports to use.
       Set to 1 to use the first connected port. [Default: 1]
-  dark_mode
+  dark_mode:
     name: Dark Mode
     description: "Prefer dark mode where supported if `true` (Default: true)"
   ha_sidebar:
