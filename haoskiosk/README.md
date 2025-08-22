@@ -134,5 +134,5 @@ E.g., `sudo docker exec -it addon_haoskiosk bash`
 
 ### USE VIRTUAL KEYBOARD
 
-Launch a florence virtual keyboard (Typically used for stand-alone touch screens).
+Launch a Squeekboard virtual keyboard (Typically used for stand-alone touch screens).
 (Default: False)
