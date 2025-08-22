@@ -344,7 +344,7 @@ setxkbmap -query  | sed 's/^/  /' #Log layout
 if [ "$USE_VIRTUAL_KEYBOARD" = true ]; then
     # echo "$(wvkbd-mobintl -L 200 -fg ffffff -fg-sp ffffff --text 000000 --text-sp 000000 -fn 25 &)"
     echo "$(svkbd-mobile-intl &)"
-    bashio::log.info "Starting svkbd-mobint keyboard"
+    bashio::log.info "Starting svkbd-mobint-intl keyboard"
 fi
 
 #### Poll to send <Control-r> when screen unblanks to force reload of luakit page
