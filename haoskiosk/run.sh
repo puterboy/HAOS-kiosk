@@ -247,6 +247,27 @@ if ! xset q >/dev/null 2>&1; then
 fi
 bashio::log.info "X server started successfully after $i seconds..."
 
+#### Launch matchbox-keyboard deamon if needed
+if [ "$USE_VIRTUAL_KEYBOARD" = true ]; then
+    # echo "$(wvkbd-mobintl -L 200 -fg ffffff -fg-sp ffffff --text 000000 --text-sp 000000 -fn 25 &)"
+    # svkbd-mobile-intl -d &
+    # svkbd-mobile-intl -n -o | cowsay
+    # svkbd-mobile-intl -d &
+    # svkbd-mobile-intl -D -g 400x200+1+1 &
+    if which svkbd-mobile-intl; then
+	     svkbd-mobile-intl &
+         bashio::log.info "Starting svkbd-mobint-intl keyboard"
+    elif which svkbd-mobile-plain; then
+	     svkbd-mobile-plain &
+         bashio::log.info "Starting svkbd-mobile-plain keyboard"
+    elif which svkbd-sxmo; then
+        svkbd-sxmo &
+        bashio::log.info "Starting svkbd-sxmo keyboard"
+    else
+	   bashio::log.info "No svkbd- keyboard found"
+    fi
+fi
+
 # List xinput devices
 echo "xinput list:"
 xinput list | sed 's/^/  /'
@@ -340,26 +361,6 @@ export LANG=$KEYBOARD_LAYOUT
 bashio::log.info "Setting keyboard layout and language to: $KEYBOARD_LAYOUT"
 setxkbmap -query  | sed 's/^/  /' #Log layout
 
-#### Launch matchbox-keyboard deamon if needed
-if [ "$USE_VIRTUAL_KEYBOARD" = true ]; then
-    # echo "$(wvkbd-mobintl -L 200 -fg ffffff -fg-sp ffffff --text 000000 --text-sp 000000 -fn 25 &)"
-    # svkbd-mobile-intl -d &
-    # svkbd-mobile-intl -n -o | cowsay
-    # svkbd-mobile-intl -d &
-    # svkbd-mobile-intl -D -g 400x200+1+1 &
-    if which svkbd-mobile-intl; then
-	     svkbd-mobile-intl &
-         bashio::log.info "Starting svkbd-mobint-intl keyboard"
-    elif which svkbd-mobile-plain; then
-	     svkbd-mobile-plain &
-         bashio::log.info "Starting svkbd-mobile-plain keyboard"
-    elif which svkbd-sxmo; then
-        svkbd-sxmo &
-        bashio::log.info "Starting svkbd-sxmo keyboard"
-    else
-	   bashio::log.info "No svkbd- keyboard found"
-    fi
-fi
 
 #### Poll to send <Control-r> when screen unblanks to force reload of luakit page if BROWSWER_REFRESH set
 if [ "$BROWSER_REFRESH" -ne 0 ]; then
