@@ -255,13 +255,13 @@ if [ "$USE_VIRTUAL_KEYBOARD" = true ]; then
     # svkbd-mobile-intl -d &
     # svkbd-mobile-intl -D -g 400x200+1+1 &
     if which svkbd-mobile-intl >/dev/null 2>&1; then
-	     echo "$(svkbd-mobile-intl &)"
+	     svkbd-mobile-intl -d &
          bashio::log.info "Starting svkbd-mobint-intl keyboard"
     elif which svkbd-mobile-plain >/dev/null 2>&1; then
-	     echo "$(svkbd-mobile-plain &)"
+	     svkbd-mobile-plain -d &
          bashio::log.info "Starting svkbd-mobile-plain keyboard"
     elif which svkbd-sxmo >/dev/null 2>&1; then
-        echo "$(svkbd-sxmo &)"
+        svkbd-sxmo -d &
         bashio::log.info "Starting svkbd-sxmo keyboard"
     else
 	   bashio::log.info "No svkbd- keyboard found"
