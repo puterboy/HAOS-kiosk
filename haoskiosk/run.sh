@@ -135,6 +135,28 @@ fi
 bashio::log.info "DBus started with: DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS"
 export DBUS_SESSION_BUS_ADDRESS
 
+
+#### Launch virtual keyboard if needed
+if [ "$USE_VIRTUAL_KEYBOARD" = true ]; then
+    # echo "$(wvkbd-mobintl -L 200 -fg ffffff -fg-sp ffffff --text 000000 --text-sp 000000 -fn 25 &)"
+    # svkbd-mobile-intl -d &
+    # svkbd-mobile-intl -n -o | cowsay
+    # svkbd-mobile-intl -d &
+    # svkbd-mobile-intl -D -g 400x200+1+1 &
+    if which svkbd-mobile-intl; then
+	     svkbd-mobile-intl &
+         bashio::log.info "Starting svkbd-mobint-intl keyboard"
+    elif which svkbd-mobile-plain; then
+	     svkbd-mobile-plain &
+         bashio::log.info "Starting svkbd-mobile-plain keyboard"
+    elif which svkbd-sxmo; then
+        svkbd-sxmo &
+        bashio::log.info "Starting svkbd-sxmo keyboard"
+    else
+	   bashio::log.info "No svkbd- keyboard found"
+    fi
+fi
+
 #### Hack to get writable /dev/tty0 for X
 # Note first need to delete /dev/tty0 since X won't start if it is there,
 # because X doesn't have permissions to access it in the container
@@ -246,27 +268,6 @@ if ! xset q >/dev/null 2>&1; then
     exit 1
 fi
 bashio::log.info "X server started successfully after $i seconds..."
-
-#### Launch matchbox-keyboard deamon if needed
-if [ "$USE_VIRTUAL_KEYBOARD" = true ]; then
-    # echo "$(wvkbd-mobintl -L 200 -fg ffffff -fg-sp ffffff --text 000000 --text-sp 000000 -fn 25 &)"
-    # svkbd-mobile-intl -d &
-    # svkbd-mobile-intl -n -o | cowsay
-    # svkbd-mobile-intl -d &
-    # svkbd-mobile-intl -D -g 400x200+1+1 &
-    if which svkbd-mobile-intl; then
-	     svkbd-mobile-intl &
-         bashio::log.info "Starting svkbd-mobint-intl keyboard"
-    elif which svkbd-mobile-plain; then
-	     svkbd-mobile-plain &
-         bashio::log.info "Starting svkbd-mobile-plain keyboard"
-    elif which svkbd-sxmo; then
-        svkbd-sxmo &
-        bashio::log.info "Starting svkbd-sxmo keyboard"
-    else
-	   bashio::log.info "No svkbd- keyboard found"
-    fi
-fi
 
 # List xinput devices
 echo "xinput list:"
