@@ -343,7 +343,7 @@ setxkbmap -query  | sed 's/^/  /' #Log layout
 #### Launch matchbox-keyboard deamon if needed
 if [ "$USE_VIRTUAL_KEYBOARD" = true ]; then
     # echo "$(wvkbd-mobintl -L 200 -fg ffffff -fg-sp ffffff --text 000000 --text-sp 000000 -fn 25 &)"
-    echo "$(svkbd-mobintl)"
+    echo "$(svkbd-mobile-intl)"
     bashio::log.info "Starting svkbd-mobint keyboard"
 fi
 
