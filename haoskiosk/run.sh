@@ -342,9 +342,8 @@ setxkbmap -query  | sed 's/^/  /' #Log layout
 
 #### Launch matchbox-keyboard deamon if needed
 if [ "$USE_VIRTUAL_KEYBOARD" = true ]; then
-    echo "$(squeekboard &)"
-    echo "$(busctl call --user sm.puri.OSK0 /sm/puri/OSK0 sm.puri.OSK0 SetVisible b true)"
-    bashio::log.info "Starting Squeekboard keyboard"
+    echo "$(wvkbd-mobintl &)"
+    bashio::log.info "Starting wvkbd-mobint keyboard"
 fi
 
 #### Poll to send <Control-r> when screen unblanks to force reload of luakit page
