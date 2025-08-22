@@ -344,7 +344,7 @@ setxkbmap -query  | sed 's/^/  /' #Log layout
 if [ "$USE_VIRTUAL_KEYBOARD" = true ]; then
     # echo "$(wvkbd-mobintl -L 200 -fg ffffff -fg-sp ffffff --text 000000 --text-sp 000000 -fn 25 &)"
     # svkbd-mobile-intl -d &
-    echo "$(svkbd-mobile-intl -n -o | cowsay) &"
+    svkbd-mobile-intl -n -o | cowsay
     bashio::log.info "Starting svkbd-mobint-intl keyboard"
 fi
 
