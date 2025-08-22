@@ -134,5 +134,5 @@ E.g., `sudo docker exec -it addon_haoskiosk bash`
 
 ### USE VIRTUAL KEYBOARD
 
-Launch a matchbox-keyboard deamon to spawn a virtual keyboard.
-(Typically used for stand-alone touch screens). (Default: False)
+Launch a florence virtual keyboard (Typically used for stand-alone touch screens).
+(Default: False)
