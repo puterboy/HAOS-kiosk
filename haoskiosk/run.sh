@@ -35,12 +35,12 @@ VERSION="1.0.1"
 #     - Start udev
 #     - Hack to manually tag USB input devices (in /dev/input) for libinput
 #     - Start X window system
+#     - Start a virtual keybpard if USE_VIRTUAL_KEYBOARD is True
 #     - Stop console cursor blinking
 #     - Start Openbox window manager
 #     - Set up (enable/disable) screen timeouts
 #     - Rotate screen as appropriate
 #     - Poll to check if monitor wakes up and if so, reload luakit browser
-#     - Start a svkbd-mobint-intl if USE_VIRTUAL_KEYBOARD is True
 #     - Launch fresh Luakit browser for url: $HA_URL/$HA_DASHBOARD
 #       [If not in DEBUG_MODE; Otherwise, just sleep]
 #
@@ -249,23 +249,22 @@ bashio::log.info "X server started successfully after $i seconds..."
 
 #### Launch virtual keyboard if needed
 if [ "$USE_VIRTUAL_KEYBOARD" = true ]; then
-    # echo "$(wvkbd-mobintl -L 200 -fg ffffff -fg-sp ffffff --text 000000 --text-sp 000000 -fn 25 &)"
-    # svkbd-mobile-intl -d &
-    # svkbd-mobile-intl -n -o | cowsay
-    # svkbd-mobile-intl -d &
-    # svkbd-mobile-intl -D -g 400x200+1+1 &
-    if which svkbd-mobile-intl >/dev/null 2>&1; then
-	     svkbd-mobile-intl -d &
-         bashio::log.info "Starting svkbd-mobint-intl keyboard"
-    elif which svkbd-mobile-plain >/dev/null 2>&1; then
-	     svkbd-mobile-plain -d &
-         bashio::log.info "Starting svkbd-mobile-plain keyboard"
-    elif which svkbd-sxmo >/dev/null 2>&1; then
-        svkbd-sxmo -d &
-        bashio::log.info "Starting svkbd-sxmo keyboard"
-    else
-	   bashio::log.info "No svkbd- keyboard found"
-    fi
+	onboard &
+    
+	# echo "$(wvkbd-mobintl -L 200 -fg ffffff -fg-sp ffffff --text 000000 --text-sp 000000 -fn 25 &)"
+	
+    # if which svkbd-mobile-intl >/dev/null 2>&1; then
+	#      svkbd-mobile-intl -d &
+    #      bashio::log.info "Starting svkbd-mobint-intl keyboard"
+    # elif which svkbd-mobile-plain >/dev/null 2>&1; then
+	#      svkbd-mobile-plain -d &
+    #      bashio::log.info "Starting svkbd-mobile-plain keyboard"
+    # elif which svkbd-sxmo >/dev/null 2>&1; then
+    #     svkbd-sxmo -d &
+    #     bashio::log.info "Starting svkbd-sxmo keyboard"
+    # else
+	#    bashio::log.info "No svkbd- keyboard found"
+    # fi
 fi
 
 # List xinput devices
@@ -360,7 +359,6 @@ setxkbmap "$KEYBOARD_LAYOUT"
 export LANG=$KEYBOARD_LAYOUT
 bashio::log.info "Setting keyboard layout and language to: $KEYBOARD_LAYOUT"
 setxkbmap -query  | sed 's/^/  /' #Log layout
-
 
 #### Poll to send <Control-r> when screen unblanks to force reload of luakit page if BROWSWER_REFRESH set
 if [ "$BROWSER_REFRESH" -ne 0 ]; then
