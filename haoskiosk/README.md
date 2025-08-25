@@ -27,6 +27,18 @@ In general, you want to stay in `passthrough` mode.
 **NOTE:** Should support any standard mouse, touchscreen, keypad and
 touchpad so long as their /dev/input/eventN number is less than 25.
 
+**NOTE:** If not working, please first check the bug reports (open
+and closed), then try the testing branch (use url:
+https://github.com/puterboy/HAOS-kiosk#testing). If still no solution,
+file an issue on github, [bug report](https://github.com/puterboy/HAOS-kiosk/issues)
+and include full details of your setup and what you did along with
+a complete log.
+
+### If you appreciate my efforts:
+
+
+[![Buy Me a Coffee](https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png)](https://www.buymeacoffee.com/puterboy)
+
 ## Configuration Options
 
 ### HA Username [required]
@@ -72,7 +84,7 @@ Time before screen blanks in seconds. Set to `0` to never timeout.
 
 ### Output Number
 
-Choose which of the *connected* video output ports to use. Set to `1` to
+Choose which of the *connected* video output ports to use. Set to `1` to 
 use the first connected port. If selected number exceeds number of
 connected ports, then use last valid connected port. (Default: 1)
 
@@ -109,10 +121,10 @@ get rotated consistently with the video output. (Default: True)
 
 ### CURSOR TIMEOUT
 
-Time in seconds for cursor to be hidden after last mouse movement or touch.
-Cursor will reappear when mouse moved or screen touched again. Set to `0`
-to *always* show cursor. Set to `-1` to *never* show cursor. (Default: 5
-seconds)
+Time in seconds for cursor to be hidden after last mouse movement or
+touch. Cursor will reappear when mouse moved or screen touched again.
+Set to `0` to *always* show cursor. Set to `-1` to *never* show
+cursor. (Default: 5 seconds)
 
 ### KEYBOARD LAYOUT
 
