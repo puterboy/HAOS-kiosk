@@ -1,3 +1,4 @@
+---
 configuration:
   ha_username:
     name: "HA Username"
@@ -9,7 +10,8 @@ configuration:
     name: "HA URL"
     description: |
       Base URL for HA [Default: http://localhost:8123]
-      Note: Typically should not need to be changed since browser runs on the 'localhost' server
+      Note: Typically should not need to be changed since browser runs on the
+      'localhost' server
   ha_dashboard:
     name: "HA Dashboard"
     description: 'Dashboard path (following "HA URL") [Default: ""]'
@@ -29,19 +31,14 @@ configuration:
   screen_timeout:
     name: "Screen Timeout"
     description: "Time in seconds until screen blanks; 0 for never [Default: 0]"
-  hdmi_port:
-    name: "HDMI Port"
+  output_number:
+    name: "Output Number"
     description: |
-      0 or HDMI1, 1 for HDMI2 [Default: 0]
-      Note: Doesn't work on default RPI HAOS since HDMI2 mirrors HDMI1
-  ha_theme:
-    name: "HA Theme"
-    description: "Display theme [Default: Dark]"
-    items:
-      auto: "Auto"
-      dark: "Dark"
-      light: "Light"
-      none: "None"
+      Choose which of the *connected* video output ports to use.
+      Set to 1 to use the first connected port. [Default: 1]
+  dark_mode:
+    name: Dark Mode
+    description: "Prefer dark mode where supported if `true` (Default: true)"
   ha_sidebar:
     name: "HA Sidebar"
     description: "Status of left sidebar [Default: None]"
@@ -49,6 +46,40 @@ configuration:
       full: "Full"
       narrow: "Narrow"
       none: "None"
+  rotate_display:
+    name: "Rotate Display"
+    description: "Rotate display [Default: Normal]"
+    items:
+      normal: "Normal (no rotation)"
+      left: "Left (90deg CCW)"
+      right: "Right (90deg CW)"
+      inverted: "Inverted (180deg)"
+  map_touch_inputs:
+    name: "Map Touch Inputs"
+    description: |
+      If 'true', then map all touch pointer inputs to the selected
+      video output. In particular, this rotates touch input devices
+      consistently with the video output.
+  cursor_timeout:
+    name: "Cursor Timeout"
+    description: |
+      Time in seconds for cursor to re-hide after last mouse movement
+      or touch. Set to '0' to always show cursor. Set to '-1' to never
+      show cursor. [Default: 5 seconds]
+  keyboard_layout:
+    name: "Keyboard Layout"
+    description: "Set the keyboard layout and language [Default: us]"
+  xorg_conf:
+    name: "xorg.conf file"
+    description: "Insert custom 'xorg.conf' code"
+  xorg_append_replace:
+    name: "Append or Replace"
+    description: |
+      Choose whether to append to original 'xorg.conf'
+      or replace it
+    items:
+      append: "Append"
+      replace: "Replace"
   debug_mode:
     name: "Debug Mode"
     description: |

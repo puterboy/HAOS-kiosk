@@ -44,7 +44,8 @@ repos:
     hooks:
       - id: beautysh
         additional_dependencies:
-          - setuptools
+#JJK          - setuptools
+        - setuptools<81
   - repo: https://github.com/codespell-project/codespell
     rev: v2.4.1
     hooks:

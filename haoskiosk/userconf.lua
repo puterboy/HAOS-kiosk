@@ -1,9 +1,9 @@
 --[[
 Add-on: HAOS Kiosk Display (haoskiosk)
 File: userconf.lua for HA minimal browser run on server
-Version: 0.9.9
+Version: 1.0.1
 Copyright Jeff Kosowsky
-Date: July 2025
+Date: August 2025
 
 Code does the following:
     - Sets browser window to fullscreen
@@ -18,7 +18,8 @@ Code does the following:
     - Set up periodic browser refresh every $BROWSWER_REFRESH seconds (disabled if 0)
       NOTE: this is important since console messages overwrite dashboards
     - Allows for configurable browser $ZOOM_LEVEL
-    - Sets Home Assistant theme and sidebar visibility using $THEME and $SIDEBAR environment variables
+    - Prefer dark color scheme for websites that support it if $DARK_MODE environment variable true (default to true)
+    - Set Home Assistant sidebar visibility using $HA_SIDEBAR environment variables
 ]]
 
 -- -----------------------------------------------------------------------
@@ -37,7 +38,7 @@ local defaults = {
     HA_USERNAME = "",
     HA_PASSWORD = "",
     HA_URL = "http://localhost:8123",
-    HA_THEME = "",
+    DARK_MODE = true,
     HA_SIDEBAR = "",
 
     LOGIN_DELAY = 1,
@@ -56,16 +57,24 @@ ha_url = string.gsub(ha_url, "/+$", "") -- Strip trailing '/'
 local ha_url_base = ha_url:match("^(https?://[%w%.%-%%:]+)") or ha_url
 ha_url_base = string.gsub(ha_url_base, "/+$", "") -- Strip trailing '/'
 
-local raw_theme = os.getenv("HA_THEME") or defaults.HA_THEME -- Valid entries: auto, dark, light, none (or "")
-local valid_themes = { auto = '{}', dark = '{"dark":true}', light = '{"dark":false}', none = '', [""] = ''}
-local theme = valid_themes[raw_theme]
-if theme == nil then
-    msg.warn("Invalid HA_THEME value: '%s'; defaulting to unset", raw_theme)
-    theme = ''
+local raw_dark_mode = os.getenv("DARK_MODE")
+msg.info("Raw Dark mode=|%s|", raw_dark_mode)
+local dark_mode = ({
+    ["true"] = true,
+    ["false"] = false
+})[raw_dark_mode]
+if dark_mode == nil then
+    dark_mode = defaults.DARK_MODE
 end
 
 local raw_sidebar = os.getenv("HA_SIDEBAR") or defaults.HA_SIDEBAR -- Valid entries: full (or ""), narrow, none,
-local valid_sidebars = { full = '', none = '"always_hidden"', narrow = '"auto"', [""] = '' }
+local valid_sidebars = {
+    full = '',
+    none = '"always_hidden"',
+    narrow =
+    '"auto"',
+    [""] = ''
+}
 local sidebar = valid_sidebars[raw_sidebar]
 if sidebar == nil then
     msg.warn("Invalid HA_SIDEBAR value: '%s'; defaulting to unset", raw_sidebar)
@@ -90,7 +99,16 @@ if browser_refresh < 0 then
     browser_refresh = defaults.BROWSER_REFRESH
 end
 
+msg.info("USERNAME=%s; URL=%s; DARK_MODE=%s; SIDEBAR=%s; LOGIN_DELAY=%.1f, ZOOM_LEVEL=%d, BROWSER_REFRESH=%d",
+    username, ha_url, tostring(dark_mode), sidebar, login_delay, zoom_level, browser_refresh)
+
 -- -----------------------------------------------------------------------
+-- Forward console messages to stdout
+settings.set_setting("webview.enable_write_console_messages_to_stdout", true)
+
+-- Prefer Dark mode if set to true
+settings.application.prefer_dark_mode = dark_mode
+
 -- Set window to fullscreen
 window.add_signal("init", function(w)
     w.win.fullscreen = true
@@ -111,11 +129,13 @@ local function single_quote_escape(str) -- Single quote strings before injection
 end
 
 -- -----------------------------------------------------------------------
+-- Auto-login to homeassistant (if on HA url) and set 'sidebar settings
+
 local first_window = true
 local ha_settings_applied = setmetatable({}, { __mode = "k" }) -- Flag to track if HA settings have already been applied in this session
 
 webview.add_signal("init", function(view)
-    ha_settings_applied[view] = false  -- Set per view
+    ha_settings_applied[view] = false  -- Set sidebar settings once  per view
 
     -- Listen for page load events
     view:add_signal("load-status", function(v, status)
@@ -130,7 +150,7 @@ webview.add_signal("init", function(view)
                                                       -- Otherwise, first saved (and recovered) tab gets set to passthrough mode and not the specified start url
             -- Option 1b: [NOT USED] Requires adding 'apk add xdotool' to Dockerfile -- also seems  to set for all pre-existing windows
 --          os.execute("xdotool key ctrl+z")
---          msg.info("Setting passthrough mode...") -- DEBUG
+            msg.info("Setting passthrough mode...") -- DEBUG
             first_window = false
         end
 
@@ -145,13 +165,14 @@ webview.add_signal("init", function(view)
         -- Set up auto-login for Home Assistant
         -- Check if current URL matches the Home Assistant auth page
         if v.uri:match("^" .. ha_url_base .. "/auth/authorize%?response_type=code") then
+	    msg.info("Authorizing: %s", v.uri) -- DEBUG
             -- JavaScript to auto-fill and submit the login form
             local js_auto_login = string.format([[
                 setTimeout(function() {
 		    const usernameField = document.querySelector('input[autocomplete="username"]');
 		    const passwordField = document.querySelector('input[autocomplete="current-password"]');
 		    const haCheckbox = document.querySelector('ha-checkbox');
-		    const submitButton = document.querySelector('mwc-button');
+		    const submitButton = document.querySelector('ha-button, mwc-button');
 
                     if (usernameField && passwordField && submitButton) {
                         usernameField.value = '%s';
@@ -175,40 +196,24 @@ webview.add_signal("init", function(view)
 
                 }, %d);
             ]], single_quote_escape(username), single_quote_escape(password), login_delay * 1000)
-            v:eval_js(js_auto_login, { source = "auto_login.js" })  -- Execute the login script
+
+	    msg.info("Logging in: (username: %s): %s", username, v.uri) -- DEBUG
+            v:eval_js(js_auto_login, { source = "auto_login.js", no_return = true })  -- Execute the login script
         end
 
-        -- Set Home Assistant theme and sidebar visibility after dashboard load
+        -- Set Home Assistant sidebar visibility after dashboard load
         -- Check if current URL starts with ha_url but not an auth page
         if not ha_settings_applied[v]
            and (v.uri .. "/"):match("^" .. ha_url_base .. "/") -- Note ha_url was stripped of trailing slashes
            and not v.uri:match("^" .. ha_url_base .. "/auth/") then
 
-            msg.info("Applying HA settings on dashboard %s: theme=%s, sidebar=%s", v.uri, theme, sidebar) -- DEBUG
-
             local js_settings = string.format([[
                 try {
-                    // Set theme and sidebar visibility
-		    const theme = '%s';
+                    // Set sidebar visibility
 		    const sidebar = '%s';
-
-                    const currentTheme = localStorage.getItem('selectedTheme') || '';
                     const currentSidebar = localStorage.getItem('dockedSidebar') || '';
 
-		    let needsDispatch = false;
-                    let needsReload = false;
-
-                    if (theme !== currentTheme) {
-                        needsDispatch = true;
-                        if (theme !== "") {
-                            localStorage.setItem('selectedTheme', theme);
-                        } else {
-                            localStorage.removeItem('selectedTheme');
-                        }
-                    }
-
                     if (sidebar !== currentSidebar) {
-//                        needsReload = true;
                         if (sidebar !== "") {
                             localStorage.setItem('dockedSidebar', sidebar);
                         } else {
@@ -216,31 +221,25 @@ webview.add_signal("init", function(view)
                         }
                     }
 
-//                  localStorage.setItem('DebugLog', "Setting: Theme: " + currentTheme + " -> " + theme +
-//                                   " ;Sidebar: " + currentSidebar + " -> " + sidebar + " [Reload: " + needsReload + "]"); // DEBUG
-
-
-                    if (needsReload) { // Reload to apply Sidebar (+/ Theme) settings (Dispatch won't work)
-                        setTimeout(function() {
-                            location.reload();
-                        }, 500);
-                    } else if (needsDispatch) { // Dispatch is good enough for Theme
-    		        window.dispatchEvent(new CustomEvent('settheme', { detail: { theme } }));
-		    }
+//                  localStorage.setItem('DebugLog', "Setting: : " + currentSidebar + " -> " + sidebar); // DEBUG
 
                 } catch (err) {
 		    console.error(err);
-		    console.log("FAILED to set: Theme: " + theme + " ;Sidebar: " + sidebar + "[" + err + "]"); // DEBUG
-                    localStorage.setItem('DebugLog', "FAILED to set: Theme: " + theme + " ;Sidebar: " + sidebar); // DEBUG
+		    console.log("FAILED to set: Sidebar: " + sidebar + "[" + err + "]"); // DEBUG
+                    localStorage.setItem('DebugLog', "FAILED to set: Sidebar: " + sidebar); // DEBUG
                 }
-            ]], single_quote_escape(theme), single_quote_escape(sidebar))
+            ]], single_quote_escape(sidebar))
 
-            v:eval_js(js_settings, { source = "ha_settings.js" })
+            v:eval_js(js_settings, { source = "ha_settings.js", no_return = true })
+            msg.info("Applying HA settings on dashboard %s: sidebar=%s", v.uri, theme, sidebar) -- DEBUG
+
             ha_settings_applied[v] = true   -- Mark in Lua session as settings applied
         end
 
-        -- Set up periodic page refresh if browser_interval is positive
+
+        -- Set up periodic page refresh (once per page load) if browser_refresh interval is positive
         if browser_refresh > 0 then
+            -- JavaScript to block HA reloads and set up periodic reloads
             local js_refresh = string.format([[
                 if (window.ha_refresh_id) clearInterval(window.ha_refresh_id);
                 window.ha_refresh_id = setInterval(function() {
@@ -250,12 +249,14 @@ webview.add_signal("init", function(view)
                     clearInterval(window.ha_refresh_id);
                 });
             ]], browser_refresh * 1000)
-            v:eval_js(js_refresh, { source = "auto_refresh.js" })  -- Execute the refresh script
+
+            -- Inject refresh script into the webview
+            v:eval_js(js_refresh, { source = "auto_refresh.js", no_return = true })  -- Execute the refresh script
+            msg.info("Injecting refresh interval: %s", v.uri)  -- DEBUG
         end
 
     end)
 end)
-
 
 -- -----------------------------------------------------------------------
 -- Redefine <Esc> to 'new_escape_key' (e.g., <Ctl-Alt-Esc>) to exit current mode and enter normal mode

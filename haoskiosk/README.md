@@ -24,6 +24,20 @@ You can then return to *passthrough* mode by pressing `ctl-Z` or enter
 See luakit documentation for available commands.\
 In general, you want to stay in `passthrough` mode.
 
+**NOTE:** Should support any standard mouse, touchscreen, keypad and
+touchpad so long as their /dev/input/eventN number is less than 25.
+
+**NOTE:** If not working, please first check the bug reports (open and
+closed), then try the testing branch (use url:
+https://github.com/puterboy/HAOS-kiosk#testing). If still no solution, file
+an issue on github,
+[bug report](https://github.com/puterboy/HAOS-kiosk/issues) and include
+full details of your setup and what you did along with a complete log.
+
+### If you appreciate my efforts:
+
+[![Buy Me a Coffee](https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png)](https://www.buymeacoffee.com/puterboy)
+
 ## Configuration Options
 
 ### HA Username [required]
@@ -43,46 +57,42 @@ local server.
 ### HA Dashboard
 
 Name of starting dashboard.\
-Default:"" (loads the default `Lovelace` dashboard)
+(Default: "" - loads the default `Lovelace` dashboard)
 
 ### Login Delay
 
 Delay in seconds to allow login page to load.\
-Default: 1 second
+(Default: 1 second)
 
 ### Zoom Level
 
 Level of zoom with `100` being 100%.\
-Default: 100%
+(Default: 100%)
 
 ### Browser Refresh
 
 Time between browser refreshes. Set to `0` to disable.\
 Recommended because with the default RPi config, console errors *may*
 overwrite the dashboard.\
-Default: 600 seconds
+(Default: 600 seconds)
 
 ### Screen Timeout
 
 Time before screen blanks in seconds. Set to `0` to never timeout.
+(Default: 0 seconds - never timeout)
 
-Default: 0 seconds (never timeout)
+### Output Number
 
-### HDMI Port
+Choose which of the *connected* video output ports to use. Set to `1` to
+use the first connected port. If selected number exceeds number of
+connected ports, then use last valid connected port. (Default: 1)
 
-HDMI output port. Technically can be `0` or `1` (Default: 0).\
-BUT currently has no effect on stock HAOS on RPi since configured to mirror
-HDMI0 onto HDMI1.
+NOTE: This should always be set to `1` unless you have more than one video
+output device connected. If so, use the logs to see how they are numbered.
 
-### HA Theme
+### Dark Mode
 
-Theme used by HA frontend (device-specific).\
-Options include: (Default: Dark)
-
-- Auto
-- Dark
-- Light
-- None
+Prefer dark mode where supported if `true` (Default: true)
 
 ### HA Sidebar
 
@@ -92,6 +102,38 @@ Options include: (Default: None)
 - Full (icons + names)
 - Narrow (icons only)
 - None (hidden)
+
+### ROTATE SCREEN
+
+Rotate the display relative to standard view.\
+Options include: (Default: Normal)
+
+- Normal (No rotation)
+- Left (Rotate 90 degrees clockwise)
+- Right (Rotate 90 degrees counter-clockwise)
+- Inverted (Rotate 180 degrees)
+
+### MAP TOUCH INPUTS
+
+Map touch inputs to the selected video output, so that the touch devices
+get rotated consistently with the video output. (Default: True)
+
+### CURSOR TIMEOUT
+
+Time in seconds for cursor to be hidden after last mouse movement or touch.
+Cursor will reappear when mouse moved or screen touched again. Set to `0`
+to *always* show cursor. Set to `-1` to *never* show cursor. (Default: 5
+seconds)
+
+### KEYBOARD LAYOUT
+
+Set the keyboard layout and language. (Default: us)
+
+### XORG.CONF
+
+Append to or replace existing, default xorg.conf file.\
+Select 'Append' or 'Replace options.\
+To restore default, set to empty and select 'Append' option.
 
 ### DEBUG
 
