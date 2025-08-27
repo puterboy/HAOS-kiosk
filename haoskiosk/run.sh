@@ -127,10 +127,10 @@ load_config_var USE_VIRTUAL_KEYBOARD false
 load_config_var VIRTUAL_KEYBOARD_LAYOUT "Small.onboard"
 load_config_var VIRTUAL_KEYBOARD_THEME "Blackboard.theme"
 load_config_var VIRTUAL_KEYBOARD_COLORS "Charcoal.colors"
-load_config_var VIRTUAL_KEYBOARD_HEIGHT 349
-load_config_var VIRTUAL_KEYBOARD_WIDTH 1135
-load_config_var VIRTUAL_KEYBOARD_XPOS 101
-load_config_var VIRTUAL_KEYBOARD_YPOS 347
+load_config_var VIRTUAL_KEYBOARD_HEIGHT 360
+load_config_var VIRTUAL_KEYBOARD_WIDTH 1280
+load_config_var VIRTUAL_KEYBOARD_XPOS 640
+load_config_var VIRTUAL_KEYBOARD_YPOS 360
 
 # Validate environment variables set by config.yaml
 if [ -z "$HA_USERNAME" ] || [ -z "$HA_PASSWORD" ]; then
