@@ -135,6 +135,17 @@ fi
 bashio::log.info "DBus started with: DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS"
 export DBUS_SESSION_BUS_ADDRESS
 
+#### Launch virtual keyboard if needed
+if [ "$USE_VIRTUAL_KEYBOARD" = true ]; then
+ 	dbus-run-session -- dconf write /org/onboard/auto-show true # enable auto show
+	dbus-run-session -- dconf write /org/onboard/auto-show/enabled true # enable onboard keyboard
+	dbus-run-session -- dconf write /org/onboard/auto-show/tablet-mode-detection-enabled false # shows keyboard only in tablet mode. I had to disable it to make it work
+	dbus-run-session -- dconf write /org/onboard/window/force-to-top true # always show in front
+	dbus-run-session -- gsettings set org.gnome.desktop.interface toolkit-accessibility true # disable gnome assessibility popup
+	dbus-run-session onboard & # launches the keyboard
+	bashio::log.info "Starting onboard keyboard"
+fi
+
 #### Hack to get writable /dev/tty0 for X
 # Note first need to delete /dev/tty0 since X won't start if it is there,
 # because X doesn't have permissions to access it in the container
@@ -354,35 +365,6 @@ if [ "$BROWSER_REFRESH" -ne 0 ]; then
         done
     )&
     bashio::log.info "Polling to refresh Luakit browser after wakeup..."
-fi
-
-#### Launch virtual keyboard if needed
-if [ "$USE_VIRTUAL_KEYBOARD" = true ]; then
-	# onboard &
-	
-	# echo "$(wvkbd-mobintl -L 200 -fg ffffff -fg-sp ffffff --text 000000 --text-sp 000000 -fn 25 &)"
-	
-    # if which svkbd-mobile-intl >/dev/null 2>&1; then
-	#      svkbd-mobile-intl -d &
-    #      bashio::log.info "Starting svkbd-mobint-intl keyboard"
-    # elif which svkbd-mobile-plain >/dev/null 2>&1; then
-	#      svkbd-mobile-plain -d &
-    #      bashio::log.info "Starting svkbd-mobile-plain keyboard"
-    # elif which svkbd-sxmo >/dev/null 2>&1; then
-    #     svkbd-sxmo -d &
-    #     bashio::log.info "Starting svkbd-sxmo keyboard"
-    # else
-	#    bashio::log.info "No svkbd- keyboard found"
-    # fi
-
- 	dbus-run-session -- dconf write /org/onboard/auto-show true # enable auto show
-	dbus-run-session -- dconf write /org/onboard/auto-show/enabled true # enable onboard keyboard
-	dbus-run-session -- dconf write /org/onboard/auto-show/tablet-mode-detection-enabled false # shows keyboard only in tablet mode. I had to disable it to make it work
-	dbus-run-session -- dconf write /org/onboard/window/force-to-top true # always show in front
-	dbus-run-session -- gsettings set org.gnome.desktop.interface toolkit-accessibility true # disable gnome assessibility popup
-	dbus-run-session onboard & # launches the keyboard
-
-	bashio::log.info "Starting onboard keyboard"
 fi
 
 if [ "$DEBUG_MODE" != true ]; then
