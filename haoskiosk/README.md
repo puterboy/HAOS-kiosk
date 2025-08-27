@@ -137,9 +137,9 @@ E.g., `sudo docker exec -it addon_haoskiosk bash`
 Launch a Onboard onscreen keyboard (Typically used for stand-alone touch screens).
 Supported keyboard language should be inherited from regional settings, which are any of:
 
-bg_BG  de_AT  de_DE  en_AU  en_GB  eo_XX  fr_FR  gd_GB  lb_LU  nl_AW  nl_NL  pl_PL  pt_PT
-ru_RU  tr_TR  da_DK  de_CH  el_GR  en_CA  en_US  es_ES  ga_IE  it_IT  nl_AN  nl_BE  nl_SR
-pt_BR  ro_RO  sv_SE
+bg_BG    da_DK    de_AT    de_CH    de_DE    el_GR    en_AU    en_CA    en_GB    en_US
+eo_XX    es_ES    fr_FR    ga_IE    gd_GB    it_IT    lb_LU    nl_AN    nl_AW    nl_BE
+nl_NL    nl_SR    pl_PL    pt_BR    pt_PT    ro_RO    ru_RU    sv_SE    tr_TR 
 
 (Default: False)
 
@@ -153,17 +153,18 @@ Whiteboard.onboard  Whiteboard_wide.onboard
 
 ### VIRTUAL KEYBOARD THEME
 Configure onscreen keyboard theme to be any of:
-Ambiance.theme  Blackboard.theme  Classic Onboard.theme  DarkRoom.theme  Droid.theme
-HighContrast.theme  HighContrastInverse.theme  LowContrast.theme  ModelM.theme
-Nightshade.theme  Typist.theme
+Ambiance.theme    Blackboard.theme    Classic Onboard.theme      DarkRoom.theme
+Droid.theme       HighContrast.theme  HighContrastInverse.theme  LowContrast.theme
+ModelM.theme      Nightshade.theme    Typist.theme
 
 (Default: Blackboard.theme)
 
 ### VIRTUAL KEYBOARD_COLORS
 Configure onscreen keyboard colors to be any of:
 
-Aubergine.colors  Black.colors  Charcoal.colors  Classic Onboard.colors  DarkRoom.colors
-Granite.colors  HighContrast.colors  HighContrastInverseBlack.colors  
-HighContrastInverseBlue.colors  LowContrast.colors  ModelM.colors  Typist.colors
+Aubergine.colors    Black.colors    Charcoal.colors      Classic Onboard.colors
+DarkRoom.colors     Granite.colors  HighContrast.colors  HighContrastInverseBlack.colors  
+HighContrastInverseBlue.colors      LowContrast.colors   ModelM.colors 
+Typist.colors
 
 (Default: Charcoal.colors)
