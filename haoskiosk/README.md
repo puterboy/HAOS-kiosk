@@ -134,5 +134,36 @@ E.g., `sudo docker exec -it addon_haoskiosk bash`
 
 ### USE VIRTUAL KEYBOARD
 
-Launch a onboard virtual keyboard (Typically used for stand-alone touch screens).
+Launch a Onboard onscreen keyboard (Typically used for stand-alone touch screens).
+Supported keyboard language should be inherited from regional settings, which are any of:
+
+bg_BG  de_AT  de_DE  en_AU  en_GB  eo_XX  fr_FR  gd_GB  lb_LU  nl_AW  nl_NL  pl_PL  pt_PT
+ru_RU  tr_TR  da_DK  de_CH  el_GR  en_CA  en_US  es_ES  ga_IE  it_IT  nl_AN  nl_BE  nl_SR
+pt_BR  ro_RO  sv_SE
+
 (Default: False)
+
+### VIRTUAL KEYBOARD LAYOUT
+Configure onscreen keyboard layout to be any of:
+
+Compact.onboard  Full Keyboard.onboard  Grid.onboard  Phone.onboard  Small.onboard
+Whiteboard.onboard  Whiteboard_wide.onboard
+
+(Default: Small.onboard)
+
+### VIRTUAL KEYBOARD THEME
+Configure onscreen keyboard theme to be any of:
+Ambiance.theme  Blackboard.theme  Classic Onboard.theme  DarkRoom.theme  Droid.theme
+HighContrast.theme  HighContrastInverse.theme  LowContrast.theme  ModelM.theme
+Nightshade.theme  Typist.theme
+
+(Default: Blackboard.theme)
+
+### VIRTUAL KEYBOARD_COLORS
+Configure onscreen keyboard colors to be any of:
+
+Aubergine.colors  Black.colors  Charcoal.colors  Classic Onboard.colors  DarkRoom.colors
+Granite.colors  HighContrast.colors  HighContrastInverseBlack.colors  
+HighContrastInverseBlue.colors  LowContrast.colors  ModelM.colors  Typist.colors
+
+(Default: Charcoal.colors)
