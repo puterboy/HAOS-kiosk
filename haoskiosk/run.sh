@@ -167,7 +167,7 @@ if [ "$USE_VIRTUAL_KEYBOARD" = true ]; then
   	if [ -n "$VIRTUAL_KEYBOARD_COLORS" ]; then
   		KBD_COLOR_FILE='/usr/share/onboard/themes/'"$VIRTUAL_KEYBOARD_COLORS"
 		if [[ -f "$KBD_COLOR_FILE" ]]; then
- 			dbus-run-session -- dconf write /org/onboard/theme-settings/color-scheme \'"$KBD_THEME_FILE"\' # set default colors
+ 			dbus-run-session -- dconf write /org/onboard/theme-settings/color-scheme \'"$KBD_COLOR_FILE"\' # set default colors
 		fi
 	fi
 
