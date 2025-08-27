@@ -146,7 +146,7 @@ if [ "$USE_VIRTUAL_KEYBOARD" = true ]; then
  	dbus-run-session -- dconf write /org/onboard/auto-show true # enable auto show
   	echo "$VIRTUAL_KEYBOARD_LAYOUT"
   	if [ -n "$VIRTUAL_KEYBOARD_LAYOUT" ]; then
-  		KBD_LAYOUT_FILE='/usr/share/onboard/layouts/'"$VIRTUAL_KEYBOARD_LAYOUT"\'
+  		KBD_LAYOUT_FILE=\''/usr/share/onboard/layouts/'"$VIRTUAL_KEYBOARD_LAYOUT"\'
 		echo "$KBD_LAYOUT_FILE" 
 		if [[ -f "$KBD_LAYOUT_FILE" ]]; then
 			dbus-run-session -- dconf write /org/onboard/layout "$KBD_LAYOUT_FILE" # set default layout
@@ -154,7 +154,7 @@ if [ "$USE_VIRTUAL_KEYBOARD" = true ]; then
 	fi
     echo "$VIRTUAL_KEYBOARD_THEME"
   	if [ -n "$VIRTUAL_KEYBOARD_THEME" ]; then
-  		KBD_THEME_FILE='/usr/share/onboard/themes/'"$VIRTUAL_KEYBOARD_THEME"\'
+  		KBD_THEME_FILE=\''/usr/share/onboard/themes/'"$VIRTUAL_KEYBOARD_THEME"\'
 		echo "$KBD_THEME_FILE"
 		if [[ -f "$KBD_THEME_FILE" ]]; then
  			dbus-run-session -- dconf write /org/onboard/theme "$KBD_THEME_FILE" # set default theme
@@ -162,7 +162,7 @@ if [ "$USE_VIRTUAL_KEYBOARD" = true ]; then
 	fi
  	echo "$VIRTUAL_KEYBOARD_COLORS"
   	if [ -n "$VIRTUAL_KEYBOARD_COLORS" ]; then
-  		KBD_COLOR_FILE='/usr/share/onboard/themes/'"$VIRTUAL_KEYBOARD_COLORS"\'
+  		KBD_COLOR_FILE=\''/usr/share/onboard/themes/'"$VIRTUAL_KEYBOARD_COLORS"\'
 		echo "$KBD_COLOR_FILE"
 		if [[ -f "$KBD_COLOR_FILE" ]]; then
  			dbus-run-session -- dconf write /org/onboard/theme-settings/color-scheme "$KBD_THEME_FILE" # set default theme
