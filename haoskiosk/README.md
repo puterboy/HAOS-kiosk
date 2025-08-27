@@ -169,6 +169,7 @@ Supported keyboard language should be inherited from regional settings, which ar
 (Default: False)
 
 ### VIRTUAL KEYBOARD LAYOUT
+
 Configure onscreen keyboard layout to be any of:
 - Compact.onboard
 - Full Keyboard.onboard
@@ -181,6 +182,7 @@ Configure onscreen keyboard layout to be any of:
 (Default: Small.onboard)
 
 ### VIRTUAL KEYBOARD THEME
+
 Configure onscreen keyboard theme to be any of (be sure to preserve spaces in names):
 - Ambiance.theme
 - Blackboard.theme
@@ -197,6 +199,7 @@ Configure onscreen keyboard theme to be any of (be sure to preserve spaces in na
 (Default: Blackboard.theme)
 
 ### VIRTUAL KEYBOARD_COLORS
+
 Configure onscreen keyboard colors to be any of (be sure to preserve spaces in names):
 - Aubergine.colors
 - Black.colors
@@ -212,3 +215,23 @@ Configure onscreen keyboard colors to be any of (be sure to preserve spaces in n
 - Typist.colors
 
 (Default: Charcoal.colors)
+
+### VIRTUAL KEYBOARD HEIGHT
+
+An integer Number greater than zero which is the initial height of the keyboard
+(Default: 349)
+
+### VIRTUAL KEYBOARD WIDTH
+
+An integer Number greater than zero which is the initial width of the keyboard
+(Default: 1135)
+
+### VIRTUAL KEYBOARD XPOS
+
+An integer Number greater than or equal to zero which is the initial X coordinate of the keyboard
+(Default: 101)
+
+### VIRTUAL KEYBOARD YPOS
+
+An integer Number greater than or equal to zero which is the initial Y coordinate of the keyboard
+(Default: 347)
