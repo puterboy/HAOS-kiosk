@@ -143,31 +143,32 @@ export DBUS_SESSION_BUS_ADDRESS
 
 #### Launch virtual keyboard if needed
 if [ "$USE_VIRTUAL_KEYBOARD" = true ]; then
- 	dbus-run-session -- dconf write /org/onboard/auto-show true # enable auto show
+	bashio::log.info "Configuring onboard keyboard"
+ 	dbus-run-session -- dconf write /org/onboard/auto-show true > /dev/null # enable auto show
   	if [ -n "$VIRTUAL_KEYBOARD_LAYOUT" ]; then
   		KBD_LAYOUT_FILE='/usr/share/onboard/layouts/'"$VIRTUAL_KEYBOARD_LAYOUT"
 		if [[ -f "$KBD_LAYOUT_FILE" ]]; then
-			dbus-run-session -- dconf write /org/onboard/layout \'"$KBD_LAYOUT_FILE"\' # set default layout
+			dbus-run-session -- dconf write /org/onboard/layout \'"$KBD_LAYOUT_FILE"\' > /dev/null # set default layout
 		fi
 	fi
   	if [ -n "$VIRTUAL_KEYBOARD_THEME" ]; then
   		KBD_THEME_FILE='/usr/share/onboard/themes/'"$VIRTUAL_KEYBOARD_THEME"
 		if [[ -f "$KBD_THEME_FILE" ]]; then
- 			dbus-run-session -- dconf write /org/onboard/theme \'"$KBD_THEME_FILE"\' # set default theme
+ 			dbus-run-session -- dconf write /org/onboard/theme \'"$KBD_THEME_FILE"\' > /dev/null # set default theme
 		fi
 	fi
-	dbus-run-session -- dconf write /org/onboard/auto-show/enabled true # enable onboard keyboard
-	dbus-run-session -- dconf write /org/onboard/auto-show/tablet-mode-detection-enabled false # shows keyboard only in tablet mode. I had to disable it to make it work
+	dbus-run-session -- dconf write /org/onboard/auto-show/enabled true > /dev/null # enable onboard keyboard
+	dbus-run-session -- dconf write /org/onboard/auto-show/tablet-mode-detection-enabled false > /dev/null # shows keyboard only in tablet mode. I had to disable it to make it work
   	if [ -n "$VIRTUAL_KEYBOARD_COLORS" ]; then
   		KBD_COLOR_FILE='/usr/share/onboard/themes/'"$VIRTUAL_KEYBOARD_COLORS"
 		if [[ -f "$KBD_COLOR_FILE" ]]; then
- 			dbus-run-session -- dconf write /org/onboard/theme-settings/color-scheme \'"$KBD_THEME_FILE"\' # set default colors
+ 			dbus-run-session -- dconf write /org/onboard/theme-settings/color-scheme \'"$KBD_THEME_FILE"\' > /dev/null # set default colors
 		fi
 	fi
-	dbus-run-session -- dconf write /org/onboard/window/force-to-top true # always show in front
-	dbus-run-session -- gsettings set org.gnome.desktop.interface toolkit-accessibility true # disable gnome assessibility popup
-	dbus-run-session onboard & # launches the keyboard
+	dbus-run-session -- dconf write /org/onboard/window/force-to-top true > /dev/null # always show in front
+	dbus-run-session -- gsettings set org.gnome.desktop.interface toolkit-accessibility true > /dev/null # disable gnome assessibility popup
 	bashio::log.info "Starting onboard keyboard"
+	dbus-run-session onboard & # launches the keyboard
 fi
 
 #### Hack to get writable /dev/tty0 for X
