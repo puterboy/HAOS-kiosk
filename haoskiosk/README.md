@@ -219,19 +219,19 @@ Configure onscreen keyboard colors to be any of (be sure to preserve spaces in n
 ### VIRTUAL KEYBOARD HEIGHT
 
 An integer Number greater than zero which is the initial height of the keyboard
-(Default: 349)
+(Default: 360)
 
 ### VIRTUAL KEYBOARD WIDTH
 
 An integer Number greater than zero which is the initial width of the keyboard
-(Default: 1135)
+(Default: 1280)
 
 ### VIRTUAL KEYBOARD XPOS
 
 An integer Number greater than or equal to zero which is the initial X coordinate of the keyboard
-(Default: 101)
+(Default: 640)
 
 ### VIRTUAL KEYBOARD YPOS
 
 An integer Number greater than or equal to zero which is the initial Y coordinate of the keyboard
-(Default: 347)
+(Default: 360)
