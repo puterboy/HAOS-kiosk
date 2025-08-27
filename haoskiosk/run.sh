@@ -28,12 +28,21 @@ VERSION="1.0.1"
 #         XORG_CONF
 #         XORG_APPEND_REPLACE
 #         DEBUG_MODE
+#         USE_VIRTUAL_KEYBOARD
+#         VIRTUAL_KEYBOARD_LAYOUT
+#         VIRTUAL_KEYBOARD_THEME
+#         VIRTUAL_KEYBOARD_COLORS
+#         VIRTUAL_KEYBOARD_HEIGHT
+#         VIRTUAL_KEYBOARD_WIDTH
+#         VIRTUAL_KEYBOARD_XPOS
+#         VIRTUAL_KEYBOARD_YPOS
 #
 #     - Hack to delete (and later restore) /dev/tty0 (needed for X to start
 #       and to prevent udev permission errors))
 #     - Start udev
 #     - Hack to manually tag USB input devices (in /dev/input) for libinput
 #     - Start X window system
+#     - Start a virtual keybpard if USE_VIRTUAL_KEYBOARD is True
 #     - Stop console cursor blinking
 #     - Start Openbox window manager
 #     - Set up (enable/disable) screen timeouts
@@ -114,6 +123,14 @@ load_config_var KEYBOARD_LAYOUT us
 load_config_var XORG_CONF ""
 load_config_var XORG_APPEND_REPLACE append
 load_config_var DEBUG_MODE false
+load_config_var USE_VIRTUAL_KEYBOARD false
+load_config_var VIRTUAL_KEYBOARD_LAYOUT "Small.onboard"
+load_config_var VIRTUAL_KEYBOARD_THEME "Blackboard.theme"
+load_config_var VIRTUAL_KEYBOARD_COLORS "Charcoal.colors"
+load_config_var VIRTUAL_KEYBOARD_HEIGHT 360
+load_config_var VIRTUAL_KEYBOARD_WIDTH 1280
+load_config_var VIRTUAL_KEYBOARD_XPOS 640
+load_config_var VIRTUAL_KEYBOARD_YPOS 360
 
 # Validate environment variables set by config.yaml
 if [ -z "$HA_USERNAME" ] || [ -z "$HA_PASSWORD" ]; then
@@ -131,6 +148,42 @@ if [ -z "$DBUS_SESSION_BUS_ADDRESS" ]; then
 fi
 bashio::log.info "DBus started with: DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS"
 export DBUS_SESSION_BUS_ADDRESS
+
+#### Launch virtual keyboard if needed
+if [ "$USE_VIRTUAL_KEYBOARD" = true ]; then
+	bashio::log.info "Configuring onboard keyboard"
+  	if [ -n "$VIRTUAL_KEYBOARD_LAYOUT" ]; then
+  		KBD_LAYOUT_FILE='/usr/share/onboard/layouts/'"$VIRTUAL_KEYBOARD_LAYOUT"
+		if [[ -f "$KBD_LAYOUT_FILE" ]]; then
+			dbus-run-session -- dconf write /org/onboard/layout \'"$KBD_LAYOUT_FILE"\' # set default layout
+		fi
+	fi
+  	if [ -n "$VIRTUAL_KEYBOARD_THEME" ]; then
+  		KBD_THEME_FILE='/usr/share/onboard/themes/'"$VIRTUAL_KEYBOARD_THEME"
+		if [[ -f "$KBD_THEME_FILE" ]]; then
+ 			dbus-run-session -- dconf write /org/onboard/theme \'"$KBD_THEME_FILE"\' # set default theme
+		fi
+	fi
+  	if [ -n "$VIRTUAL_KEYBOARD_COLORS" ]; then
+  		KBD_COLOR_FILE='/usr/share/onboard/themes/'"$VIRTUAL_KEYBOARD_COLORS"
+		if [[ -f "$KBD_COLOR_FILE" ]]; then
+ 			dbus-run-session -- dconf write /org/onboard/theme-settings/color-scheme \'"$KBD_COLOR_FILE"\' # set default colors
+		fi
+	fi
+
+	dbus-run-session -- dconf write /org/onboard/window/landscape/height "$VIRTUAL_KEYBOARD_HEIGHT" # set default height
+	dbus-run-session -- dconf write /org/onboard/window/landscape/width  "$VIRTUAL_KEYBOARD_WIDTH" # set default width
+	dbus-run-session -- dconf write /org/onboard/window/landscape/x  "$VIRTUAL_KEYBOARD_XPOS" # set default x coordinate
+	dbus-run-session -- dconf write /org/onboard/window/landscape/y  "$VIRTUAL_KEYBOARD_YPOS" # set default y coordinate
+
+    dbus-run-session -- dconf write /org/onboard/auto-show true # enable auto show
+	dbus-run-session -- dconf write /org/onboard/auto-show/enabled true # enable onboard keyboard
+	dbus-run-session -- dconf write /org/onboard/auto-show/tablet-mode-detection-enabled false # shows keyboard only in tablet mode. I had to disable it to make it work
+	dbus-run-session -- dconf write /org/onboard/window/force-to-top true # always show in front
+	dbus-run-session -- gsettings set org.gnome.desktop.interface toolkit-accessibility true # disable gnome assessibility popup
+	bashio::log.info "Starting onboard keyboard"
+	dbus-run-session onboard & # launches the keyboard
+fi
 
 #### Hack to get writable /dev/tty0 for X
 # Note first need to delete /dev/tty0 since X won't start if it is there,
