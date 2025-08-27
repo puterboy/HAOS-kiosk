@@ -74,10 +74,10 @@ options:
   virtual_keyboard_layout: ""
   virtual_keyboard_theme: ""
   virtual_keyboard_colors: ""
-  virtual_keyboard_height: 349
-  virtual_keyboard_width: 1135
-  virtual_keyboard_xpos: 101
-  virtual_keyboard_ypos: 347
+  virtual_keyboard_height: 360
+  virtual_keyboard_width: 1280
+  virtual_keyboard_xpos: 640
+  virtual_keyboard_ypos: 360
 
 schema:
   ha_username: str
