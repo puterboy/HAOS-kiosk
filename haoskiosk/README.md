@@ -134,37 +134,81 @@ E.g., `sudo docker exec -it addon_haoskiosk bash`
 
 ### USE VIRTUAL KEYBOARD
 
-Launch a Onboard onscreen keyboard (Typically used for stand-alone touch screens).
+Launch a Onboard onscreen keyboard (Typically used for stand-alone touch screens).<br/>
 Supported keyboard language should be inherited from regional settings, which are any of:
-
-bg_BG    da_DK    de_AT    de_CH    de_DE    el_GR    en_AU    en_CA    en_GB    en_US
-eo_XX    es_ES    fr_FR    ga_IE    gd_GB    it_IT    lb_LU    nl_AN    nl_AW    nl_BE
-nl_NL    nl_SR    pl_PL    pt_BR    pt_PT    ro_RO    ru_RU    sv_SE    tr_TR 
+- bg_BG
+- da_DK
+- de_AT
+- de_CH
+- de_DE
+- el_GR
+- en_AU
+- en_CA
+- en_GB
+- en_US
+- eo_XX
+- es_ES
+- fr_FR
+- ga_IE
+- gd_GB
+- it_IT
+- lb_LU
+- nl_AN
+- nl_AW
+- nl_BE
+- nl_NL
+- nl_SR
+- pl_PL
+- pt_BR
+- pt_PT
+- ro_RO
+- ru_RU
+- sv_SE
+- tr_TR
 
 (Default: False)
 
 ### VIRTUAL KEYBOARD LAYOUT
 Configure onscreen keyboard layout to be any of:
-
-Compact.onboard  Full Keyboard.onboard  Grid.onboard  Phone.onboard  Small.onboard
-Whiteboard.onboard  Whiteboard_wide.onboard
+- Compact.onboard
+- Full Keyboard.onboard
+- Grid.onboard
+- Phone.onboard
+- Small.onboard
+- Whiteboard.onboard
+- Whiteboard_wide.onboard
 
 (Default: Small.onboard)
 
 ### VIRTUAL KEYBOARD THEME
-Configure onscreen keyboard theme to be any of:
-Ambiance.theme    Blackboard.theme    Classic Onboard.theme      DarkRoom.theme
-Droid.theme       HighContrast.theme  HighContrastInverse.theme  LowContrast.theme
-ModelM.theme      Nightshade.theme    Typist.theme
+Configure onscreen keyboard theme to be any of (be sure to preserve spaces in names):
+- Ambiance.theme
+- Blackboard.theme
+- Classic Onboard.theme
+- DarkRoom.theme
+- Droid.theme
+- HighContrast.theme
+- HighContrastInverse.theme
+- LowContrast.theme
+- ModelM.theme
+- Nightshade.theme
+- Typist.theme
 
 (Default: Blackboard.theme)
 
 ### VIRTUAL KEYBOARD_COLORS
-Configure onscreen keyboard colors to be any of:
-
-Aubergine.colors    Black.colors    Charcoal.colors      Classic Onboard.colors
-DarkRoom.colors     Granite.colors  HighContrast.colors  HighContrastInverseBlack.colors  
-HighContrastInverseBlue.colors      LowContrast.colors   ModelM.colors 
-Typist.colors
+Configure onscreen keyboard colors to be any of (be sure to preserve spaces in names):
+- Aubergine.colors
+- Black.colors
+- Charcoal.colors
+- Classic Onboard.colors
+- DarkRoom.colors
+- Granite.colors
+- HighContrast.colors
+- HighContrastInverseBlack.colors
+- HighContrastInverseBlue.colors
+- LowContrast.colors
+- ModelM.colors
+- Typist.colors
 
 (Default: Charcoal.colors)
