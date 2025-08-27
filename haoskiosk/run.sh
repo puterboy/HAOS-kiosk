@@ -149,42 +149,6 @@ fi
 bashio::log.info "DBus started with: DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS"
 export DBUS_SESSION_BUS_ADDRESS
 
-#### Launch virtual keyboard if needed
-if [ "$USE_VIRTUAL_KEYBOARD" = true ]; then
-	bashio::log.info "Configuring onboard keyboard"
-  	if [ -n "$VIRTUAL_KEYBOARD_LAYOUT" ]; then
-  		KBD_LAYOUT_FILE='/usr/share/onboard/layouts/'"$VIRTUAL_KEYBOARD_LAYOUT"
-		if [[ -f "$KBD_LAYOUT_FILE" ]]; then
-			dbus-run-session -- dconf write /org/onboard/layout \'"$KBD_LAYOUT_FILE"\' # set default layout
-		fi
-	fi
-  	if [ -n "$VIRTUAL_KEYBOARD_THEME" ]; then
-  		KBD_THEME_FILE='/usr/share/onboard/themes/'"$VIRTUAL_KEYBOARD_THEME"
-		if [[ -f "$KBD_THEME_FILE" ]]; then
- 			dbus-run-session -- dconf write /org/onboard/theme \'"$KBD_THEME_FILE"\' # set default theme
-		fi
-	fi
-  	if [ -n "$VIRTUAL_KEYBOARD_COLORS" ]; then
-  		KBD_COLOR_FILE='/usr/share/onboard/themes/'"$VIRTUAL_KEYBOARD_COLORS"
-		if [[ -f "$KBD_COLOR_FILE" ]]; then
- 			dbus-run-session -- dconf write /org/onboard/theme-settings/color-scheme \'"$KBD_COLOR_FILE"\' # set default colors
-		fi
-	fi
-
-	dbus-run-session -- dconf write /org/onboard/window/landscape/height "$VIRTUAL_KEYBOARD_HEIGHT" # set default height
-	dbus-run-session -- dconf write /org/onboard/window/landscape/width  "$VIRTUAL_KEYBOARD_WIDTH" # set default width
-	dbus-run-session -- dconf write /org/onboard/window/landscape/x  "$VIRTUAL_KEYBOARD_XPOS" # set default x coordinate
-	dbus-run-session -- dconf write /org/onboard/window/landscape/y  "$VIRTUAL_KEYBOARD_YPOS" # set default y coordinate
-
-    dbus-run-session -- dconf write /org/onboard/auto-show true # enable auto show
-	dbus-run-session -- dconf write /org/onboard/auto-show/enabled true # enable onboard keyboard
-	dbus-run-session -- dconf write /org/onboard/auto-show/tablet-mode-detection-enabled false # shows keyboard only in tablet mode. I had to disable it to make it work
-	dbus-run-session -- dconf write /org/onboard/window/force-to-top true # always show in front
-	dbus-run-session -- gsettings set org.gnome.desktop.interface toolkit-accessibility true # disable gnome assessibility popup
-	bashio::log.info "Starting onboard keyboard"
-	dbus-run-session onboard & # launches the keyboard
-fi
-
 #### Hack to get writable /dev/tty0 for X
 # Note first need to delete /dev/tty0 since X won't start if it is there,
 # because X doesn't have permissions to access it in the container
@@ -389,6 +353,42 @@ setxkbmap "$KEYBOARD_LAYOUT"
 export LANG=$KEYBOARD_LAYOUT
 bashio::log.info "Setting keyboard layout and language to: $KEYBOARD_LAYOUT"
 setxkbmap -query  | sed 's/^/  /' #Log layout
+
+#### Launch virtual keyboard if needed
+if [ "$USE_VIRTUAL_KEYBOARD" = true ]; then
+	bashio::log.info "Configuring onboard keyboard"
+  	if [ -n "$VIRTUAL_KEYBOARD_LAYOUT" ]; then
+  		KBD_LAYOUT_FILE='/usr/share/onboard/layouts/'"$VIRTUAL_KEYBOARD_LAYOUT"
+		if [[ -f "$KBD_LAYOUT_FILE" ]]; then
+			dbus-run-session -- dconf write /org/onboard/layout \'"$KBD_LAYOUT_FILE"\' # set default layout
+		fi
+	fi
+  	if [ -n "$VIRTUAL_KEYBOARD_THEME" ]; then
+  		KBD_THEME_FILE='/usr/share/onboard/themes/'"$VIRTUAL_KEYBOARD_THEME"
+		if [[ -f "$KBD_THEME_FILE" ]]; then
+ 			dbus-run-session -- dconf write /org/onboard/theme \'"$KBD_THEME_FILE"\' # set default theme
+		fi
+	fi
+  	if [ -n "$VIRTUAL_KEYBOARD_COLORS" ]; then
+  		KBD_COLOR_FILE='/usr/share/onboard/themes/'"$VIRTUAL_KEYBOARD_COLORS"
+		if [[ -f "$KBD_COLOR_FILE" ]]; then
+ 			dbus-run-session -- dconf write /org/onboard/theme-settings/color-scheme \'"$KBD_COLOR_FILE"\' # set default colors
+		fi
+	fi
+
+	dbus-run-session -- dconf write /org/onboard/window/landscape/height "$VIRTUAL_KEYBOARD_HEIGHT" # set default height
+	dbus-run-session -- dconf write /org/onboard/window/landscape/width  "$VIRTUAL_KEYBOARD_WIDTH" # set default width
+	dbus-run-session -- dconf write /org/onboard/window/landscape/x  "$VIRTUAL_KEYBOARD_XPOS" # set default x coordinate
+	dbus-run-session -- dconf write /org/onboard/window/landscape/y  "$VIRTUAL_KEYBOARD_YPOS" # set default y coordinate
+
+    dbus-run-session -- dconf write /org/onboard/auto-show true # enable auto show
+	dbus-run-session -- dconf write /org/onboard/auto-show/enabled true # enable onboard keyboard
+	dbus-run-session -- dconf write /org/onboard/auto-show/tablet-mode-detection-enabled false # shows keyboard only in tablet mode. I had to disable it to make it work
+	dbus-run-session -- dconf write /org/onboard/window/force-to-top true # always show in front
+	dbus-run-session -- gsettings set org.gnome.desktop.interface toolkit-accessibility true # disable gnome assessibility popup
+	bashio::log.info "Starting onboard keyboard"
+	dbus-run-session onboard & # launches the keyboard
+fi
 
 #### Poll to send <Control-r> when screen unblanks to force reload of luakit page if BROWSWER_REFRESH set
 if [ "$BROWSER_REFRESH" -ne 0 ]; then
