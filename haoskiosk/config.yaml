@@ -71,6 +71,10 @@ options:
   debug_mode: false
   keyboard_layout: us
   use_virtual_keyboard: false
+  virtual_keyboard_layout_file: ""
+  virtual_keyboard_theme_file: ""
+  virtual_keyboard_colors_file: ""
+  
 
 schema:
   ha_username: str
@@ -92,6 +96,9 @@ schema:
   xorg_append_replace: list(append|replace)
   debug_mode: bool
   use_virtual_keyboard: bool
+  virtual_keyboard_layout_file: str?
+  virtual_keyboard_theme_file: str?
+  virtual_keyboard_colors_file: str?
 
 translations:
   - en
