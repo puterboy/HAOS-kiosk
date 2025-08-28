@@ -402,8 +402,6 @@ if [ "$USE_VIRTUAL_KEYBOARD" = true ]; then
 	# dbus-run-session -- dconf write /org/onboard/window/landscape/x  "$VIRTUAL_KEYBOARD_XPOS" # set default x coordinate
 	# dbus-run-session -- dconf write /org/onboard/window/landscape/y  "$VIRTUAL_KEYBOARD_YPOS" # set default y coordinate
 
-    dbus-run-session -- dconf write /org/onboard/start-minimized true # dont show untill we click on text field
-
     dbus-run-session -- dconf write /org/onboard/auto-show true # enable auto show
 	dbus-run-session -- dconf write /org/onboard/auto-show/enabled true # enable onboard keyboard
 	dbus-run-session -- dconf write /org/onboard/auto-show/tablet-mode-detection-enabled false # shows keyboard only in tablet mode. I had to disable it to make it work
