@@ -348,13 +348,16 @@ KBD_PERSIST_FILE='/data/usr_custom_keybd.ini'
 if [ "$ONSCREEN_KEYBOARD" = true ]; then
 	bashio::log.info "Configuring onscreen keyboard"
 
-	if [[ -f "$KBD_PERSIST_FILE" ]]; then
+	if [ "$PERSIST_ONSCREEN_KEYBOARD_CONFIG" = true ] && [ -f "$KBD_PERSIST_FILE" ]; then
   		bashio::log.info "Restoring onscreen keyboard setup"
 
- 		# figure out how to load all CHANGED settings from file and apply them
+ 		### Load all non-default settings from file and apply them
    		dconf load / < $"KBD_PERSIST_FILE"	
  	else
   		bashio::log.info "Using default onscreen keyboard setup"
+
+  		### Delete settings file if it exists 
+ 		rm -f $"KBD_PERSIST_FILE"
 
  		### Set default layout, theme and colors
 		dbus-run-session -- dconf write /org/onboard/layout \''/usr/share/onboard/layouts/Small.onboard'\'
@@ -431,7 +434,8 @@ fi
 if [ "$ONSCREEN_KEYBOARD" = true ]; then
 	if [ "$PERSIST_ONSCREEN_KEYBOARD_CONFIG" = true ]; then
  		bashio::log.info "Backing up onscreen keyboard setup"
- 		# figure out how to save all CHANGED settings from file and apply them
+   
+ 		# Save only non-default settings
    		dconf dump / > $"KBD_PERSIST_FILE"
 	fi
 fi
