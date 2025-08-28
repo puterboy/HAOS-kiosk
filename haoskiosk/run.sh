@@ -343,17 +343,16 @@ bashio::log.info "Setting keyboard layout and language to: $KEYBOARD_LAYOUT"
 setxkbmap -query  | sed 's/^/  /' #Log layout
 
 #### Launch virtual keyboard if needed
+KBD_PERSIST_FILE='/data/usr_custom_keybd.ini'
+
 if [ "$ONSCREEN_KEYBOARD" = true ]; then
 	bashio::log.info "Configuring onscreen keyboard"
 
-	KBD_PERSIST_FILE='/usr_custom_keybd.cfg/'
 	if [[ -f "$KBD_PERSIST_FILE" ]]; then
-  		bashio::log.info "Restoring previous onscreen keyboard setup"
+  		bashio::log.info "Restoring onscreen keyboard setup"
 
  		# figure out how to load all CHANGED settings from file and apply them
-   		# Doing a "dconf dump /" at the HAOS-kiosk container terminal will show you everything you have set.
-	 	# Doing "gsettings list-recursively org.onboard | more" lists everything that is settabl
-	
+   		dconf load / < $"KBD_PERSIST_FILE"	
  	else
   		bashio::log.info "Using default onscreen keyboard setup"
 
@@ -383,20 +382,20 @@ if [ "$ONSCREEN_KEYBOARD" = true ]; then
 			dbus-run-session -- dconf write /org/onboard/window/portrait/x 0
 			dbus-run-session -- dconf write /org/onboard/window/portrait/y $(("$SCRN_HEIGHT"*3/4-1))
 	    fi
+
+	  	### Enable keyboard to auto appear when inputting text
+	    ### dbus-run-session -- dconf write /org/onboard/auto-show true # enable auto show
+		#dbus-run-session -- dconf write /org/onboard/start-minimized true # hide keyboard at startup
+		dbus-run-session -- dconf write /org/onboard/xembed-onboard false # do not start in XEmbed mode 
+		dbus-run-session -- dconf write /org/onboard/auto-show/enabled true # enable auto show
+		dbus-run-session -- dconf write /org/onboard/auto-show/tablet-mode-detection-enabled false # shows keyboard only in tablet mode. I had to disable it to make it work
+		dbus-run-session -- dconf write /org/onboard/window/force-to-top true # always show in front
+	 	dbus-run-session -- gsettings set org.gnome.desktop.interface toolkit-accessibility true # disable gnome assessibility popup
+	  	#dbus-run-session -- gsettings set org.gnome.desktop.a11y.applications screen-keyboard-enabled true
+	    #dbus-run-session -- gsettings set org.gnome.desktop.a11y.applications screen-keyboard-enabled false
+		#dbus-send --type=method_call --print-reply --dest=org.onboard.Onboard /org/onboard/Onboard/Keyboard org.onboard.Onboard.Keyboard.Hide
+	
 	fi
-
- 	### Enable keyboard to auto appear when inputting text
-    ### dbus-run-session -- dconf write /org/onboard/auto-show true # enable auto show
-	#dbus-run-session -- dconf write /org/onboard/start-minimized true # hide keyboard at startup
-	dbus-run-session -- dconf write /org/onboard/xembed-onboard false # do not start in XEmbed mode 
-	dbus-run-session -- dconf write /org/onboard/auto-show/enabled true # enable auto show
-	dbus-run-session -- dconf write /org/onboard/auto-show/tablet-mode-detection-enabled false # shows keyboard only in tablet mode. I had to disable it to make it work
-	dbus-run-session -- dconf write /org/onboard/window/force-to-top true # always show in front
- 	dbus-run-session -- gsettings set org.gnome.desktop.interface toolkit-accessibility true # disable gnome assessibility popup
-  	#dbus-run-session -- gsettings set org.gnome.desktop.a11y.applications screen-keyboard-enabled true
-    #dbus-run-session -- gsettings set org.gnome.desktop.a11y.applications screen-keyboard-enabled false
-	#dbus-send --type=method_call --print-reply --dest=org.onboard.Onboard /org/onboard/Onboard/Keyboard org.onboard.Onboard.Keyboard.Hide
-
 
 	### Launch keyboard
  	bashio::log.info "Starting onscreen keyboard"
@@ -431,9 +430,8 @@ fi
 #### Persist virtual keyboard settings if needed
 if [ "$ONSCREEN_KEYBOARD" = true ]; then
 	if [ "$PERSIST_ONSCREEN_KEYBOARD_CONFIG" = true ]; then
- 		bashio::log.info "Saving onscreen keyboard setup"
+ 		bashio::log.info "Backing up onscreen keyboard setup"
  		# figure out how to save all CHANGED settings from file and apply them
-   		# Doing a "dconf dump /" at the HAOS-kiosk container terminal will show you everything you have set.
-	 	# Doing "gsettings list-recursively org.onboard | more" lists everything that is settabl
+   		dconf dump / > $"KBD_PERSIST_FILE"
 	fi
 fi
