@@ -386,11 +386,17 @@ if [ "$ONSCREEN_KEYBOARD" = true ]; then
 	fi
 
  	### Enable keyboard to auto appear when inputting text
-    dbus-run-session -- dconf write /org/onboard/auto-show true # enable auto show
-	dbus-run-session -- dconf write /org/onboard/auto-show/enabled true # enable onboard keyboard
+    ### dbus-run-session -- dconf write /org/onboard/auto-show true # enable auto show
+	#dbus-run-session -- dconf write /org/onboard/start-minimized true # hide keyboard at startup
+	dbus-run-session -- dconf write /org/onboard/xembed-onboard false # do not start in XEmbed mode 
+	dbus-run-session -- dconf write /org/onboard/auto-show/enabled true # enable auto show
 	dbus-run-session -- dconf write /org/onboard/auto-show/tablet-mode-detection-enabled false # shows keyboard only in tablet mode. I had to disable it to make it work
 	dbus-run-session -- dconf write /org/onboard/window/force-to-top true # always show in front
  	dbus-run-session -- gsettings set org.gnome.desktop.interface toolkit-accessibility true # disable gnome assessibility popup
+  	#dbus-run-session -- gsettings set org.gnome.desktop.a11y.applications screen-keyboard-enabled true
+    #dbus-run-session -- gsettings set org.gnome.desktop.a11y.applications screen-keyboard-enabled false
+	#dbus-send --type=method_call --print-reply --dest=org.onboard.Onboard /org/onboard/Onboard/Keyboard org.onboard.Onboard.Keyboard.Hide
+
 
 	### Launch keyboard
  	bashio::log.info "Starting onscreen keyboard"
