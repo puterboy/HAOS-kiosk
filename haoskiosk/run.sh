@@ -343,7 +343,7 @@ bashio::log.info "Setting keyboard layout and language to: $KEYBOARD_LAYOUT"
 setxkbmap -query  | sed 's/^/  /' #Log layout
 
 #### Launch virtual keyboard if needed
-KBD_PERSIST_FILE='/addon_config/usr_custom_keybd.ini'
+KBD_PERSIST_FILE='/addon_config/af9e4035_haoskiosk/usr_custom_keybd.ini'
 
 if [ "$ONSCREEN_KEYBOARD" = true ]; then
 	bashio::log.info "Configuring onscreen keyboard"
