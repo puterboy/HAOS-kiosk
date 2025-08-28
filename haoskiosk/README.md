@@ -132,106 +132,21 @@ Manually, launch `luakit` (e.g.,
 `luakit -U localhost:8123/<your-dashboard>`) from Docker container.\
 E.g., `sudo docker exec -it addon_haoskiosk bash`
 
-### USE VIRTUAL KEYBOARD
+### USE ONSCREEN KEYBOARD
 
-Launch a Onboard onscreen keyboard (Typically used for stand-alone touch screens).<br/>
-Supported keyboard language should be inherited from regional settings, which are any of:
-- bg_BG
-- da_DK
-- de_AT
-- de_CH
-- de_DE
-- el_GR
-- en_AU
-- en_CA
-- en_GB
-- en_US
-- eo_XX
-- es_ES
-- fr_FR
-- ga_IE
-- gd_GB
-- it_IT
-- lb_LU
-- nl_AN
-- nl_AW
-- nl_BE
-- nl_NL
-- nl_SR
-- pl_PL
-- pt_BR
-- pt_PT
-- ro_RO
-- ru_RU
-- sv_SE
-- tr_TR
+Launch an Onscreen keyboard (typically used for stand-alone touch screens) if 'true'.  
+Supported keyboard language should be inherited from regional settings.
 
-(Default: False)
+NOTE: Use a two-finger pinch gesture to enable resize (by dragging edge handles) or move (by dragging center handle).  
+NOTE: To enter custom settings menu, press and hold the 'enter' key, and then the 'tools' key.
 
-### VIRTUAL KEYBOARD LAYOUT
+(Default: false)
 
-Configure onscreen keyboard layout to be any of:
-- Compact.onboard
-- Full Keyboard.onboard
-- Grid.onboard
-- Phone.onboard
-- Small.onboard
-- Whiteboard.onboard
-- Whiteboard_wide.onboard
+### PERSIST ONSCREEN KEYBOARD CONFIG
 
-(Default: Small.onboard)
+Save and Restore user-defined keyboard settings across Add-on restarts if 'true'.
+Use default keyboard settings across Add-on restarts if 'false'.
 
-### VIRTUAL KEYBOARD THEME
+NOTE: If USE ONSCREEN KEYBOARD is 'false', this setting has no effect.
 
-Configure onscreen keyboard theme to be any of (be sure to preserve spaces in names):
-- Ambiance.theme
-- Blackboard.theme
-- Classic Onboard.theme
-- DarkRoom.theme
-- Droid.theme
-- HighContrast.theme
-- HighContrastInverse.theme
-- LowContrast.theme
-- ModelM.theme
-- Nightshade.theme
-- Typist.theme
-
-(Default: Blackboard.theme)
-
-### VIRTUAL KEYBOARD_COLORS
-
-Configure onscreen keyboard colors to be any of (be sure to preserve spaces in names):
-- Aubergine.colors
-- Black.colors
-- Charcoal.colors
-- Classic Onboard.colors
-- DarkRoom.colors
-- Granite.colors
-- HighContrast.colors
-- HighContrastInverseBlack.colors
-- HighContrastInverseBlue.colors
-- LowContrast.colors
-- ModelM.colors
-- Typist.colors
-
-(Default: Charcoal.colors)
-
-### VIRTUAL KEYBOARD HEIGHT
-
-An integer Number greater than zero which is the initial height of the keyboard
-(Default: 360)
-
-### VIRTUAL KEYBOARD WIDTH
-
-An integer Number greater than zero which is the initial width of the keyboard
-(Default: 1280)
-
-### VIRTUAL KEYBOARD XPOS
-
-An integer Number greater than or equal to zero which is the initial X coordinate of the keyboard
-(Default: 640)
-
-### VIRTUAL KEYBOARD YPOS
-
-An integer Number greater than or equal to zero which is the initial Y coordinate of the keyboard
-(Default: 360)
+(Default: false)
