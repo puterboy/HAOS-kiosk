@@ -144,7 +144,7 @@ NOTE: To enter custom settings menu, press and hold the 'enter' key, and then th
 
 ### PERSIST ONSCREEN KEYBOARD CONFIG
 
-Save and Restore user-defined keyboard settings across Add-on restarts if 'true'.
+Save and Restore user-defined keyboard settings across Add-on restarts if 'true'.  
 Use default keyboard settings across Add-on restarts if 'false'.
 
 NOTE: If USE ONSCREEN KEYBOARD is 'false', this setting has no effect.
