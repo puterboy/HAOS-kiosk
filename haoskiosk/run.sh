@@ -403,9 +403,10 @@ if [ "$USE_VIRTUAL_KEYBOARD" = true ]; then
 	# dbus-run-session -- dconf write /org/onboard/window/landscape/y  "$VIRTUAL_KEYBOARD_YPOS" # set default y coordinate
 
     dbus-run-session -- dconf write /org/onboard/auto-show true # enable auto show
-	dbus-run-session -- dconf write /org/onboard/auto-show/enabled false # initially hide onboard keyboard
+	dbus-run-session -- dconf write /org/onboard/auto-show/enabled true # enable onboard keyboard
 	dbus-run-session -- dconf write /org/onboard/auto-show/tablet-mode-detection-enabled false # shows keyboard only in tablet mode. I had to disable it to make it work
 	dbus-run-session -- dconf write /org/onboard/window/force-to-top true # always show in front
+ 
 	dbus-run-session -- gsettings set org.gnome.desktop.interface toolkit-accessibility true # disable gnome assessibility popup
 	bashio::log.info "Starting onboard keyboard"
 	dbus-run-session onboard & # launches the keyboard
