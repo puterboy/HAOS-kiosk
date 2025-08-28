@@ -70,14 +70,8 @@ options:
   xorg_append_replace: "append"
   debug_mode: false
   keyboard_layout: us
-  use_virtual_keyboard: false
-  virtual_keyboard_layout: ""
-  virtual_keyboard_theme: ""
-  virtual_keyboard_colors: ""
-  virtual_keyboard_height: 360
-  virtual_keyboard_width: 1280
-  virtual_keyboard_xpos: 640
-  virtual_keyboard_ypos: 360
+  onscreen_keyboard: "false"
+  persist_onscreen_keyboard_config: "false"
 
 schema:
   ha_username: str
@@ -98,14 +92,8 @@ schema:
   xorg_conf: str?
   xorg_append_replace: list(append|replace)
   debug_mode: bool
-  use_virtual_keyboard: bool
-  virtual_keyboard_layout: str?
-  virtual_keyboard_theme: str?
-  virtual_keyboard_colors: str?
-  virtual_keyboard_height: int(1,)
-  virtual_keyboard_width: int(1,)
-  virtual_keyboard_xpos: int(0,)
-  virtual_keyboard_ypos: int(0,)
+  onscreen_keyboard: bool
+  persist_onscreen_keyboard_config: bool
 
 translations:
   - en
