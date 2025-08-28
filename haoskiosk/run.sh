@@ -388,12 +388,12 @@ if [ "$USE_VIRTUAL_KEYBOARD" = true ]; then
 		dbus-run-session -- dconf write /org/onboard/window/landscape/height $(("$SCRN_HEIGHT"/2)) # set default height
 		dbus-run-session -- dconf write /org/onboard/window/landscape/width  "$SCRN_WIDTH" # set default width
 		dbus-run-session -- dconf write /org/onboard/window/landscape/x  0 # set default x coordinate
-		dbus-run-session -- dconf write /org/onboard/window/landscape/y  $(("$SCRN_WIDTH"/2-1)) # set default y coordinate
+		dbus-run-session -- dconf write /org/onboard/window/landscape/y  $(("$SCRN_HEIGHT"/2-1)) # set default y coordinate
   	else
 		dbus-run-session -- dconf write /org/onboard/window/portrait/height $(("$SCRN_HEIGHT"/4)) # set default height
 		dbus-run-session -- dconf write /org/onboard/window/portrait/width  "$SCRN_WIDTH" # set default width
 		dbus-run-session -- dconf write /org/onboard/window/portrait/x  0 # set default x coordinate
-		dbus-run-session -- dconf write /org/onboard/window/portrait/y  $(("$SCRN_WIDTH"*3/4-1)) # set default y coordinate
+		dbus-run-session -- dconf write /org/onboard/window/portrait/y  $(("$SCRN_HEIGHT"*3/4-1)) # set default y coordinate
   		bashio::log.info "Screen is in Portrait mode"
     fi
 
