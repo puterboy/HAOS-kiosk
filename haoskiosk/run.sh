@@ -376,10 +376,30 @@ if [ "$USE_VIRTUAL_KEYBOARD" = true ]; then
 		fi
 	fi
 
-	dbus-run-session -- dconf write /org/onboard/window/landscape/height "$VIRTUAL_KEYBOARD_HEIGHT" # set default height
-	dbus-run-session -- dconf write /org/onboard/window/landscape/width  "$VIRTUAL_KEYBOARD_WIDTH" # set default width
-	dbus-run-session -- dconf write /org/onboard/window/landscape/x  "$VIRTUAL_KEYBOARD_XPOS" # set default x coordinate
-	dbus-run-session -- dconf write /org/onboard/window/landscape/y  "$VIRTUAL_KEYBOARD_YPOS" # set default y coordinate
+ 	if [ "$ROTATE_DISPLAY" = normal || "$ROTATE_DISPLAY" = inverted] ; then
+  		SCRN_WIDTH=$(xrandr --query --verbose | awk '/ width/ {print $3}')
+  		SCRN_HEIGHT=$(xrandr --query --verbose | awk '/ height/ {print $3}')
+		dbus-run-session -- dconf write /org/onboard/window/portrait/height ("$SCRN_HEIGHT"/4) # set default height
+		dbus-run-session -- dconf write /org/onboard/window/portrait/width  "$SCRN_WIDTH" # set default width
+		dbus-run-session -- dconf write /org/onboard/window/portrait/x  0 # set default x coordinate
+		dbus-run-session -- dconf write /org/onboard/window/portrait/y  ("$SCRN_WIDTH"*3/4) # set default y coordinate
+		# dbus-run-session -- dconf write /org/onboard/window/portrait/height "$VIRTUAL_KEYBOARD_HEIGHT" # set default height
+		# dbus-run-session -- dconf write /org/onboard/window/portrait/width  "$VIRTUAL_KEYBOARD_WIDTH" # set default width
+		# dbus-run-session -- dconf write /org/onboard/window/portrait/x  "$VIRTUAL_KEYBOARD_XPOS" # set default x coordinate
+		# dbus-run-session -- dconf write /org/onboard/window/portrait/y  "$VIRTUAL_KEYBOARD_YPOS" # set default y coordinate
+    else
+  		SCRN_WIDTH=$(xrandr --query --verbose | awk '/ height/ {print $3}')
+  		SCRN_HEIGHT=$(xrandr --query --verbose | awk '/ width/ {print $3}')
+		dbus-run-session -- dconf write /org/onboard/window/landscape/height ("$SCRN_HEIGHT"/2) # set default height
+		dbus-run-session -- dconf write /org/onboard/window/landscape/width  "$SCRN_WIDTH" # set default width
+		dbus-run-session -- dconf write /org/onboard/window/landscape/x  0 # set default x coordinate
+		dbus-run-session -- dconf write /org/onboard/window/landscape/y  ("$SCRN_WIDTH"/2) # set default y coordinate
+		# dbus-run-session -- dconf write /org/onboard/window/landscape/height "$VIRTUAL_KEYBOARD_HEIGHT" # set default height
+		# dbus-run-session -- dconf write /org/onboard/window/landscape/width  "$VIRTUAL_KEYBOARD_WIDTH" # set default width
+		# dbus-run-session -- dconf write /org/onboard/window/landscape/x  "$VIRTUAL_KEYBOARD_XPOS" # set default x coordinate
+		# dbus-run-session -- dconf write /org/onboard/window/landscape/y  "$VIRTUAL_KEYBOARD_YPOS" # set default y coordinate
+    fi
+	bashio::log.info "Screen Resolution is $SCRN_WIDTH x $SCRN_HEIGHT"
 
     dbus-run-session -- dconf write /org/onboard/auto-show true # enable auto show
 	dbus-run-session -- dconf write /org/onboard/auto-show/enabled true # enable onboard keyboard
