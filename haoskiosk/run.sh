@@ -375,7 +375,7 @@ if [ "$USE_VIRTUAL_KEYBOARD" = true ]; then
  			dbus-run-session -- dconf write /org/onboard/theme-settings/color-scheme \'"$KBD_COLOR_FILE"\' # set default colors
 		fi
 	fi
- 	if [ "$ROTATE_DISPLAY" = normal || "$ROTATE_DISPLAY" = inverted ] ; then
+ 	if [ "$ROTATE_DISPLAY" = normal ] || [ "$ROTATE_DISPLAY" = inverted ] ; then
   		SCRN_WIDTH=$(xrandr --query --verbose | awk '/ width/ {print $3}')
   		SCRN_HEIGHT=$(xrandr --query --verbose | awk '/ height/ {print $3}')
     else
