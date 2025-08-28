@@ -405,6 +405,16 @@ if [ "$ONSCREEN_KEYBOARD" = true ]; then
 	dbus-run-session onboard &
 fi
 
+#### Persist virtual keyboard settings if needed
+if [ "$ONSCREEN_KEYBOARD" = true ]; then
+	if [ "$PERSIST_ONSCREEN_KEYBOARD_CONFIG" = true ]; then
+ 		bashio::log.info "Backing up onscreen keyboard setup"
+   
+ 		# Save only non-default settings
+   		dconf dump / > $"KBD_PERSIST_FILE"
+	fi
+fi
+
 #### Poll to send <Control-r> when screen unblanks to force reload of luakit page if BROWSWER_REFRESH set
 if [ "$BROWSER_REFRESH" -ne 0 ]; then
     (
