@@ -70,8 +70,8 @@ options:
   xorg_append_replace: "append"
   debug_mode: false
   keyboard_layout: us
-  onscreen_keyboard: "false"
-  persist_onscreen_keyboard_config: "false"
+  onscreen_keyboard: false
+  persist_onscreen_keyboard_config: false
 
 schema:
   ha_username: str
