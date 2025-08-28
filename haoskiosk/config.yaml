@@ -18,6 +18,9 @@ host_network: true
 init: false
 ingress: true
 
+map:
+  - addon_config:rw
+  
 devices:
   - /dev/dri/card0
   - /dev/dri/card1
