@@ -28,14 +28,8 @@ VERSION="1.0.1"
 #         XORG_CONF
 #         XORG_APPEND_REPLACE
 #         DEBUG_MODE
-#         USE_VIRTUAL_KEYBOARD
-#         VIRTUAL_KEYBOARD_LAYOUT
-#         VIRTUAL_KEYBOARD_THEME
-#         VIRTUAL_KEYBOARD_COLORS
-#         VIRTUAL_KEYBOARD_HEIGHT
-#         VIRTUAL_KEYBOARD_WIDTH
-#         VIRTUAL_KEYBOARD_XPOS
-#         VIRTUAL_KEYBOARD_YPOS
+#         ONSCREEN_KEYBOARD
+#         PERSIST_ONSCREEN_KEYBOARD_CONFIG
 #
 #     - Hack to delete (and later restore) /dev/tty0 (needed for X to start
 #       and to prevent udev permission errors))
@@ -123,14 +117,8 @@ load_config_var KEYBOARD_LAYOUT us
 load_config_var XORG_CONF ""
 load_config_var XORG_APPEND_REPLACE append
 load_config_var DEBUG_MODE false
-load_config_var USE_VIRTUAL_KEYBOARD false
-load_config_var VIRTUAL_KEYBOARD_LAYOUT "Small.onboard"
-load_config_var VIRTUAL_KEYBOARD_THEME "Blackboard.theme"
-load_config_var VIRTUAL_KEYBOARD_COLORS "Charcoal.colors"
-load_config_var VIRTUAL_KEYBOARD_HEIGHT 360
-load_config_var VIRTUAL_KEYBOARD_WIDTH 1280
-load_config_var VIRTUAL_KEYBOARD_XPOS 640
-load_config_var VIRTUAL_KEYBOARD_YPOS 360
+load_config_var ONSCREEN_KEYBOARD false
+load_config_var PERSIST_ONSCREEN_KEYBOARD_CONFIG false
 
 # Validate environment variables set by config.yaml
 if [ -z "$HA_USERNAME" ] || [ -z "$HA_PASSWORD" ]; then
@@ -355,61 +343,58 @@ bashio::log.info "Setting keyboard layout and language to: $KEYBOARD_LAYOUT"
 setxkbmap -query  | sed 's/^/  /' #Log layout
 
 #### Launch virtual keyboard if needed
-if [ "$USE_VIRTUAL_KEYBOARD" = true ]; then
-	bashio::log.info "Configuring onboard keyboard"
-  	if [ -n "$VIRTUAL_KEYBOARD_LAYOUT" ]; then
-  		KBD_LAYOUT_FILE='/usr/share/onboard/layouts/'"$VIRTUAL_KEYBOARD_LAYOUT"
-		if [[ -f "$KBD_LAYOUT_FILE" ]]; then
-			dbus-run-session -- dconf write /org/onboard/layout \'"$KBD_LAYOUT_FILE"\' # set default layout
-		fi
-	fi
-  	if [ -n "$VIRTUAL_KEYBOARD_THEME" ]; then
-  		KBD_THEME_FILE='/usr/share/onboard/themes/'"$VIRTUAL_KEYBOARD_THEME"
-		if [[ -f "$KBD_THEME_FILE" ]]; then
- 			dbus-run-session -- dconf write /org/onboard/theme \'"$KBD_THEME_FILE"\' # set default theme
-		fi
-	fi
-  	if [ -n "$VIRTUAL_KEYBOARD_COLORS" ]; then
-  		KBD_COLOR_FILE='/usr/share/onboard/themes/'"$VIRTUAL_KEYBOARD_COLORS"
-		if [[ -f "$KBD_COLOR_FILE" ]]; then
- 			dbus-run-session -- dconf write /org/onboard/theme-settings/color-scheme \'"$KBD_COLOR_FILE"\' # set default colors
-		fi
-	fi
- 	if [ "$ROTATE_DISPLAY" = normal ] || [ "$ROTATE_DISPLAY" = inverted ] ; then
-  		SCRN_WIDTH=$(xrandr --query --verbose | awk '/ width/ {print $3}')
-  		SCRN_HEIGHT=$(xrandr --query --verbose | awk '/ height/ {print $3}')
-    else
-  		SCRN_WIDTH=$(xrandr --query --verbose | awk '/ height/ {print $3}')
-  		SCRN_HEIGHT=$(xrandr --query --verbose | awk '/ width/ {print $3}')
-    fi
-	bashio::log.info "Screen Resolution is $SCRN_WIDTH x $SCRN_HEIGHT"
- 	if [ $SCRN_WIDTH -ge $SCRN_HEIGHT ] ; then
-  		bashio::log.info "Screen is in Landscape mode"
-		dbus-run-session -- dconf write /org/onboard/window/landscape/height $(("$SCRN_HEIGHT"/2)) # set default height
-		dbus-run-session -- dconf write /org/onboard/window/landscape/width  "$SCRN_WIDTH" # set default width
-		dbus-run-session -- dconf write /org/onboard/window/landscape/x  0 # set default x coordinate
-		dbus-run-session -- dconf write /org/onboard/window/landscape/y  $(("$SCRN_HEIGHT"/2-1)) # set default y coordinate
-  	else
-		dbus-run-session -- dconf write /org/onboard/window/portrait/height $(("$SCRN_HEIGHT"/4)) # set default height
-		dbus-run-session -- dconf write /org/onboard/window/portrait/width  "$SCRN_WIDTH" # set default width
-		dbus-run-session -- dconf write /org/onboard/window/portrait/x  0 # set default x coordinate
-		dbus-run-session -- dconf write /org/onboard/window/portrait/y  $(("$SCRN_HEIGHT"*3/4-1)) # set default y coordinate
-  		bashio::log.info "Screen is in Portrait mode"
-    fi
+if [ "$ONSCREEN_KEYBOARD" = true ]; then
+	bashio::log.info "Configuring onscreen keyboard"
 
-	# dbus-run-session -- dconf write /org/onboard/window/landscape/height "$VIRTUAL_KEYBOARD_HEIGHT" # set default height
-	# dbus-run-session -- dconf write /org/onboard/window/landscape/width  "$VIRTUAL_KEYBOARD_WIDTH" # set default width
-	# dbus-run-session -- dconf write /org/onboard/window/landscape/x  "$VIRTUAL_KEYBOARD_XPOS" # set default x coordinate
-	# dbus-run-session -- dconf write /org/onboard/window/landscape/y  "$VIRTUAL_KEYBOARD_YPOS" # set default y coordinate
+	KBD_PERSIST_FILE='/usr_custom_keybd.cfg/'
+	if [[ -f "$KBD_PERSIST_FILE" ]]; then
+  		bashio::log.info "Restoring previous onscreen keyboard setup"
 
+ 		# figure out how to load all CHANGED settings from file and apply them
+   		# Doing a "dconf dump /" at the HAOS-kiosk container terminal will show you everything you have set.
+	 	# Doing "gsettings list-recursively org.onboard | more" lists everything that is settabl
+	
+ 	else
+  		bashio::log.info "Using default onscreen keyboard setup"
+
+ 		### Set default layout, theme and colors
+		dbus-run-session -- dconf write /org/onboard/layout \''/usr/share/onboard/layouts/Small.onboard'\'
+  		dbus-run-session -- dconf write /org/onboard/theme \''/usr/share/onboard/themes/Blackboard.theme'\'
+		dbus-run-session -- dconf write /org/onboard/theme-settings/color-scheme \''/usr/share/onboard/themes/Charcoal.colors'\'
+  
+		### Determine screen geometry as reported by X
+     	if [ "$ROTATE_DISPLAY" = normal ] || [ "$ROTATE_DISPLAY" = inverted ] ; then
+	  		SCRN_WIDTH=$(xrandr --query --verbose | awk '/ width/ {print $3}')
+	  		SCRN_HEIGHT=$(xrandr --query --verbose | awk '/ height/ {print $3}')
+	    else
+	  		SCRN_WIDTH=$(xrandr --query --verbose | awk '/ height/ {print $3}')
+	  		SCRN_HEIGHT=$(xrandr --query --verbose | awk '/ width/ {print $3}')
+	    fi
+
+  		### Set default keyboard height (1/2 or 1/4 of screen), width (full width) and position (centered, flush with bottom)
+	 	if [ $SCRN_WIDTH -ge $SCRN_HEIGHT ] ; then
+			dbus-run-session -- dconf write /org/onboard/window/landscape/height $(("$SCRN_HEIGHT"/2))
+			dbus-run-session -- dconf write /org/onboard/window/landscape/width "$SCRN_WIDTH"
+			dbus-run-session -- dconf write /org/onboard/window/landscape/x 0
+			dbus-run-session -- dconf write /org/onboard/window/landscape/y $(("$SCRN_HEIGHT"/2-1))
+	  	else
+			dbus-run-session -- dconf write /org/onboard/window/portrait/height $(("$SCRN_HEIGHT"/4))
+			dbus-run-session -- dconf write /org/onboard/window/portrait/width "$SCRN_WIDTH"
+			dbus-run-session -- dconf write /org/onboard/window/portrait/x 0
+			dbus-run-session -- dconf write /org/onboard/window/portrait/y $(("$SCRN_HEIGHT"*3/4-1))
+	    fi
+	fi
+
+ 	### Enable keyboard to auto appear when inputting text
     dbus-run-session -- dconf write /org/onboard/auto-show true # enable auto show
 	dbus-run-session -- dconf write /org/onboard/auto-show/enabled true # enable onboard keyboard
 	dbus-run-session -- dconf write /org/onboard/auto-show/tablet-mode-detection-enabled false # shows keyboard only in tablet mode. I had to disable it to make it work
 	dbus-run-session -- dconf write /org/onboard/window/force-to-top true # always show in front
- 
-	dbus-run-session -- gsettings set org.gnome.desktop.interface toolkit-accessibility true # disable gnome assessibility popup
-	bashio::log.info "Starting onboard keyboard"
-	dbus-run-session onboard & # launches the keyboard
+ 	dbus-run-session -- gsettings set org.gnome.desktop.interface toolkit-accessibility true # disable gnome assessibility popup
+
+	### Launch keyboard
+ 	bashio::log.info "Starting onscreen keyboard"
+	dbus-run-session onboard &
 fi
 
 #### Poll to send <Control-r> when screen unblanks to force reload of luakit page if BROWSWER_REFRESH set
@@ -435,4 +420,14 @@ if [ "$DEBUG_MODE" != true ]; then
 else ### Debug mode
     bashio::log.info "Entering debug mode (X & Openbox but no luakit browser)..."
     exec sleep infinite
+fi
+
+#### Persist virtual keyboard settings if needed
+if [ "$ONSCREEN_KEYBOARD" = true ]; then
+	if [ "$PERSIST_ONSCREEN_KEYBOARD_CONFIG" = true ]; then
+ 		bashio::log.info "Saving onscreen keyboard setup"
+ 		# figure out how to save all CHANGED settings from file and apply them
+   		# Doing a "dconf dump /" at the HAOS-kiosk container terminal will show you everything you have set.
+	 	# Doing "gsettings list-recursively org.onboard | more" lists everything that is settabl
+	fi
 fi
