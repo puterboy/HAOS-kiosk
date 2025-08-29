@@ -55,8 +55,11 @@ bashio::log.info "$(date) [Version: $VERSION]"
 
 #### Clean up on exit:
 TTY0_DELETED="" #Need to set to empty string since runs with nounset=on (like set -u)
+KBD_FILE_MUST_PERSIST=""
+KBD_PERSIST_FILE="/config/usr_custom_keyboad.ini"
 cleanup() {
     local exit_code=$?
+	[ -n "$KBD_FILE_MUST_PERSIST" ] && ! [ $(rm -f "$KBD_PERSIST_FILE) ] && dconf dump / > "$KBD_PERSIST_FILE"
 	[ -n "$(jobs -p)" ] && kill "$(jobs -p)"
 	[ -n "$TTY0_DELETED" ] && mknod -m 620 /dev/tty0 c 4 0
     exit "$exit_code"
@@ -345,11 +348,16 @@ bashio::log.info "Setting keyboard layout and language to: $KEYBOARD_LAYOUT"
 setxkbmap -query  | sed 's/^/  /' #Log layout
 
 #### Launch virtual keyboard if needed - note virtual keyboard should automatically inherit $KEYBOARD_LAYOUT
-KBD_PERSIST_FILE="/config/usr_custom_keyboad.ini"
 if [ "$ONSCREEN_KEYBOARD" = true ]; then
 	bashio::log.info "Configuring onscreen keyboard"
 
-	if [ "$PERSIST_ONSCREEN_KEYBOARD_CONFIG" = true ] && [ -f "$KBD_PERSIST_FILE" ]; then
+	if [ "$PERSIST_ONSCREEN_KEYBOARD_CONFIG" = true ]; then
+		bashio::log.info "Onscreen keyboard setup will persist"
+	
+  		KBD_FILE_MUST_PERSIST=1;
+	fi
+
+ 	if [ "$PERSIST_ONSCREEN_KEYBOARD_CONFIG" = true ] && [ -f "$KBD_PERSIST_FILE" ]; then
   		bashio::log.info "Restoring onscreen keyboard setup"
 
  		### Load all non-default settings from file and apply them
@@ -417,25 +425,11 @@ if [ "$BROWSER_REFRESH" -ne 0 ]; then
 fi
 
 if [ "$DEBUG_MODE" != true ]; then
-	##### Persist virtual keyboard settings if needed
-	if [ "$ONSCREEN_KEYBOARD" = true ]; then
-		if [ "$PERSIST_ONSCREEN_KEYBOARD_CONFIG" = true ]; then
-	 		#bashio::log.info "Backing up onscreen keyboard setup"
-			#
-	 		## Save only non-default settings
-	   		#rm -f "$KBD_PERSIST_FILE"
-	   		#dconf dump / > "$KBD_PERSIST_FILE"
-
-   			### Spawn process that saves keyboard settings when this script's PID stops existing.
-	  		# (works even when PID is handed over via exec call)	  		
-   			bashio::log.info "Onscreen keyboard setup will persist"
-			{ while kill -0 $$; do sleep 5; done; rm -f "$KBD_PERSIST_FILE"; dconf dump / > "$KBD_PERSIST_FILE"; } &
-  		fi
-	fi
- 
-    ### Run Luakit in the foreground
+    ### Run Luakit in the background and wait for process to exit
     bashio::log.info "Launching Luakit browser: $HA_URL/$HA_DASHBOARD"
-    exec luakit -U "$HA_URL/$HA_DASHBOARD"
+    luakit -U "$HA_URL/$HA_DASHBOARD" &
+    LUAKIT_PID=$!
+    wait "$LUAKIT_PID" #Wait for luakit to exit
 else ### Debug mode
     bashio::log.info "Entering debug mode (X & Openbox but no luakit browser)..."
     exec sleep infinite
