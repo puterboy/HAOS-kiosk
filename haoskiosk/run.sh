@@ -66,6 +66,8 @@ cleanup() {
     exit "$exit_code"
 }
 trap cleanup INT EXIT
+unset ONSCREEN_KEYBOARD
+unset PERSIST_ONSCREEN_KEYBOARD_CONFIG
 
 ################################################################################
 #### Get config variables from HA add-on & set environment variables
