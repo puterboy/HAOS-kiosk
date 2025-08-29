@@ -344,7 +344,7 @@ setxkbmap -query  | sed 's/^/  /' #Log layout
 
 #### Launch virtual keyboard if needed
 #KBD_PERSIST_FILE='/addon_config/af9e4035_haoskiosk/usr_custom_keyboad.ini'
-KBD_PERSIST_FILE='/config/usr_custom_keyboad.ini'
+KBD_PERSIST_FILE="/config/usr_custom_keyboad.ini"
 
 if [ "$ONSCREEN_KEYBOARD" = true ]; then
 	bashio::log.info "Configuring onscreen keyboard"
@@ -353,12 +353,12 @@ if [ "$ONSCREEN_KEYBOARD" = true ]; then
   		bashio::log.info "Restoring onscreen keyboard setup"
 
  		### Load all non-default settings from file and apply them
-   		dconf load / < $"KBD_PERSIST_FILE"	
+   		dconf load / < "$KBD_PERSIST_FILE"	
  	else
   		bashio::log.info "Using default onscreen keyboard setup"
 
   		### Delete settings file if it exists 
- 		rm -f $"KBD_PERSIST_FILE"
+ 		rm -f "$KBD_PERSIST_FILE"
 
  		### Set default layout, theme and colors
 		dbus-run-session -- dconf write /org/onboard/layout \''/usr/share/onboard/layouts/Small.onboard'\'
@@ -395,7 +395,7 @@ if [ "$ONSCREEN_KEYBOARD" = true ]; then
 	 	dbus-run-session -- gsettings set org.gnome.desktop.interface toolkit-accessibility true # disable gnome assessibility popup
 
 		#testing
-   		dconf dump / > $"KBD_PERSIST_FILE"
+   		dconf dump / > "$KBD_PERSIST_FILE"
 	fi
 
 	### Launch keyboard
@@ -434,7 +434,7 @@ if [ "$ONSCREEN_KEYBOARD" = true ]; then
  		bashio::log.info "Backing up onscreen keyboard setup"
    
  		# Save only non-default settings
-   		rm -f $"KBD_PERSIST_FILE"
-   		dconf dump / > $"KBD_PERSIST_FILE"
+   		rm -f "$KBD_PERSIST_FILE"
+   		dconf dump / > "$KBD_PERSIST_FILE"
 	fi
 fi
