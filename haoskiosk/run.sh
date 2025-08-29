@@ -64,8 +64,10 @@ trap kill_luakit SIGTERM
 TTY0_DELETED="" #Need to set to empty string since runs with nounset=on (like set -u)
 cleanup() {
     local exit_code=$?
-    [ -n "$(jobs -p)" ] && kill "$(jobs -p)"
-    [ -n "$TTY0_DELETED" ] && mknod -m 620 /dev/tty0 c 4 0
+	if [ "$LUAKIT_PID" -ne "$exit_code" ]
+    	[ -n "$(jobs -p)" ] && kill "$(jobs -p)"
+    	[ -n "$TTY0_DELETED" ] && mknod -m 620 /dev/tty0 c 4 0
+	fi
     exit "$exit_code"
 }
 trap cleanup INT TERM EXIT
@@ -433,6 +435,7 @@ if [ "$DEBUG_MODE" != true ]; then
     bashio::log.info "Launching Luakit browser: $HA_URL/$HA_DASHBOARD"
     luakit -U "$HA_URL/$HA_DASHBOARD" &
     LUAKIT_PID=$!
+	bashio::log.info "Waiting for PID: $LUAKIT_PID to end..."
     wait "$LUAKIT_PID" #Wait for luakit to exit
 
 	 #### Persist virtual keyboard settings if needed
