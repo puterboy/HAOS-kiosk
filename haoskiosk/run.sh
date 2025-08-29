@@ -36,11 +36,13 @@ VERSION="1.0.1"
 #     - Start udev
 #     - Hack to manually tag USB input devices (in /dev/input) for libinput
 #     - Start X window system
-#     - Start a virtual keybpard if USE_VIRTUAL_KEYBOARD is True
 #     - Stop console cursor blinking
 #     - Start Openbox window manager
 #     - Set up (enable/disable) screen timeouts
 #     - Rotate screen as appropriate
+#     - Map Touch inputa as appropriate
+#     - Set keyboard layout
+#     - Start a virtual keyboard if USE_VIRTUAL_KEYBOARD is True
 #     - Poll to check if monitor wakes up and if so, reload luakit browser
 #     - Launch fresh Luakit browser for url: $HA_URL/$HA_DASHBOARD
 #       [If not in DEBUG_MODE; Otherwise, just sleep]
@@ -50,6 +52,13 @@ echo "." #Almost blank line (Note totally blank or white space lines are swallow
 printf '%*s\n' 80 '' | tr ' ' '#' #Separator
 bashio::log.info "######## Starting HAOSKiosk ########"
 bashio::log.info "$(date) [Version: $VERSION]"
+
+### Trap SIGTERM and forward it to luakit to gracefully kill luakit
+kill_luakit() {
+    echo "Caught SIGTERM, forwarding to luakit (PID $LUAKIT_PID)..."
+    kill -TERM "$LUAKIT_PID"
+}
+trap kill_luakit SIGTERM
 
 #### Clean up on exit:
 TTY0_DELETED="" #Need to set to empty string since runs with nounset=on (like set -u)
@@ -342,8 +351,7 @@ export LANG=$KEYBOARD_LAYOUT
 bashio::log.info "Setting keyboard layout and language to: $KEYBOARD_LAYOUT"
 setxkbmap -query  | sed 's/^/  /' #Log layout
 
-#### Launch virtual keyboard if needed
-#KBD_PERSIST_FILE='/addon_config/af9e4035_haoskiosk/usr_custom_keyboad.ini'
+#### Launch virtual keyboard if needed - note virtual keyboard should automatically inherit $KEYBOARD_LAYOUT
 KBD_PERSIST_FILE="/config/usr_custom_keyboad.ini"
 
 if [ "$ONSCREEN_KEYBOARD" = true ]; then
@@ -393,9 +401,6 @@ if [ "$ONSCREEN_KEYBOARD" = true ]; then
 		dbus-run-session -- dconf write /org/onboard/auto-show/tablet-mode-detection-enabled false # shows keyboard only in tablet mode. I had to disable it to make it work
 		dbus-run-session -- dconf write /org/onboard/window/force-to-top true # always show in front
 	 	dbus-run-session -- gsettings set org.gnome.desktop.interface toolkit-accessibility true # disable gnome assessibility popup
-
-		#testing
-   		dconf dump / > "$KBD_PERSIST_FILE"
 	fi
 
 	### Launch keyboard
@@ -420,21 +425,27 @@ if [ "$BROWSER_REFRESH" -ne 0 ]; then
 fi
 
 if [ "$DEBUG_MODE" != true ]; then
-    ### Run Luakit in the foreground
+    #### Run Luakit in the foreground
+    #bashio::log.info "Launching Luakit browser: $HA_URL/$HA_DASHBOARD"
+    #exec luakit -U "$HA_URL/$HA_DASHBOARD"
+	
+ 	### Run Luakit in the background and wait for process to exit
     bashio::log.info "Launching Luakit browser: $HA_URL/$HA_DASHBOARD"
-    exec luakit -U "$HA_URL/$HA_DASHBOARD"
+    luakit -U "$HA_URL/$HA_DASHBOARD" &
+    LUAKIT_PID=$!
+    wait "$LUAKIT_PID" #Wait for luakit to exit
+
+	 #### Persist virtual keyboard settings if needed
+	if [ "$ONSCREEN_KEYBOARD" = true ]; then
+		if [ "$PERSIST_ONSCREEN_KEYBOARD_CONFIG" = true ]; then
+	 		bashio::log.info "Backing up onscreen keyboard setup"
+	   
+	 		# Save only non-default settings
+	   		rm -f "$KBD_PERSIST_FILE"
+	   		dconf dump / > "$KBD_PERSIST_FILE"
+		fi
+	fi
 else ### Debug mode
     bashio::log.info "Entering debug mode (X & Openbox but no luakit browser)..."
     exec sleep infinite
-fi
-
-#### Persist virtual keyboard settings if needed
-if [ "$ONSCREEN_KEYBOARD" = true ]; then
-	if [ "$PERSIST_ONSCREEN_KEYBOARD_CONFIG" = true ]; then
- 		bashio::log.info "Backing up onscreen keyboard setup"
-   
- 		# Save only non-default settings
-   		rm -f "$KBD_PERSIST_FILE"
-   		dconf dump / > "$KBD_PERSIST_FILE"
-	fi
 fi
