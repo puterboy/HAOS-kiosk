@@ -343,7 +343,8 @@ bashio::log.info "Setting keyboard layout and language to: $KEYBOARD_LAYOUT"
 setxkbmap -query  | sed 's/^/  /' #Log layout
 
 #### Launch virtual keyboard if needed
-KBD_PERSIST_FILE='/addon_config/af9e4035_haoskiosk/usr_custom_keyboad.ini'
+#KBD_PERSIST_FILE='/addon_config/af9e4035_haoskiosk/usr_custom_keyboad.ini'
+KBD_PERSIST_FILE='/config/usr_custom_keyboad.ini'
 
 if [ "$ONSCREEN_KEYBOARD" = true ]; then
 	bashio::log.info "Configuring onscreen keyboard"
@@ -392,6 +393,9 @@ if [ "$ONSCREEN_KEYBOARD" = true ]; then
 		dbus-run-session -- dconf write /org/onboard/auto-show/tablet-mode-detection-enabled false # shows keyboard only in tablet mode. I had to disable it to make it work
 		dbus-run-session -- dconf write /org/onboard/window/force-to-top true # always show in front
 	 	dbus-run-session -- gsettings set org.gnome.desktop.interface toolkit-accessibility true # disable gnome assessibility popup
+
+		#testing
+   		dconf dump / > $"KBD_PERSIST_FILE"
 	fi
 
 	### Launch keyboard
