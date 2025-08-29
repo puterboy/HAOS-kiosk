@@ -55,17 +55,16 @@ bashio::log.info "$(date) [Version: $VERSION]"
 
 #### Clean up on exit:
 TTY0_DELETED="" #Need to set to empty string since runs with nounset=on (like set -u)
-KBD_FILE_MUST_PERSIST=""
 KBD_PERSIST_FILE="/config/usr_custom_keyboad.ini"
 cleanup() {
     local exit_code=$?
-	[ -n "$KBD_FILE_MUST_PERSIST" ] && dconf dump / > "$KBD_PERSIST_FILE"
+	dconf dump / > "$KBD_PERSIST_FILE"
 	[ -n "$(jobs -p)" ] && kill "$(jobs -p)"
 	[ -n "$TTY0_DELETED" ] && mknod -m 620 /dev/tty0 c 4 0
     exit "$exit_code"
 }
-trap cleanup HUP INT QUIT ABRT TERM EXIT
-#trap cleanup INT TERM EXIT
+trap cleanup INT TERM EXIT
+#trap cleanup HUP INT QUIT ABRT TERM EXIT
 
 
 ################################################################################
@@ -353,12 +352,6 @@ setxkbmap -query  | sed 's/^/  /' #Log layout
 if [ "$ONSCREEN_KEYBOARD" = true ]; then
 	bashio::log.info "Configuring onscreen keyboard"
 
-	if [ "$PERSIST_ONSCREEN_KEYBOARD_CONFIG" = true ]; then
-		bashio::log.info "Onscreen keyboard setup will persist"
-	
-  		KBD_FILE_MUST_PERSIST=1;
-	fi
-
  	if [ "$PERSIST_ONSCREEN_KEYBOARD_CONFIG" = true ] && [ -f "$KBD_PERSIST_FILE" ]; then
   		bashio::log.info "Restoring onscreen keyboard setup"
 
@@ -366,9 +359,6 @@ if [ "$ONSCREEN_KEYBOARD" = true ]; then
    		dconf load / < "$KBD_PERSIST_FILE"	
  	else
   		bashio::log.info "Using default onscreen keyboard setup"
-
-  		### Delete settings file if it exists 
- 		rm -f "$KBD_PERSIST_FILE"
 
  		### Set default layout, theme and colors
 		dbus-run-session -- dconf write /org/onboard/layout \''/usr/share/onboard/layouts/Small.onboard'\'
@@ -398,7 +388,6 @@ if [ "$ONSCREEN_KEYBOARD" = true ]; then
 	    fi
 
 	  	### Enable keyboard to auto appear when inputting text
-		dbus-run-session -- dconf write /org/onboard/xembed-onboard false # do not start in XEmbed mode 
 		dbus-run-session -- dconf write /org/onboard/auto-show/enabled true # enable auto show
 		dbus-run-session -- dconf write /org/onboard/auto-show/tablet-mode-detection-enabled false # shows keyboard only in tablet mode. I had to disable it to make it work
 		dbus-run-session -- dconf write /org/onboard/window/force-to-top true # always show in front
