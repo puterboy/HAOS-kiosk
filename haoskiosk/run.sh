@@ -396,7 +396,7 @@ if [ "$ONSCREEN_KEYBOARD" = true ]; then
 	 	dbus-run-session -- gsettings set org.gnome.desktop.interface toolkit-accessibility true # disable gnome assessibility popup
 	  	#dbus-run-session -- gsettings set org.gnome.desktop.a11y.applications screen-keyboard-enabled true
 	    #dbus-run-session -- gsettings set org.gnome.desktop.a11y.applications screen-keyboard-enabled false
-		#dbus-send --type=method_call --print-reply --dest=org.onboard.Onboard /org/onboard/Onboard/Keyboard org.onboard.Onboard.Keyboard.Hide
+		dbus-send --type=method_call --print-reply --dest=org.onboard.Onboard /org/onboard/Onboard/Keyboard org.onboard.Onboard.Keyboard.Hide
 	
 	fi
 
