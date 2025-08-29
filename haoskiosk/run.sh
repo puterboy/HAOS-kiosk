@@ -67,8 +67,8 @@ cleanup() {
 	if [ "$LUAKIT_PID" -ne "$exit_code" ]
     	[ -n "$(jobs -p)" ] && kill "$(jobs -p)"
     	[ -n "$TTY0_DELETED" ] && mknod -m 620 /dev/tty0 c 4 0
-	fi
-    exit "$exit_code"
+	    exit "$exit_code"
+    fi
 }
 trap cleanup INT TERM EXIT
 
