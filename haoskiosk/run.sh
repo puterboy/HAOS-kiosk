@@ -64,7 +64,7 @@ cleanup() {
 	[ -n "$TTY0_DELETED" ] && mknod -m 620 /dev/tty0 c 4 0
     exit "$exit_code"
 }
-trap cleanup INT QUIT ABRT TERM EXIT
+trap cleanup INT TERM EXIT
 #trap cleanup HUP INT QUIT ABRT TERM EXIT
 
 
