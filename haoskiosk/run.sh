@@ -65,7 +65,7 @@ cleanup() {
 	[ -n "$TTY0_DELETED" ] && mknod -m 620 /dev/tty0 c 4 0
     exit "$exit_code"
 }
-trap cleanup INT EXIT
+trap cleanup INT TERM EXIT
 unset ONSCREEN_KEYBOARD
 unset PERSIST_ONSCREEN_KEYBOARD_CONFIG
 
