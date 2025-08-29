@@ -55,19 +55,13 @@ bashio::log.info "$(date) [Version: $VERSION]"
 
 #### Clean up on exit:
 TTY0_DELETED="" #Need to set to empty string since runs with nounset=on (like set -u)
-ONSCREEN_KEYBOARD=false
-PERSIST_ONSCREEN_KEYBOARD_CONFIG=false
-KBD_PERSIST_FILE="/config/usr_custom_keyboad.ini"
 cleanup() {
     local exit_code=$?
-	[ ONSCREEN_KEYBOARD ] && [ PERSIST_ONSCREEN_KEYBOARD_CONFIG ] && [ ! rm -f "$KBD_PERSIST_FILE" ] && dconf dump / > "$KBD_PERSIST_FILE"
 	[ -n "$(jobs -p)" ] && kill "$(jobs -p)"
 	[ -n "$TTY0_DELETED" ] && mknod -m 620 /dev/tty0 c 4 0
     exit "$exit_code"
 }
 trap cleanup INT TERM EXIT
-unset ONSCREEN_KEYBOARD
-unset PERSIST_ONSCREEN_KEYBOARD_CONFIG
 
 ################################################################################
 #### Get config variables from HA add-on & set environment variables
@@ -351,6 +345,7 @@ bashio::log.info "Setting keyboard layout and language to: $KEYBOARD_LAYOUT"
 setxkbmap -query  | sed 's/^/  /' #Log layout
 
 #### Launch virtual keyboard if needed - note virtual keyboard should automatically inherit $KEYBOARD_LAYOUT
+KBD_PERSIST_FILE="/config/usr_custom_keyboad.ini"
 if [ "$ONSCREEN_KEYBOARD" = true ]; then
 	bashio::log.info "Configuring onscreen keyboard"
 
@@ -422,21 +417,25 @@ if [ "$BROWSER_REFRESH" -ne 0 ]; then
 fi
 
 if [ "$DEBUG_MODE" != true ]; then
+	##### Persist virtual keyboard settings if needed
+	if [ "$ONSCREEN_KEYBOARD" = true ]; then
+		if [ "$PERSIST_ONSCREEN_KEYBOARD_CONFIG" = true ]; then
+	 		#bashio::log.info "Backing up onscreen keyboard setup"
+			#
+	 		## Save only non-default settings
+	   		#rm -f "$KBD_PERSIST_FILE"
+	   		#dconf dump / > "$KBD_PERSIST_FILE"
+
+   			### Spawn process that saves keyboard settings when this script's PID stops existing.
+	  		# (works even when PID is handed over via exec call)	  		
+   			bashio::log.info "Onscreen keyboard setup will persist"
+			{ while kill -0 $$; do sleep 5; done; rm -f "$KBD_PERSIST_FILE"; dconf dump / > "$KBD_PERSIST_FILE"; } &
+  		fi
+	fi
+ 
     ### Run Luakit in the foreground
     bashio::log.info "Launching Luakit browser: $HA_URL/$HA_DASHBOARD"
     exec luakit -U "$HA_URL/$HA_DASHBOARD"
-	
-
-	##### Persist virtual keyboard settings if needed
-	#if [ "$ONSCREEN_KEYBOARD" = true ]; then
-	#	if [ "$PERSIST_ONSCREEN_KEYBOARD_CONFIG" = true ]; then
-	# 		bashio::log.info "Backing up onscreen keyboard setup"
-	#   
-	# 		# Save only non-default settings
-	#   		rm -f "$KBD_PERSIST_FILE"
-	#   		dconf dump / > "$KBD_PERSIST_FILE"
-	#	fi
-	#fi
 else ### Debug mode
     bashio::log.info "Entering debug mode (X & Openbox but no luakit browser)..."
     exec sleep infinite
