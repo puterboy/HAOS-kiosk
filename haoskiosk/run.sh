@@ -343,7 +343,7 @@ bashio::log.info "Setting keyboard layout and language to: $KEYBOARD_LAYOUT"
 setxkbmap -query  | sed 's/^/  /' #Log layout
 
 #### Launch virtual keyboard if needed
-KBD_PERSIST_FILE='/addon_config/af9e4035_haoskiosk/usr_custom_keybd.ini'
+KBD_PERSIST_FILE='/addon_config/af9e4035_haoskiosk/usr_custom_keyboad.ini'
 
 if [ "$ONSCREEN_KEYBOARD" = true ]; then
 	bashio::log.info "Configuring onscreen keyboard"
@@ -403,16 +403,6 @@ if [ "$ONSCREEN_KEYBOARD" = true ]; then
 	### Launch keyboard
  	bashio::log.info "Starting onscreen keyboard"
 	dbus-run-session onboard &
-fi
-
-#### Persist virtual keyboard settings if needed
-if [ "$ONSCREEN_KEYBOARD" = true ]; then
-	if [ "$PERSIST_ONSCREEN_KEYBOARD_CONFIG" = true ]; then
- 		bashio::log.info "Backing up onscreen keyboard setup"
-   
- 		# Save only non-default settings
-   		dconf dump / > $"KBD_PERSIST_FILE"
-	fi
 fi
 
 #### Poll to send <Control-r> when screen unblanks to force reload of luakit page if BROWSWER_REFRESH set
