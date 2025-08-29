@@ -59,13 +59,13 @@ KBD_FILE_MUST_PERSIST=""
 KBD_PERSIST_FILE="/config/usr_custom_keyboad.ini"
 cleanup() {
     local exit_code=$?
-	#[ -n "$KBD_FILE_MUST_PERSIST" ] && ! [ $(rm -f "$KBD_PERSIST_FILE) ] && dconf dump / > "$KBD_PERSIST_FILE"
+	#[ -n "$KBD_FILE_MUST_PERSIST" ] && [ ! [ $(rm -f "$KBD_PERSIST_FILE) ] ] && [ $(dconf dump / > "$KBD_PERSIST_FILE") ]
 	[ -n "$(jobs -p)" ] && kill "$(jobs -p)"
 	[ -n "$TTY0_DELETED" ] && mknod -m 620 /dev/tty0 c 4 0
     exit "$exit_code"
 }
-trap cleanup INT TERM EXIT
-#trap cleanup HUP INT QUIT ABRT TERM EXIT
+trap cleanup HUP INT QUIT ABRT TERM EXIT
+#trap cleanup INT TERM EXIT
 
 
 ################################################################################
