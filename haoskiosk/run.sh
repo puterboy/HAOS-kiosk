@@ -64,13 +64,11 @@ trap kill_luakit SIGTERM
 TTY0_DELETED="" #Need to set to empty string since runs with nounset=on (like set -u)
 cleanup() {
     local exit_code=$?
-	if [ "$LUAKIT_PID" -ne "$exit_code" ]
-    	[ -n "$(jobs -p)" ] && kill "$(jobs -p)"
-    	[ -n "$TTY0_DELETED" ] && mknod -m 620 /dev/tty0 c 4 0
+	[ -n "$(jobs -p)" ] && kill "$(jobs -p)"
+	[ -n "$TTY0_DELETED" ] && mknod -m 620 /dev/tty0 c 4 0
     exit "$exit_code"
-	fi
 }
-trap cleanup INT TERM EXIT
+trap cleanup INT EXIT
 
 ################################################################################
 #### Get config variables from HA add-on & set environment variables
