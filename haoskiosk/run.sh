@@ -244,6 +244,8 @@ done
 if [ -n "$TTY0_DELETED" ]; then
     if mknod -m 620 /dev/tty0 c 4 0; then
         bashio::log.info "Restored /dev/tty0 successfully..."
+		# Prevent cleanup code from repating the above
+		TTY0_DELETED=""
     else
         bashio::log.error "Failed to restore /dev/tty0..."
     fi
