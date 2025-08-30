@@ -355,9 +355,9 @@ setxkbmap -query  | sed 's/^/  /' #Log layout
 if [ "$ONSCREEN_KEYBOARD" = true ]; then
 	bashio::log.info "Configuring onscreen keyboard"
 
-	#if [ "$PERSIST_ONSCREEN_KEYBOARD_CONFIG" = false ]
-  	#	rm -f "$KBD_PERSIST_FILE"
- 	#fi
+	if [ "$PERSIST_ONSCREEN_KEYBOARD_CONFIG" = true ]; then
+ 		rm -f "$KBD_PERSIST_FILE"
+	fi
 
  	if [ -f "$KBD_PERSIST_FILE" ]; then
   		bashio::log.info "Restoring onscreen keyboard setup"
