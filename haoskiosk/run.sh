@@ -64,8 +64,8 @@ cleanup() {
 	[ -n "$TTY0_DELETED" ] && mknod -m 620 /dev/tty0 c 4 0
     exit "$exit_code"
 }
-trap cleanup INT TERM EXIT
-#trap cleanup HUP INT QUIT ABRT TERM EXIT
+trap cleanup HUP INT QUIT ABRT TERM EXIT
+#trap cleanup INT TERM EXIT
 
 
 ################################################################################
@@ -355,9 +355,9 @@ setxkbmap -query  | sed 's/^/  /' #Log layout
 if [ "$ONSCREEN_KEYBOARD" = true ]; then
 	bashio::log.info "Configuring onscreen keyboard"
 
-	if [ "$PERSIST_ONSCREEN_KEYBOARD_CONFIG" = false ]
-  		rm -f "$KBD_PERSIST_FILE"
- 	fi
+	#if [ "$PERSIST_ONSCREEN_KEYBOARD_CONFIG" = false ]
+  	#	rm -f "$KBD_PERSIST_FILE"
+ 	#fi
 
  	if [ -f "$KBD_PERSIST_FILE" ]; then
   		bashio::log.info "Restoring onscreen keyboard setup"
