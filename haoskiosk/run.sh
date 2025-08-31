@@ -386,12 +386,12 @@ if [ "$ONSCREEN_KEYBOARD" = true ]; then
 			dbus-run-session -- dconf write /org/onboard/window/landscape/height $(("$SCRN_HEIGHT"/2))
 			dbus-run-session -- dconf write /org/onboard/window/landscape/width "$SCRN_WIDTH"
 			dbus-run-session -- dconf write /org/onboard/window/landscape/x 0
-			dbus-run-session -- dconf write /org/onboard/window/landscape/y $(("$SCRN_HEIGHT"/2-1))
+			dbus-run-session -- dconf write /org/onboard/window/landscape/y $(("$SCRN_HEIGHT"/2))
 	  	else
 			dbus-run-session -- dconf write /org/onboard/window/portrait/height $(("$SCRN_HEIGHT"/4))
 			dbus-run-session -- dconf write /org/onboard/window/portrait/width "$SCRN_WIDTH"
 			dbus-run-session -- dconf write /org/onboard/window/portrait/x 0
-			dbus-run-session -- dconf write /org/onboard/window/portrait/y $(("$SCRN_HEIGHT"*3/4-1))
+			dbus-run-session -- dconf write /org/onboard/window/portrait/y $(("$SCRN_HEIGHT"*3/4))
 	    fi
 
 	  	### Enable keyboard to auto appear when inputting text
