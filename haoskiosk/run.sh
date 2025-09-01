@@ -374,11 +374,11 @@ if [ "$ONSCREEN_KEYBOARD" = true ]; then
   
 		### Determine screen geometry as reported by X
      	if [ "$ROTATE_DISPLAY" = normal ] || [ "$ROTATE_DISPLAY" = inverted ] ; then
-	  		SCRN_WIDTH=$(xrandr --query --verbose | awk '/ width/ {print $3}')
-	  		SCRN_HEIGHT=$(xrandr --query --verbose | awk '/ height/ {print $3}')
+	  		SCRN_WIDTH=$(xrandr --query --current --verbose | awk '/ width/ {print $3}')
+	  		SCRN_HEIGHT=$(xrandr --query --current --verbose | awk '/ height/ {print $3}')
 	    else
-	  		SCRN_WIDTH=$(xrandr --query --verbose | awk '/ height/ {print $3}')
-	  		SCRN_HEIGHT=$(xrandr --query --verbose | awk '/ width/ {print $3}')
+	  		SCRN_WIDTH=$(xrandr --query --current --verbose | awk '/ height/ {print $3}')
+	  		SCRN_HEIGHT=$(xrandr --query --current --verbose | awk '/ width/ {print $3}')
 	    fi
 
   		### Set default keyboard height (1/2 or 1/4 of screen), width (full width) and position (centered, flush with bottom)
