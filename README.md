@@ -27,6 +27,17 @@ In general, you want to stay in `passthrough` mode.
 **NOTE:** Should support any standard mouse, touchscreen, keypad and
 touchpad so long as their /dev/input/eventN number is less than 25.
 
+**NOTE:** If not working, please first check the bug reports (open and
+closed), then try the testing branch (use url:
+https://github.com/puterboy/HAOS-kiosk#testing). If still no solution, file
+an issue on github,
+[bug report](https://github.com/puterboy/HAOS-kiosk/issues) and include
+full details of your setup and what you did along with a complete log.
+
+### If you appreciate my efforts:
+
+[![Buy Me a Coffee](https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png)](https://www.buymeacoffee.com/puterboy)
+
 ## Configuration Options
 
 ### HA Username [required]
