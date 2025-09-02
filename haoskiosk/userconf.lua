@@ -209,6 +209,9 @@ webview.add_signal("init", function(view)
 
             local js_settings = string.format([[
                 try {
+                    // Set browser_mod browser ID to "haos_kiosk"
+                    localStorage.setItem('browser_mod-browser-id', 'haos_kiosk');
+
                     // Set sidebar visibility
 		    const sidebar = '%s';
                     const currentSidebar = localStorage.getItem('dockedSidebar') || '';
