@@ -406,7 +406,7 @@ if [ "$ONSCREEN_KEYBOARD" = true ]; then
 	 	dbus-run-session -- gsettings set org.gnome.desktop.interface toolkit-accessibility true # disable gnome assessibility popup
 
    		### Start Keyboard minimized (should auto show when clicking on text input field)
-	 	dbus-run-session -- dconf write /org/onboard/start-minimized true
+	 	### dbus-run-session -- dconf write /org/onboard/start-minimized true # keyboard is hidden, but never comes up automatically
 
 		### Save a copy of modifie settings once in case system aborts before cleanup runs
    		dconf dump / > "$KBD_PERSIST_FILE"
