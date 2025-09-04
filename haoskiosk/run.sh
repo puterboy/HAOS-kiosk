@@ -56,7 +56,7 @@ bashio::log.info "$(date) [Version: $VERSION]"
 #### Clean up on exit:
 TTY0_DELETED="" #Need to set to empty string since runs with nounset=on (like set -u)
 KBD_PERSIST_FILE="/config/usr_custom_keyboad.ini"
-KBD_OPTIONS_FILE="/config/usr_keyboad_default_opts.txt"
+KBD_DEFAULT_OPTIONS_FILE="/config/usr_keyboad_default_opts.txt"
 cleanup() {
     local exit_code=$?
 	# Always save keyboard info
@@ -368,8 +368,9 @@ if [ "$ONSCREEN_KEYBOARD" = true ]; then
  	else
   		bashio::log.info "Using default onscreen keyboard setup"
 
- 		### Save a copy of all possible settings
-   		gsettings list-recursively org.onboard > "$KBD_OPTIONS_FILE"
+ 		### Save a copy of all default values of possible settings
+   		gsettings reset-recursively org.onboard
+   		gsettings list-recursively org.onboard > "$KBD_DEFAULT_OPTIONS_FILE"
 
  		### Set default layout, theme and colors
 		dbus-run-session -- dconf write /org/onboard/layout \''/usr/share/onboard/layouts/Small.onboard'\'
@@ -404,8 +405,11 @@ if [ "$ONSCREEN_KEYBOARD" = true ]; then
 		dbus-run-session -- dconf write /org/onboard/window/force-to-top true # always show in front
 	 	dbus-run-session -- gsettings set org.gnome.desktop.interface toolkit-accessibility true # disable gnome assessibility popup
 
-   		## Start Keyboard minimized (should auto show when clicking on text input field)
+   		### Start Keyboard minimized (should auto show when clicking on text input field)
 	 	dbus-run-session -- dconf write /org/onboard/start-minimized true
+
+		### Save a copy of modifie settings once in case system aborts before cleanup runs
+   		dconf dump / > "$KBD_PERSIST_FILE"
 	fi
 
 	### Launch keyboard
