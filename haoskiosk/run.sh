@@ -360,7 +360,7 @@ if [ "$ONSCREEN_KEYBOARD" = true ]; then
  		rm -f "$KBD_PERSIST_FILE"
 	fi
 
- 	if [ -f "$KBD_PERSIST_FILE" ]; then
+ 	if [ -f "$KBD_PERSIST_FILE" ] && [ "$PERSIST_ONSCREEN_KEYBOARD_CONFIG" = true ]; then
   		bashio::log.info "Restoring onscreen keyboard setup"
 
  		### Load all non-default settings from file and apply them
