@@ -399,6 +399,9 @@ if [ "$ONSCREEN_KEYBOARD" = true ]; then
 		dbus-run-session -- dconf write /org/onboard/auto-show/tablet-mode-detection-enabled false # shows keyboard only in tablet mode. I had to disable it to make it work
 		dbus-run-session -- dconf write /org/onboard/window/force-to-top true # always show in front
 	 	dbus-run-session -- gsettings set org.gnome.desktop.interface toolkit-accessibility true # disable gnome assessibility popup
+
+   		## Start Keyboard minimized (should auto show when clicking on text input field)
+	 	dbus-run-session -- dconf write /org/onboard/start-minimized true
 	fi
 
 	### Launch keyboard
