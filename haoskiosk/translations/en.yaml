@@ -93,7 +93,6 @@ configuration:
   persist_onscreen_keyboard_config:
     name: "Persist Onscreen Keyboard Config"
     description: |
-      If 'true', then save user customizations when the Add-on ends.
       If 'true', then restore user customizations when the Add-on starts.
       If 'false', then default settings when the Add-on starts.
       
