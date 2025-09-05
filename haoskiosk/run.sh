@@ -1,12 +1,12 @@
 #!/usr/bin/with-contenv bashio
 # shellcheck shell=bash
-VERSION="1.0.1"
+VERSION="1.1.0"
 ################################################################################
 # Add-on: HAOS Kiosk Display (haoskiosk)
 # File: run.sh
-# Version: 1.0.1
+# Version: 1.1.0
 # Copyright Jeff Kosowsky
-# Date: August 2025
+# Date: September 2025
 #
 #  Code does the following:
 #     - Import and sanity-check the following variables from HA/config.yaml
@@ -25,6 +25,8 @@ VERSION="1.0.1"
 #         MAP_TOUCH_INPUTS
 #         CURSOR_TIMEOUT
 #         KEYBOARD_LAYOUT
+#         ONSCREEN_KEYBOARD
+#         SAVE_ONSCREEN_CONFIG
 #         XORG_CONF
 #         XORG_APPEND_REPLACE
 #         DEBUG_MODE
@@ -37,7 +39,10 @@ VERSION="1.0.1"
 #     - Stop console cursor blinking
 #     - Start Openbox window manager
 #     - Set up (enable/disable) screen timeouts
-#     - Rotate screen as appropriate
+#     - Rotate screen per configuration
+#     - Map touch inputs per configuration
+#     - Set keyboard layout and language
+#     - Set up onscreen keyboard per configuration
 #     - Poll to check if monitor wakes up and if so, reload luakit browser
 #     - Launch fresh Luakit browser for url: $HA_URL/$HA_DASHBOARD
 #       [If not in DEBUG_MODE; Otherwise, just sleep]
@@ -50,17 +55,21 @@ bashio::log.info "$(date) [Version: $VERSION]"
 
 #### Clean up on exit:
 TTY0_DELETED="" #Need to set to empty string since runs with nounset=on (like set -u)
+ONBOARD_CONFIG_FILE="/config/onboard-settings.dconf"
 cleanup() {
     local exit_code=$?
+    if [ "$SAVE_ONSCREEN_CONFIG" = true ]; then
+        dconf dump /org/onboard/ > "$ONBOARD_CONFIG_FILE"
+    fi
     [ -n "$(jobs -p)" ] && kill "$(jobs -p)"
     [ -n "$TTY0_DELETED" ] && mknod -m 620 /dev/tty0 c 4 0
     exit "$exit_code"
 }
-trap cleanup INT TERM EXIT
+trap cleanup HUP INT QUIT ABRT TERM EXIT
 
 ################################################################################
 #### Get config variables from HA add-on & set environment variables
-function load_config_var() {
+load_config_var() {
     # First, use existing variable if already set (for debugging purposes)
     # If not set, lookup configuration value
     # If null, use optional second parameter or else ""
@@ -111,6 +120,8 @@ load_config_var ROTATE_DISPLAY normal
 load_config_var MAP_TOUCH_INPUTS true
 load_config_var CURSOR_TIMEOUT 5 #Default to 5 seconds
 load_config_var KEYBOARD_LAYOUT us
+load_config_var ONSCREEN_KEYBOARD false
+load_config_var SAVE_ONSCREEN_CONFIG true
 load_config_var XORG_CONF ""
 load_config_var XORG_APPEND_REPLACE append
 load_config_var DEBUG_MODE false
@@ -124,13 +135,21 @@ fi
 ################################################################################
 #### Start Dbus
 # Avoids waiting for DBUS timeouts (e.g., luakit)
-# Allows luakit to enfoce unique instance by default
+# Allows luakit to enforce unique instance by default
+# Note do *not* use '-U' flag when calling luakit
+# Subsequent calls to 'luakit' exit post launch, leaving just the original process
+# Not 'userconf.lua' includes code to turn off session restore.
+# Note if entering through a separate shell, need to export the original
+# DBUS_SESSION_BUS_ADDRESS variable so that processes can communicate.
+
 DBUS_SESSION_BUS_ADDRESS=$(dbus-daemon --session --fork --print-address)
 if [ -z "$DBUS_SESSION_BUS_ADDRESS" ]; then
     bashio::log.warning "WARNING: Failed to start dbus-daemon"
 fi
 bashio::log.info "DBus started with: DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS"
 export DBUS_SESSION_BUS_ADDRESS
+#Make available to subsequent shells
+echo "export DBUS_SESSION_BUS_ADDRESS='$DBUS_SESSION_BUS_ADDRESS'" >> "$HOME/.profile"
 
 #### Hack to get writable /dev/tty0 for X
 # Note first need to delete /dev/tty0 since X won't start if it is there,
@@ -256,17 +275,23 @@ if [ "$CURSOR_TIMEOUT" -gt 0 ]; then
     unclutter-xfixes --start-hidden --hide-on-touch --fork --timeout "$CURSOR_TIMEOUT"
 fi
 
-#### Start Openbox in the background
+#### Start Window manager in the background
+WINMGR=Openbox #Openbox window manager
 openbox &
+
+#WINMGR=xfwm4  #Alternately using xfwm4
+#xfsettingsd &
+#startxfce4 &
+
 O_PID=$!
-sleep 0.5  #Ensure Openbox starts
+sleep 0.5  #Ensure window manager starts
 if ! kill -0 "$O_PID" 2>/dev/null; then #Checks if process alive
-    bashio::log.error "Failed to start Openbox window manager"
+    bashio::log.error "Failed to start $WINMGR window  manager"
     exit 1
 fi
-bashio::log.info "Openbox started successfully..."
+bashio::log.info "$WINMGR window manager started successfully..."
 
-#### Configure screen timeout (Note: DPMS needs to be enabled/disabled *after* starting Openbox)
+#### Configure screen timeout (Note: DPMS needs to be enabled/disabled *after* starting window manager)
 if [ "$SCREEN_TIMEOUT" -eq 0 ]; then #Disable screen saver and DPMS for no timeout
     xset s 0
     xset dpms 0 0 0
@@ -337,6 +362,96 @@ export LANG=$KEYBOARD_LAYOUT
 bashio::log.info "Setting keyboard layout and language to: $KEYBOARD_LAYOUT"
 setxkbmap -query  | sed 's/^/  /' #Log layout
 
+### Get screen width & height for selected output
+read -r SCREEN_WIDTH SCREEN_HEIGHT < <(
+    xrandr --query --current | grep "^$OUTPUT_NAME " |
+    sed -n "s/^$OUTPUT_NAME connected.* \([0-9]\+\)x\([0-9]\+\)+.*$/\1 \2/p"
+)
+
+if [[ -n "$SCREEN_WIDTH" && -n "$SCREEN_HEIGHT" ]]; then
+    bashio::log.info "Screen: Width=$SCREEN_WIDTH  Height=$SCREEN_HEIGHT"
+else
+    bashio::log.error "Could not determine screen size for output $OUTPUT_NAME"
+fi
+
+#### Launch Onboard onscreen keyboard per configuration
+if [[ "$ONSCREEN_KEYBOARD" = true && -n "$SCREEN_WIDTH" && -n "$SCREEN_HEIGHT" ]]; then
+    ### Define min/max dimensions for orientation-agnostic calculation
+    if (( SCREEN_WIDTH >= SCREEN_HEIGHT )); then #Landscape
+        MAX_DIM=$SCREEN_WIDTH
+        MIN_DIM=$SCREEN_HEIGHT
+        ORIENTATION="landscape"
+    else #Portrait
+        MAX_DIM=$SCREEN_HEIGHT
+        MIN_DIM=$SCREEN_WIDTH
+        ORIENTATION="portrait"
+    fi
+
+    KBD_ASPECT_RATIO_X10=30  # Ratio of keyboard width to keyboard height times 10 (must be integer)
+    # So that 30 is 3:1 (Note use times 10 since want to use integer arithmetic)
+
+    ### Default keyboard geometry for landscape (full-width, bottom half of screen)
+    LAND_HEIGHT=$(( MIN_DIM / 3 ))
+    LAND_WIDTH=$(( (LAND_HEIGHT * KBD_ASPECT_RATIO_X10) / 10 ))
+    [ $LAND_WIDTH -gt "$MAX_DIM" ] && LAND_WIDTH=$MAX_DIM
+    LAND_Y_OFFSET=$(( MIN_DIM - LAND_HEIGHT ))
+    LAND_X_OFFSET=$(( (MAX_DIM - LAND_WIDTH) / 2 ))  # Centered
+
+    ### Default keyboard geometry for portrait (full-width, bottom 1/4 of screen)
+    PORT_HEIGHT=$(( MAX_DIM / 4 ))
+    PORT_WIDTH=$(( (PORT_HEIGHT * KBD_ASPECT_RATIO_X10) / 10 ))
+    [ $PORT_WIDTH -gt "$MIN_DIM" ] && PORT_WIDTH=$MIN_DIM
+    PORT_Y_OFFSET=$(( MAX_DIM - PORT_HEIGHT ))
+    PORT_X_OFFSET=$(( (MIN_DIM - PORT_WIDTH) / 2 ))  # Centered
+
+    ### Apply default settings and geometry
+    # Global appearance settings
+    dconf write /org/onboard/layout "'/usr/share/onboard/layouts/Small.onboard'"
+    dconf write /org/onboard/theme "'/usr/share/onboard/themes/Blackboard.theme'"
+    dconf write /org/onboard/theme-settings/color-scheme "'/usr/share/onboard/themes/Charcoal.colors'"
+
+    # Behavior settings
+    dconf write /org/onboard/auto-show/enabled true  # Auto-show
+    dconf write /org/onboard/auto-show/tablet-mode-detection-enabled false  # Show keyboard only in tablet mode
+    dconf write /org/onboard/window/force-to-top true  # Always on top
+    gsettings set org.gnome.desktop.interface toolkit-accessibility true  # Disable gnome accessibility popup
+
+    # Default landscape geometry
+    dconf write /org/onboard/window/landscape/height "$LAND_HEIGHT"
+    dconf write /org/onboard/window/landscape/width "$LAND_WIDTH"
+    dconf write /org/onboard/window/landscape/x "$LAND_X_OFFSET"
+    dconf write /org/onboard/window/landscape/y "$LAND_Y_OFFSET"
+
+    # Default portrait geometry
+    dconf write /org/onboard/window/portrait/height "$PORT_HEIGHT"
+    dconf write /org/onboard/window/portrait/width "$PORT_WIDTH"
+    dconf write /org/onboard/window/portrait/x "$PORT_X_OFFSET"
+    dconf write /org/onboard/window/portrait/y "$PORT_Y_OFFSET"
+
+    ### Restore or delete saved  user configuration
+    if [ -f "$ONBOARD_CONFIG_FILE" ]; then
+        if [ "$SAVE_ONSCREEN_CONFIG" = true ]; then
+            bashio::log.info "Restoring Onboard configuration from '$ONBOARD_CONFIG_FILE'"
+            dconf load /org/onboard/ < "$ONBOARD_CONFIG_FILE"
+        else #Otherwise delete config file (if it exists)
+            rm -f "$ONBOARD_CONFIG_FILE"
+        fi
+    fi
+
+    LOG_MSG=$(
+        echo "Onboard keyboard initialized for: $OUTPUT_NAME (${SCREEN_WIDTH}x${SCREEN_HEIGHT}) [$ORIENTATION]"
+        echo "  Appearance: Layout=$(dconf read /org/onboard/layout)  Theme=$(dconf read /org/onboard/theme)  Color-Scheme=$(dconf read /org/onboard/theme-settings/color-scheme)"
+        echo "  Behavior: Auto-Show=$(dconf read /org/onboard/auto-show/enabled)  Tablet-Mode=$(dconf read /org/onboard/auto-show/tablet-mode-detection-enabled)  Force-to-Top=$(dconf read /org/onboard/window/force-to-top)"
+        echo "  Geometry: Height=$(dconf read /org/onboard/window/${ORIENTATION}/height)  Width=$(dconf read /org/onboard/window/${ORIENTATION}/width)  X-Offset=$(dconf read /org/onboard/window/${ORIENTATION}/x)  Y-Offset=$(dconf read /org/onboard/window/${ORIENTATION}/y)"
+    )
+    bashio::log.info "$LOG_MSG"
+
+    ### Launch 'Onboard' keyboard
+    bashio::log.info "Starting Onboard onscreen keyboard"
+    onboard &
+    /toggle_keyboard.py "$DARK_MODE" & #Creates 1x1 pixel at extreme top-right of screen to toggle keyboard visibility
+fi
+
 #### Poll to send <Control-r> when screen unblanks to force reload of luakit page if BROWSWER_REFRESH set
 if [ "$BROWSER_REFRESH" -ne 0 ]; then
     (
@@ -354,10 +469,12 @@ if [ "$BROWSER_REFRESH" -ne 0 ]; then
 fi
 
 if [ "$DEBUG_MODE" != true ]; then
-    ### Run Luakit in the foreground
+    ### Run Luakit in the background and wait for process to exit
     bashio::log.info "Launching Luakit browser: $HA_URL/$HA_DASHBOARD"
-    exec luakit -U "$HA_URL/$HA_DASHBOARD"
+    luakit "$HA_URL/$HA_DASHBOARD" &
+    LUAKIT_PID=$!
+    wait "$LUAKIT_PID" #Wait for luakit to exit to allow for clean-up on termination
 else ### Debug mode
-    bashio::log.info "Entering debug mode (X & Openbox but no luakit browser)..."
+    bashio::log.info "Entering debug mode (X & $WINMGR window manager but no luakit browser)..."
     exec sleep infinite
 fi

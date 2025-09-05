@@ -69,6 +69,13 @@ configuration:
   keyboard_layout:
     name: "Keyboard Layout"
     description: "Set the keyboard layout and language [Default: us]"
+  onscreen_keyboard:
+    name: "Onscreen Keyboard"
+    description: "Display an Onscreen Keyboard for text input [Default: false]"
+  save_onscreen_config:
+    name: "Save Onscreen Config"
+    description: |
+      "Save and Restore changes to Onscreen keyboard settings [Default: true]
   xorg_conf:
     name: "xorg.conf file"
     description: "Insert custom 'xorg.conf' code"

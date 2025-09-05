@@ -1,8 +1,22 @@
 # Changelog
 
+## v1.1.0 - September 2025
+
+- Only refresh on wakeup if "BROWSER_REFRESH" is non-zero (Thanks
+  tacher4000)
+- Add onscreen keyboard for touch screens (Thanks GuntherSchulz01)
+- Added 'toogle_keyboard.py' to create 1x1 pixel at extreme top-right to
+  toggle keyboard visibility
+- Save DBUS_SESSION_BUS_ADDRESS to ~/.profile for use in other (login)
+  shells
+- Code now supports xfwm4 window manager as well as Openbox (but xfwm4
+  commented out for now)
+- Revamped 'Xorg.conf.default' to use more modern & generalized structure
+- Prevent luakit from restoring old sessions
+
 ## v1.0.1 - August 2025
 
-- Simplified and generalzedlibinput discovery tagging and merged resulting
+- Simplified and generalzed libinput discovery tagging and merged resulting
   code into 'run.sh' (Thanks to GuntherSchulz01 and tacher4000)
 - Added "CURSOR_TIMEOUT" to hide cursor (Thanks tacher4000)
 - Set LANG consistent with keyboard layout (Thanks tacher4000)

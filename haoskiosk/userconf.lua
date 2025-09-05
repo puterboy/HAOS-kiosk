@@ -1,9 +1,9 @@
 --[[
 Add-on: HAOS Kiosk Display (haoskiosk)
 File: userconf.lua for HA minimal browser run on server
-Version: 1.0.1
+Version: 1.1.0
 Copyright Jeff Kosowsky
-Date: August 2025
+Date: September 2025
 
 Code does the following:
     - Sets browser window to fullscreen
@@ -20,6 +20,9 @@ Code does the following:
     - Allows for configurable browser $ZOOM_LEVEL
     - Prefer dark color scheme for websites that support it if $DARK_MODE environment variable true (default to true)
     - Set Home Assistant sidebar visibility using $HA_SIDEBAR environment variables
+    - Set 'browser_mod-browser-id' to fixed value 'haos_kiosk'
+    - If using onscreen keyboard, hide keyboard after page (re)load
+    - Prevent session restore by overloading 'session.restore
 ]]
 
 -- -----------------------------------------------------------------------
@@ -58,7 +61,6 @@ local ha_url_base = ha_url:match("^(https?://[%w%.%-%%:]+)") or ha_url
 ha_url_base = string.gsub(ha_url_base, "/+$", "") -- Strip trailing '/'
 
 local raw_dark_mode = os.getenv("DARK_MODE")
-msg.info("Raw Dark mode=|%s|", raw_dark_mode)
 local dark_mode = ({
     ["true"] = true,
     ["false"] = false
@@ -99,6 +101,11 @@ if browser_refresh < 0 then
     browser_refresh = defaults.BROWSER_REFRESH
 end
 
+local onscreen_keyboard = os.getenv("ONSCREEN_KEYBOARD") == "true"
+
+--msg.info("USERNAME=%s; URL=%s; DARK_MODE=%s; SIDEBAR=%s; LOGIN_DELAY=%.1f, ZOOM_LEVEL=%d, BROWSER_REFRESH=%d,  ONSCREEN_KEYBOARD=%d",
+--    username, ha_url, tostring(dark_mode), sidebar, login_delay, zoom_level, browser_refresh, tostring(onscreen_keyboard))
+
 msg.info("USERNAME=%s; URL=%s; DARK_MODE=%s; SIDEBAR=%s; LOGIN_DELAY=%.1f, ZOOM_LEVEL=%d, BROWSER_REFRESH=%d",
     username, ha_url, tostring(dark_mode), sidebar, login_delay, zoom_level, browser_refresh)
 
@@ -116,6 +123,12 @@ end)
 
 -- Set zoom level for windows (default 100%)
 settings.webview.zoom_level = zoom_level
+
+-- Prevent session restore by overloading 'session.restore'
+local session = require "session"
+session.restore = function()
+    return nil
+end
 
 -- -----------------------------------------------------------------------
 -- Helper functions
@@ -141,6 +154,13 @@ webview.add_signal("init", function(view)
     view:add_signal("load-status", function(v, status)
         if status ~= "finished" then return end  -- Only proceed when the page is fully loaded
         msg.info("URI: %s", v.uri) -- DEBUG
+
+        -- Hide onscreen keyboard (if enabled) after page (re)load
+        -- NOTE: this is needed since 'onboard' doesn't always hide keyboard unless focus explicitly lost
+	if onscreen_keyboard then
+	    msg.info("XXXXXXX: Hide onscreen keyboard") -- JJKCRAP
+	    luakit.spawn("dbus-send --type=method_call --print-reply --dest=org.onboard.Onboard /org/onboard/Onboard/Keyboard org.onboard.Onboard.Keyboard.Hide")
+	end
 
         -- We want to start in passthrough mode (i.e. not normal command mode) -- 4 potential options for doing this
         -- Option#1 Sets passthrough mode for the first window (or all initial windows if using xdotool line)
@@ -209,6 +229,9 @@ webview.add_signal("init", function(view)
 
             local js_settings = string.format([[
                 try {
+	            // Set browser_mod browser ID to "haos_kiosk"
+                    localStorage.setItem('browser_mod-browser-id', 'haos_kiosk');
+
                     // Set sidebar visibility
 		    const sidebar = '%s';
                     const currentSidebar = localStorage.getItem('dockedSidebar') || '';

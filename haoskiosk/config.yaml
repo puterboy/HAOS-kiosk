@@ -3,7 +3,7 @@ name: "HAOS Kiosk Display"
 description: |
   Start X server and browser on local HAOS server and display dashboards in
   kiosk mode (Jeff Kosowsky)
-version: "1.0.1"
+version: "1.1.0"
 slug: "haoskiosk"
 
 arch:
@@ -50,6 +50,9 @@ devices:
   - /dev/input/event24
   - /dev/input/event25
 
+map:
+  - addon_config:rw
+
 privileged:
   - SYS_ADMIN
 
@@ -65,11 +68,13 @@ options:
   ha_sidebar: "none"
   rotate_display: "normal"
   map_touch_inputs: "true"
+  keyboard_layout: us
   cursor_timeout: 5
+  onscreen_keyboard: "false"
+  save_onscreen_config: "true"
   xorg_conf: ""
   xorg_append_replace: "append"
   debug_mode: false
-  keyboard_layout: us
 
 schema:
   ha_username: str
@@ -87,6 +92,8 @@ schema:
   map_touch_inputs: bool
   cursor_timeout: int
   keyboard_layout: str
+  onscreen_keyboard: bool
+  save_onscreen_config: bool
   xorg_conf: str?
   xorg_append_replace: list(append|replace)
   debug_mode: bool

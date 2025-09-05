@@ -103,7 +103,7 @@ Options include: (Default: None)
 - Narrow (icons only)
 - None (hidden)
 
-### ROTATE SCREEN
+### Rotate Display
 
 Rotate the display relative to standard view.\
 Options include: (Default: Normal)
@@ -113,29 +113,48 @@ Options include: (Default: Normal)
 - Right (Rotate 90 degrees counter-clockwise)
 - Inverted (Rotate 180 degrees)
 
-### MAP TOUCH INPUTS
+### Map Touch Inputs
 
 Map touch inputs to the selected video output, so that the touch devices
 get rotated consistently with the video output. (Default: True)
 
-### CURSOR TIMEOUT
+### Cursor Timeout
 
 Time in seconds for cursor to be hidden after last mouse movement or touch.
 Cursor will reappear when mouse moved or screen touched again. Set to `0`
 to *always* show cursor. Set to `-1` to *never* show cursor. (Default: 5
 seconds)
 
-### KEYBOARD LAYOUT
+### Keyboard Layout
 
 Set the keyboard layout and language. (Default: us)
 
-### XORG.CONF
+### Onscreen Keyboard
+
+Display an on-screen keyboard when keyboard input expected if set to
+`true`. (Default: false)
+
+To move, resize, or configure keyboard options, long press on the `...`
+within the `Return` key. You can also resize the keyboard by pressing and
+dragging along the keyboard edges.
+
+You can manually toggle keyboard visibility on/off by tapping extreme top
+right of screen.
+
+See https://github.com/dr-ni/onboard for more details
+
+### Save Onscreen Config
+
+Save and restore changes to onscreen keyboard settings made during each
+session if set to `true`. Overwrites default settings. (Default: true)
+
+### Xorg.conf
 
 Append to or replace existing, default xorg.conf file.\
 Select 'Append' or 'Replace options.\
 To restore default, set to empty and select 'Append' option.
 
-### DEBUG
+### Debug
 
 For debugging purposes, launches `Xorg` and `openbox` and then sleeps
 without launching `luakit`.\

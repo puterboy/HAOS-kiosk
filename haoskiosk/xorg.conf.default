@@ -1,50 +1,56 @@
 ################################################################################
 # Add-on: HAOS Kiosk Display (haoskiosk)
 # File: xorg.conf
-# Version: 1.0.1
+# Version: 1.1.0
 # Copyright Jeff Kosowsky
-# Date: August 2025
+# Date: September 2025
 #
 # Minimal xorg.conf to work with OpenGL/DRI video and libinput mice & keyboards
 #
 ################################################################################
 Section "ServerLayout"
-    Identifier     "DefaultLayout"
-    Screen         0  "Screen0" 0 0
-    InputDevice    "Keyboard0" "CoreKeyboard"
-    InputDevice    "Mouse0" "CorePointer"
-    InputDevice    "Touchscreen0" "CorePointer"
-EndSection
-
-Section "InputDevice"
-    Identifier  "Keyboard0"
-    Driver      "libinput"
-EndSection
-
-Section "InputDevice"
-    Identifier  "Mouse0"
-    Driver      "libinput"
-EndSection
-
-Section "InputDevice"
-    Identifier  "Touchscreen0"
-    Driver      "libinput"
-    Option      "Tapping" "on"
+    Identifier		"DefaultLayout"
+    Screen         	0  "Screen0" 0 0
 EndSection
 
 Section "Device"
-    Identifier  "Card0"
-    Driver      "modesetting"
-    Option      "DRI" "3"
+    Identifier		"Card0"
+    Driver      	"modesetting"
+    Option      	"DRI" "3"
 EndSection
 
 Section "Monitor"
-    Identifier "Monitor0"
+    Identifier		"Monitor0"
 EndSection
 
 Section "Screen"
-    Identifier "Screen0"
-    Device     "Card0"
-    Monitor    "Monitor0"
-    DefaultDepth 24
+    Identifier		"Screen0"
+    Device     		"Card0"
+    Monitor    		"Monitor0"
+    DefaultDepth 	24
+EndSection
+
+# General libinput catchall for keyboards
+Section "InputClass"
+    Identifier		"libinput keyboard"
+    MatchIsKeyboard 	"on"
+    Driver 		"libinput"
+EndSection
+
+# General libinput catchall for mice and touchpads
+Section "InputClass"
+    Identifier		"libinput pointer"
+    MatchIsPointer 	"on"
+    Driver 		"libinput"
+    Option 		"Tapping" "on"  # Enable tapping on touchpads and touchscreens
+    Option 		"NaturalScrolling" "true"  # Optional: enable natural scrolling
+EndSection
+
+# General libinput catchall for touchscreens
+Section "InputClass"
+    Identifier		"libinput touchscreen"
+    MatchIsTouchscreen	"on"
+    Driver 		"libinput"
+    Option 		"Tapping" "on"
+    Option		"TappingDrag" "on"  # Enables tap-and-drag
 EndSection

@@ -1,9 +1,9 @@
 ################################################################################
 # Add-on: HAOS Kiosk Display (haoskiosk)
 # File: Dockerfile
-# Version: 1.0.1
+# Version: 1.1.0
 # Copyright Jeff Kosowsky
-# Date: August 2025
+# Date: September 2025
 ################################################################################
 
 ARG BUILD_FROM
@@ -15,6 +15,7 @@ RUN apk update && apk add --no-cache \
     xf86-video-modesetting \
     xf86-input-libinput \
     libinput \
+#   libinput-tools \
     udev \
     libinput-udev \
     libevdev \
@@ -23,7 +24,6 @@ RUN apk update && apk add --no-cache \
     mesa-gles \
     libdrm \
     libxkbcommon \
-    openbox \
     ttf-dejavu \
     util-linux \
     xdotool \
@@ -32,6 +32,12 @@ RUN apk update && apk add --no-cache \
     xset \
     unclutter-xfixes \
     setxkbmap \
+    openbox \
+#    xfce4-settings \
+#    xfwm4 \
+#    xfce4-session \
+    onboard \
+    python3-tkinter \
     bash \
     && apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/v3.21/community luakit=2.3.6-r0 \
     && rm -rf /var/cache/apk/*
@@ -45,6 +51,8 @@ COPY userconf.lua /root/.config/luakit/
 COPY translations/*.yaml /translations/
 
 COPY run.sh /
-RUN chmod a+x /run.sh
+COPY toggle_keyboard.py /
+RUN chmod a+x /run.sh toggle_keyboard.py
+
 
 CMD ["/run.sh"]
