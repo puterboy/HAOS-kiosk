@@ -9,6 +9,9 @@ Display HA dashboards in kiosk mode directly on your HAOS server.
 Launches X-Windows on local HAOS server followed by OpenBox window manager
 and Luakit browser.\
 Standard mouse and keyboard interactions should work automatically.
+Supports touchscreens (including onscreen keyboard) and rotation.
+
+You can press `ctl-R` at any time to refresh the browser.
 
 **NOTE:** You must enter your HA username and password in the
 *Configuration* tab for add-on to start.
@@ -23,8 +26,6 @@ You can then return to *passthrough* mode by pressing `ctl-Z` or enter
 *insert* mode by pressing `i`.\
 See luakit documentation for available commands.\
 In general, you want to stay in `passthrough` mode.
-
-You can press `ctl-R` at any time to refresh the browser.
 
 **NOTE:** Should support any standard mouse, touchscreen, keypad and
 touchpad so long as their /dev/input/eventN number is less than 25.
