@@ -156,6 +156,12 @@ Append to or replace existing, default xorg.conf file.\
 Select 'Append' or 'Replace options.\
 To restore default, set to empty and select 'Append' option.
 
+### REST_PORT
+
+Port used for the REST API. Must be between 1024 and 49151. (Default: 8080)
+
+Note for security REST server only listens on localhost (127.0.0.1)
+
 ### Allow User Commands
 
 Allow user to run arbitrary one or more commands in the HAOSkiosk container
@@ -164,12 +170,6 @@ false)
 
 Warning: Allowing this could allow the user to inject potentially dangerous
 root-level commands
-
-### REST_PORT
-
-Port used for the REST API. Must be between 1024 and 49151. (Default: 8080)
-
-Note for security REST server only listens on localhost (127.0.0.1)
 
 ### Debug
 

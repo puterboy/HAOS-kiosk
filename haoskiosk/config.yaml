@@ -100,8 +100,8 @@ schema:
   save_onscreen_config: bool
   xorg_conf: str?
   xorg_append_replace: list(append|replace)
-  allow_user_commands: bool
   rest_port: int(1024,49151)
+  allow_user_commands: bool
   debug_mode: bool
 
 translations:

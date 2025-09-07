@@ -55,8 +55,8 @@ COPY translations/*.yaml /translations/
 COPY run.sh /
 RUN chmod a+x /run.sh
 
-COPY toggle_keyboard.py services.py /
-RUN pip install --no-cache-dir  --break-system-packages aiohttp #Required for services.pyv
+COPY toggle_keyboard.py rest_server.py /
+RUN pip install --no-cache-dir  --break-system-packages aiohttp #Required for rest_server.py
 
 # Need to patch 'unique_instance.lua' so that new instance urls overwrite active url rather than add new tab
 COPY unique_instance.patch /usr/share/luakit/lib

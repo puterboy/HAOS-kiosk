@@ -29,8 +29,8 @@ VERSION="1.1.0"
 #         SAVE_ONSCREEN_CONFIG
 #         XORG_CONF
 #         XORG_APPEND_REPLACE
-#         ALLOW_USER_COMMANDS
 #         REST_PORT
+#         ALLOW_USER_COMMANDS
 #         DEBUG_MODE
 #
 #     - Hack to delete (and later restore) /dev/tty0 (needed for X to start
@@ -126,9 +126,9 @@ load_config_var ONSCREEN_KEYBOARD false
 load_config_var SAVE_ONSCREEN_CONFIG true
 load_config_var XORG_CONF ""
 load_config_var XORG_APPEND_REPLACE append
+load_config_var REST_PORT 8080
 load_config_var ALLOW_USER_COMMANDS false
 [ "$ALLOW_USER_COMMANDS" = "true" ] && bashio::log.warning "WARNING: 'allow_user_commands' set to 'true'"
-load_config_var REST_PORT 8080
 load_config_var DEBUG_MODE false
 
 # Validate environment variables set by config.yaml

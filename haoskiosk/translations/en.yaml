@@ -87,14 +87,14 @@ configuration:
     items:
       append: "Append"
       replace: "Replace"
+  rest_port:
+    name: "REST Port"
+    description: "Listening port for REST API server (1024-49151)"
   allow_user_commands:
     name: "Allow User Commands"
     description: |
       Allow user to run arbitrary commands in the HAOSkiosk container via the
       service: `haoskiosk.run_command <CMD>`
-  rest_port:
-    name: "REST Port"
-    description: "Listening port for REST API server (1024-49151)"
   debug_mode:
     name: "Debug Mode"
     description: |
