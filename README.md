@@ -181,7 +181,7 @@ E.g., `sudo docker exec -it addon_haoskiosk bash`
 
 ## REST APIs
 
-### launch_url {"url": "<url>"}
+### launch_url {"url": "\<url>"}
 
 Launch the specified 'url' in the kiosk display. Overwrites current active
 tab.
@@ -213,7 +213,7 @@ Usage:
 
 `curl -X POST http://localhost:<REST_PORT>/display_off`
 
-### run_command {"cmd": "<command>"}
+### run_command {"cmd": "\<command>"}
 
 Run `command` in the HAOSKiosk Docker container where `cmd_timeout` is an
 optional timeout in seconds.
@@ -224,7 +224,7 @@ Usage:
 
 `curl -X POST http://localhost:<REST_PORT>/run_command -H "Content-Type: application/json" -d '{"cmd": "<command>", "cmd_timeout": <seconds>}'`
 
-### run_commands {"cmds": \["<command1>", "<command2>",...\], "cmd_timeout": <seconds>}}
+### run_commands {"cmds": ["\<command1>", "\<command2>",...], "cmd_timeout": \<seconds>}}
 
 Run multiple commands in the HAOSKiosk Docker container where `cmd_timeout`
 is an optional timeout in seconds.
@@ -326,3 +326,16 @@ actions:
 
   - action: rest_command.haoskiosk_current_processes
 ```
+
+### REST API Use Cases
+
+1. Create automations & services to:
+
+   - Turn on/off display based on time-of-day, proximity, event triggers,
+     or voice commands.
+   - Send dashboard or other url to display based on event triggers or
+     pre-programmed rotation (e.g., to sequentially view different
+     cameras).
+
+2. Use custom command(s) to change internal parameters of HAOSKiosk and the
+   luakit browser configuration.
