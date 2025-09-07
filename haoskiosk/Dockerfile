@@ -37,7 +37,9 @@ RUN apk update && apk add --no-cache \
 #    xfwm4 \
 #    xfce4-session \
     onboard \
+    py3-pip \
     python3-tkinter \
+    patch \
     bash \
     && apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/v3.21/community luakit=2.3.6-r0 \
     && rm -rf /var/cache/apk/*
@@ -51,8 +53,13 @@ COPY userconf.lua /root/.config/luakit/
 COPY translations/*.yaml /translations/
 
 COPY run.sh /
-COPY toggle_keyboard.py /
-RUN chmod a+x /run.sh toggle_keyboard.py
+RUN chmod a+x /run.sh
 
+COPY toggle_keyboard.py services.py /
+RUN pip install --no-cache-dir  --break-system-packages aiohttp #Required for services.pyv
+
+# Need to patch 'unique_instance.lua' so that new instance urls overwrite active url rather than add new tab
+COPY unique_instance.patch /usr/share/luakit/lib
+RUN patch -p2 /usr/share/luakit/lib/unique_instance.lua < /usr/share/luakit/lib/unique_instance.patch
 
 CMD ["/run.sh"]

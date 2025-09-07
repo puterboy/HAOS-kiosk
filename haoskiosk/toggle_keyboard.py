@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 ################################################################################
 # Add-on: HAOS Kiosk Display (haoskiosk)
 # File: toggle_keyboard.py

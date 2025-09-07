@@ -29,6 +29,8 @@ VERSION="1.1.0"
 #         SAVE_ONSCREEN_CONFIG
 #         XORG_CONF
 #         XORG_APPEND_REPLACE
+#         ALLOW_USER_COMMANDS
+#         REST_PORT
 #         DEBUG_MODE
 #
 #     - Hack to delete (and later restore) /dev/tty0 (needed for X to start
@@ -61,7 +63,7 @@ cleanup() {
     if [ "$SAVE_ONSCREEN_CONFIG" = true ]; then
         dconf dump /org/onboard/ > "$ONBOARD_CONFIG_FILE"
     fi
-    [ -n "$(jobs -p)" ] && kill "$(jobs -p)"
+    jobs -p | xargs -r kill
     [ -n "$TTY0_DELETED" ] && mknod -m 620 /dev/tty0 c 4 0
     exit "$exit_code"
 }
@@ -124,6 +126,9 @@ load_config_var ONSCREEN_KEYBOARD false
 load_config_var SAVE_ONSCREEN_CONFIG true
 load_config_var XORG_CONF ""
 load_config_var XORG_APPEND_REPLACE append
+load_config_var ALLOW_USER_COMMANDS false
+[ "$ALLOW_USER_COMMANDS" = "true" ] && bashio::log.warning "WARNING: 'allow_user_commands' set to 'true'"
+load_config_var REST_PORT 8080
 load_config_var DEBUG_MODE false
 
 # Validate environment variables set by config.yaml
@@ -292,15 +297,12 @@ fi
 bashio::log.info "$WINMGR window manager started successfully..."
 
 #### Configure screen timeout (Note: DPMS needs to be enabled/disabled *after* starting window manager)
-if [ "$SCREEN_TIMEOUT" -eq 0 ]; then #Disable screen saver and DPMS for no timeout
-    xset s 0
-    xset dpms 0 0 0
-    xset -dpms
+xset +dpms #Turn on DPMS
+xset s "$SCREEN_TIMEOUT"
+xset dpms "$SCREEN_TIMEOUT" "$SCREEN_TIMEOUT" "$SCREEN_TIMEOUT"
+if [ "$SCREEN_TIMEOUT" -eq 0 ]; then
     bashio::log.info "Screen timeout disabled..."
 else
-    xset s "$SCREEN_TIMEOUT"
-    xset dpms "$SCREEN_TIMEOUT" "$SCREEN_TIMEOUT" "$SCREEN_TIMEOUT"  #DPMS standby, suspend, off
-    xset +dpms
     bashio::log.info "Screen timeout after $SCREEN_TIMEOUT seconds..."
 fi
 
@@ -449,11 +451,12 @@ if [[ "$ONSCREEN_KEYBOARD" = true && -n "$SCREEN_WIDTH" && -n "$SCREEN_HEIGHT" ]
     ### Launch 'Onboard' keyboard
     bashio::log.info "Starting Onboard onscreen keyboard"
     onboard &
-    /toggle_keyboard.py "$DARK_MODE" & #Creates 1x1 pixel at extreme top-right of screen to toggle keyboard visibility
+    python3 /toggle_keyboard.py "$DARK_MODE" & #Creates 1x1 pixel at extreme top-right of screen to toggle keyboard visibility
 fi
 
 #### Poll to send <Control-r> when screen unblanks to force reload of luakit page if BROWSWER_REFRESH set
 if [ "$BROWSER_REFRESH" -ne 0 ]; then
+    bashio::log.info "Start polling for monitor wake-up"
     (
         PREV=""
         while true; do
@@ -465,9 +468,14 @@ if [ "$BROWSER_REFRESH" -ne 0 ]; then
             sleep 5; #Wait between polling attempts
         done
     )&
-    bashio::log.info "Polling to refresh Luakit browser after wakeup..."
+    bashio::log.info "Polling to refresh Luakit browser after display wakeup..."
 fi
 
+#### Start  HAOSKiosk REST server
+bashio::log.info "Starting HAOSKiosk REST server..."
+python3 /rest_server.py &
+
+#### Start browser (or debug mode)  and wait/sleep
 if [ "$DEBUG_MODE" != true ]; then
     ### Run Luakit in the background and wait for process to exit
     bashio::log.info "Launching Luakit browser: $HA_URL/$HA_DASHBOARD"

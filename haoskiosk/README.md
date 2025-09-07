@@ -24,6 +24,8 @@ You can then return to *passthrough* mode by pressing `ctl-Z` or enter
 See luakit documentation for available commands.\
 In general, you want to stay in `passthrough` mode.
 
+You can press `ctl-R` at any time to refresh the browser.
+
 **NOTE:** Should support any standard mouse, touchscreen, keypad and
 touchpad so long as their /dev/input/eventN number is less than 25.
 
@@ -154,6 +156,21 @@ Append to or replace existing, default xorg.conf file.\
 Select 'Append' or 'Replace options.\
 To restore default, set to empty and select 'Append' option.
 
+### Allow User Commands
+
+Allow user to run arbitrary one or more commands in the HAOSkiosk container
+via the respective REST APIs: `run_command` and `run_commands` (Default:
+false)
+
+Warning: Allowing this could allow the user to inject potentially dangerous
+root-level commands
+
+### REST_PORT
+
+Port used for the REST API. Must be between 1024 and 49151. (Default: 8080)
+
+Note for security REST server only listens on localhost (127.0.0.1)
+
 ### Debug
 
 For debugging purposes, launches `Xorg` and `openbox` and then sleeps
@@ -161,3 +178,151 @@ without launching `luakit`.\
 Manually, launch `luakit` (e.g.,
 `luakit -U localhost:8123/<your-dashboard>`) from Docker container.\
 E.g., `sudo docker exec -it addon_haoskiosk bash`
+
+## REST APIs
+
+### launch_url {"url": "<url>"}
+
+Launch the specified 'url' in the kiosk display. Overwrites current active
+tab.
+
+Usage:
+`curl -X POST http://localhost:<REST_PORT>/launch_url -H "Content-Type: application/json" -d '{"url": "<URL>"}'`
+
+### refresh_browser
+
+Refresh browser
+
+Usage:
+
+`curl -X POST http://localhost:<REST_PORT>/refresh_browser`
+
+### display_on
+
+Turn on display
+
+Usage:
+
+`curl -X POST http://localhost:<REST_PORT>/display_on`
+
+### display_off
+
+Turn off display
+
+Usage:
+
+`curl -X POST http://localhost:<REST_PORT>/display_off`
+
+### run_command {"cmd": "<command>"}
+
+Run `command` in the HAOSKiosk Docker container where `cmd_timeout` is an
+optional timeout in seconds.
+
+Only allowed if `Allow User Commands` option is set to true.
+
+Usage:
+
+`curl -X POST http://localhost:<REST_PORT>/run_command -H "Content-Type: application/json" -d '{"cmd": "<command>", "cmd_timeout": <seconds>}'`
+
+### run_commands {"cmds": \["<command1>", "<command2>",...\], "cmd_timeout": <seconds>}}
+
+Run multiple commands in the HAOSKiosk Docker container where `cmd_timeout`
+is an optional timeout in seconds.
+
+Only allowed if `Allow User Commands` option is set to true.
+
+Usage:
+
+`curl -X POST http://localhost:<REST_PORT>/run_commands -H "Content-Type: application/json" -d '{"cmds": ["<command1>", "<command2>",...], "cmd_timeout": <seconds>}'`
+
+### current_processes
+
+Return number of currently running concurrent processes out of max allowed
+
+Usage: `curl -X GET http://localhost:8080/current_processes`
+
+______________________________________________________________________
+
+You can also configure all the above REST commands in your
+`configuration.yaml` as follows (assuming REST_PORT=8080)
+
+```
+rest_command:
+  haoskiosk_launch_url:
+    url: "http://localhost:8080/launch_url"
+    method: POST
+    content_type: "application/json"
+    payload: '{"url": "{{ url }}"}'
+
+  haoskiosk_refresh_browser:
+    url: "http://localhost:8080/refresh_browser"
+    method: POST
+    content_type: "application/json"
+    payload: '{}'
+
+  haoskiosk_display_on:
+    url: "http://localhost:8080/display_on"
+    method: POST
+    content_type: "application/json"
+    payload: '{% if timeout is defined and timeout is number and timeout >= 0 %}{"timeout": {{ timeout | int }}}{% else %}{}%}'
+
+  haoskiosk_display_off:
+    url: "http://localhost:8080/display_off"
+    method: POST
+    content_type: "application/json"
+    payload: '{}'
+
+  haoskiosk_run_command:
+    url: "http://localhost:8080/run_command"
+    method: POST
+    content_type: "application/json"
+    payload: '{% if cmd_timeout is defined and cmd_timeout is number and cmd_timeout > 0 %}{"cmd": "{{ cmd }}", "cmd_timeout": {{ cmd_timeout | int }}}{% else %}{"cmd": "{{ cmd }}"}{}%}'
+
+  haoskiosk_run_commands:
+    url: "http://localhost:8080/run_commands"
+    method: POST
+    content_type: "application/json"
+    payload: '{% if cmd_timeout is defined and cmd_timeout is number and cmd_timeout > 0 %}{"cmds": {{ cmds | tojson }}, "cmd_timeout": {{ cmd_timeout | int }}}{% else %}{"cmds": {{ cmds | tojson }}}{}%}'
+
+  haoskiosk_current_processes:
+    url: "http://localhost:8080/current_processes"
+    method: GET
+    content_type: "application/json"
+```
+
+The rest commands can then be referenced from automation actions as:
+`rest_command.haoskiosk_<command-name>`
+
+For example:
+
+```
+actions:
+  - action: rest_command.haoskiosk_launch_url:
+    data:
+      url: "https://homeassistant.local/my_dashboard"
+
+  - action: rest_command.haoskiosk_display_on
+
+  - action: rest_command.haoskiosk_display_on:
+    data:
+      timeout: 300
+
+  - action: rest_command.haoskiosk_display_off
+
+  - action: rest_command.haoskiosk_run_command:
+    data:
+      cmd: "command"
+      cmd_timeout: <seconds>
+
+  - action: rest_command.haoskiosk_refresh_browser
+
+  - action: rest_command.haoskiosk_run_commands:
+    data:
+      cmds:
+        - "<command1>"
+        - "<command2>"
+        ...
+      cmd_timeout: <seconds>
+
+  - action: rest_command.haoskiosk_current_processes
+```

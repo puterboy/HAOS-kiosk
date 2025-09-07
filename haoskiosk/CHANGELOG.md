@@ -2,17 +2,22 @@
 
 ## v1.1.0 - September 2025
 
-- Only refresh on wakeup if "BROWSER_REFRESH" is non-zero (Thanks
-  tacher4000)
+- Add REST API to allow remote launching of new urls, display on/off,
+  browser refresh, and execution of one or more shell commands
 - Add onscreen keyboard for touch screens (Thanks GuntherSchulz01)
 - Added 'toogle_keyboard.py' to create 1x1 pixel at extreme top-right to
   toggle keyboard visibility
 - Save DBUS_SESSION_BUS_ADDRESS to ~/.profile for use in other (login)
   shells
+- Only refresh on wakeup if "BROWSER_REFRESH" is non-zero (Thanks
+  tacher4000)
 - Code now supports xfwm4 window manager as well as Openbox (but xfwm4
   commented out for now)
 - Revamped 'Xorg.conf.default' to use more modern & generalized structure
 - Prevent luakit from restoring old sessions
+- Patched luakit unique_instance.lua to open in existing tab
+- Force reversion to (modified) passthrough mode in luakit with every page
+  load to maximize kiosk-like behavior and hide command mode
 
 ## v1.0.1 - August 2025
 

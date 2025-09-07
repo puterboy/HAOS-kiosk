@@ -8,8 +8,7 @@ Date: September 2025
 Code does the following:
     - Sets browser window to fullscreen
     - Sets zooms level to value of $ZOOM_LEVEL (default 100%)
-    - Starts first window in 'passthrough' mode so that you can type text as needed without
-       triggering browser commands
+    - Loads every URL in 'passthrough' mode so that you can type text as needed without triggering browser commands
     - Auto-logs in to Home Assistant using $HA_USERNAME and $HA_PASSWORD
     - Redefines key to return to normal mode (used for commands) from 'passthrough' mode to: 'Ctl-Alt-Esc'
       (rather than just 'Esc') to prevent unintended  returns to normal mode and activation of unwanted commands
@@ -130,6 +129,12 @@ session.restore = function()
     return nil
 end
 
+-- Force new URLs from new 'luakit' instances to launch in current/last active tab of first window
+-- Note requires patch to /usr/share/luakit/lib/unique_instance.lua
+local unique_instance = require "unique_instance"
+unique_instance.open_link_in_current_tab  = true
+
+
 -- -----------------------------------------------------------------------
 -- Helper functions
 local function single_quote_escape(str) -- Single quote strings before injection into JS
@@ -144,7 +149,6 @@ end
 -- -----------------------------------------------------------------------
 -- Auto-login to homeassistant (if on HA url) and set 'sidebar settings
 
-local first_window = true
 local ha_settings_applied = setmetatable({}, { __mode = "k" }) -- Flag to track if HA settings have already been applied in this session
 
 webview.add_signal("init", function(view)
@@ -158,31 +162,14 @@ webview.add_signal("init", function(view)
         -- Hide onscreen keyboard (if enabled) after page (re)load
         -- NOTE: this is needed since 'onboard' doesn't always hide keyboard unless focus explicitly lost
 	if onscreen_keyboard then
-	    msg.info("XXXXXXX: Hide onscreen keyboard") -- JJKCRAP
+	    msg.info("Hiding onscreen keyboard...")
 	    luakit.spawn("dbus-send --type=method_call --print-reply --dest=org.onboard.Onboard /org/onboard/Onboard/Keyboard org.onboard.Onboard.Keyboard.Hide")
 	end
 
-        -- We want to start in passthrough mode (i.e. not normal command mode) -- 4 potential options for doing this
-        -- Option#1 Sets passthrough mode for the first window (or all initial windows if using xdotool line)
-        if first_window then
-            -- Option 1a: [USED]
-            webview.window(v):set_mode("passthrough") -- This method only works  if no pre-existing tabs (e.g., using 'luakit -U')
-                                                      -- Otherwise, first saved (and recovered) tab gets set to passthrough mode and not the specified start url
-            -- Option 1b: [NOT USED] Requires adding 'apk add xdotool' to Dockerfile -- also seems  to set for all pre-existing windows
---          os.execute("xdotool key ctrl+z")
-            msg.info("Setting passthrough mode...") -- DEBUG
-            first_window = false
-        end
+	-- Force passthrough mode on every page load so don't inadvertently type commands in kiosk
+	webview.window(v):set_mode("passthrough")
 
---[[
-        -- Option#2 [NOT USED] Set passthrough mode for all windows with url beginning with 'ha_url'
-        if (v.uri .. "/"):match("^" .. ha_url_base .. "/") then -- Note ha_url was stripped of trailing slashes
-            webview.window(v):set_mode("passthrough")
---          msg.info("Setting passthrough mode...") -- DEBUG
-        end
-]]
-
-        -- Set up auto-login for Home Assistant
+        -- Set up auto-login for Home Assistapnt
         -- Check if current URL matches the Home Assistant auth page
         if v.uri:match("^" .. ha_url_base .. "/auth/authorize%?response_type=code") then
 	    msg.info("Authorizing: %s", v.uri) -- DEBUG
@@ -304,12 +291,3 @@ modes.get_modes()["passthrough"].enter = function(w)
     w.view.can_focus = true   -- Ensure the webview can receive focus
     w.view:focus()            -- Focus the webview for keyboard input
 end
-
--- Option#3:[NOT USED]  Makes 'passthrough' *always* the default mode for 'set_mode'
---[[
-local lousy = require('lousy.mode')
-window.methods.set_mode = function (object, mode, ...)
-    local default_mode = 'passthrough'
-    return lousy.set(object, mode or default_mode)
-end
-]]

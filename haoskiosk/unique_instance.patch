@@ -1,0 +1,24 @@
+diff --git a/lib/unique_instance.lua b/lib/unique_instance.lua
+index 25d05886afc3..a315d079f5db 100644
+--- a/lib/unique_instance.lua
++++ b/lib/unique_instance.lua
+@@ -28,6 +28,8 @@ local unique = luakit.unique
+ -- @default `false`
+ _M.open_links_in_new_window = false
+
++_M.open_link_in_current_tab = false
++
+ if not unique then
+     msg.verbose("luakit started with no-unique")
+     return _M
+@@ -64,7 +66,9 @@ unique.add_signal("message", function (message, screen)
+             w = lousy.util.table.values(window.bywidget)[1]
+         end
+
+-        if not _M.open_links_in_new_window then
++        if _M.open_link_in_current_tab and #u == 1 then
++            w:navigate(u[1])
++        elseif not _M.open_links_in_new_window then
+             for _, uri in ipairs(u) do
+                 w:new_tab(uri)
+             end

@@ -17,6 +17,8 @@ startup: application
 host_network: true
 init: false
 ingress: true
+homeassistant_api: true
+auth_api: true
 
 devices:
   - /dev/dri/card0
@@ -74,6 +76,8 @@ options:
   save_onscreen_config: true
   xorg_conf: ""
   xorg_append_replace: "append"
+  allow_user_commands: false
+  rest_port: 8080
   debug_mode: false
 
 schema:
@@ -96,6 +100,8 @@ schema:
   save_onscreen_config: bool
   xorg_conf: str?
   xorg_append_replace: list(append|replace)
+  allow_user_commands: bool
+  rest_port: int(1024,49151)
   debug_mode: bool
 
 translations:
