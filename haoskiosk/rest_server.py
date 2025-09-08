@@ -183,35 +183,39 @@ async def handle_display_on(request):
                 logging.error("[display_on] Invalid JSON payload")
                 return web.json_response({"success": False, "error": "Invalid JSON payload"}, status=400)
 
-        if data is None:
-            logging.info("[display_on] Called")
+        if not data:
+            logging.info("[display_on] called")
             return await single_command_handler(request, "xset dpms force on", "display_on", data_keys=None, cmd_timeout=None)
 
-        logging.info(f"[display_on] Called with {data}")
+        logging.info(f"[display_on] called with {data}")
 
-        try:
-            timeout = int(data.get("timeout"))
-            if timeout < 0:
-                raise ValueError("Timeout must be non-negative")
-        except (TypeError, ValueError):
-            logging.error(f"[display_on] Invalid timeout: {data.get('timeout')}")
-            return web.json_response({"success": False, "error": "Timeout must be a non-negative integer"}, status=400)
+        if "timeout" in data:
+            try:
+                timeout = int(data.get("timeout"))
+                if timeout < 0:
+                    raise ValueError("Timeout must be non-negative")
+            except (TypeError, ValueError):
+                logging.error(f"[display_on] Invalid timeout: {data.get('timeout')}")
+                return web.json_response({"success": False, "error": "Timeout must be a non-negative integer"}, status=400)
+
+            commands = [
+                "xset dpms force on",
+                f"xset s {timeout}",
+                f"xset dpms {timeout} {timeout} {timeout}"
+            ]
+            result = await execute_commands(commands, "display_on", cmd_timeout=None)
+            if result["success"]:
+                logging.info(f"[display_on] Screen timeout {'disabled' if timeout <= 0 else f'reset to {timeout} seconds'}")
+            return web.json_response({"success": result["success"], "results": result["results"]})
 
         if set(data.keys()) - {"timeout"}:
             logging.error(f"[display_on] Invalid keys in payload: {set(data.keys()) - {'timeout'}}")
             return web.json_response({"success": False, "error": f"Invalid keys in payload: {set(data.keys()) - {'timeout'}}"}, status=400)
 
-        commands = [
-            "xset dpms force on",
-            f"xset s {timeout}",
-            f"xset dpms {timeout} {timeout} {timeout}"
-        ]
-        result = await execute_commands(commands, "display_on", cmd_timeout=None)
-        if result["success"]:
-            logging.info(f"[display_on] Screen timeout {'disabled' if timeout <= 0 else f'reset to {timeout} seconds'}")
-        return web.json_response({"success": result["success"], "results": result["results"]})
+        logging.info("[display_on] called with empty payload")
+        return await single_command_handler(request, "xset dpms force on", "display_on", data_keys=None, cmd_timeout=None)
     except Exception as e:
-        logging.error(f"[display_on] Error: {str(e)}")
+        logging.error(f"[display_on] error: {str(e)}")
         return web.json_response({"success": False, "error": str(e)}, status=500)
 
 async def handle_display_off(request):
