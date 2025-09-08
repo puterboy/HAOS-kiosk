@@ -271,8 +271,8 @@ Note that `run_commands` returns an array of `"results"` of form:
 You can format the stdout (and similarly stderr) by piping the output to:
 `jq -r .result.stdout`
 
-In the case of `run_commands`, pipe the output to: \`jq -r
-'.results[]?.stdout'\`
+In the case of `run_commands`, pipe the output to:
+`jq -r '.results[]?.stdout'`
 
 ______________________________________________________________________
 
