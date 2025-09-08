@@ -455,7 +455,7 @@ if [[ "$ONSCREEN_KEYBOARD" = true && -n "$SCREEN_WIDTH" && -n "$SCREEN_HEIGHT" ]
 fi
 
 #### Poll to send <Control-r> when screen unblanks to force reload of luakit page if BROWSWER_REFRESH set
-if [ "$BROWSER_REFRESH" -ne 0 ]; then
+if false && [ "$BROWSER_REFRESH" -ne 0 ]; then
     bashio::log.info "Start polling for monitor wake-up"
     (
         PREV=""

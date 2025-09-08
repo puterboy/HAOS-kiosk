@@ -18,6 +18,7 @@
 - Patched luakit unique_instance.lua to open in existing tab
 - Force reversion to (modified) passthrough mode in luakit with every page
   load to maximize kiosk-like behavior and hide command mode
+- Removed auto refresh on display wake (not necessary)
 
 ## v1.0.1 - August 2025
 

@@ -9,7 +9,7 @@ Display HA dashboards in kiosk mode directly on your HAOS server.
 Launches X-Windows on local HAOS server followed by OpenBox window manager
 and Luakit browser.\
 Standard mouse and keyboard interactions should work automatically.
-Supports touchscreens (including onscreen keyboard) and rotation.
+Supports touchscreens (including onscreen keyboard) and screen rotation.
 
 You can press `ctl-R` at any time to refresh the browser.
 
@@ -214,6 +214,21 @@ Usage:
 
 `curl -X POST http://localhost:<REST_PORT>/display_off`
 
+### xset
+
+Run `xset <args>` to get/set display information. In particular, use `-q`
+to get display information.
+
+Usage:
+
+`curl -X POST http://localhost:<REST_PORT>/xset -H "Content-Type: application/json" -d '{"args": "<arg-string>"}'`
+
+### current_processes
+
+Return number of currently running concurrent processes out of max allowed
+
+Usage: `curl -X GET http://localhost:8080/current_processes`
+
 ### run_command {"cmd": "\<command>"}
 
 Run `command` in the HAOSKiosk Docker container where `cmd_timeout` is an
@@ -236,11 +251,27 @@ Usage:
 
 `curl -X POST http://localhost:<REST_PORT>/run_commands -H "Content-Type: application/json" -d '{"cmds": ["<command1>", "<command2>",...], "cmd_timeout": <seconds>}'`
 
-### current_processes
+NOTE: The API commands logs results to the HAOSkiosk log and return:
 
-Return number of currently running concurrent processes out of max allowed
+```
+{
+  "success": bool,
+  "result": {
+    "success": bool,
+    "stdout": str,
+    "stderr": str,
+    "error": str (optional)
+  }
+}
+```
 
-Usage: `curl -X GET http://localhost:8080/current_processes`
+Note that `run_commands` returns instead an array of `"results"`
+
+You can format the stdout (and similarly stderr) by piping the output to:
+`jq -r .result.stdout`
+
+In the case of `run_commands`, pipe the output to: \`jq -r
+'.results[]?.stdout'
 
 ______________________________________________________________________
 
@@ -273,6 +304,17 @@ rest_command:
     content_type: "application/json"
     payload: '{}'
 
+  haoskiosk_current_processes:
+    url: "http://localhost:8080/current_processes"
+    method: GET
+    content_type: "application/json"
+
+  haoskiosk_xset:
+    url: "http://localhost:8080/xset"
+    method: POST
+    content_type: "application/json"
+    payload: '{"args": "{{ args }}"}'
+
   haoskiosk_run_command:
     url: "http://localhost:8080/run_command"
     method: POST
@@ -284,11 +326,6 @@ rest_command:
     method: POST
     content_type: "application/json"
     payload: '{% if cmd_timeout is defined and cmd_timeout is number and cmd_timeout > 0 %}{"cmds": {{ cmds | tojson }}, "cmd_timeout": {{ cmd_timeout | int }}}{% else %}{"cmds": {{ cmds | tojson }}}{}%}'
-
-  haoskiosk_current_processes:
-    url: "http://localhost:8080/current_processes"
-    method: GET
-    content_type: "application/json"
 ```
 
 The rest commands can then be referenced from automation actions as:
