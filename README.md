@@ -163,6 +163,11 @@ Port used for the REST API. Must be between 1024 and 49151. (Default: 8080)
 
 Note for security REST server only listens on localhost (127.0.0.1)
 
+### REST BEARER TOKEN
+
+Optional authorization token for REST API. (Default: "") If set, then add
+line `Authorization: Bearer <REST_BEARER_TOKEN>` to REST API calls.
+
 ### Allow User Commands
 
 Allow user to run arbitrary one or more commands in the HAOSkiosk container

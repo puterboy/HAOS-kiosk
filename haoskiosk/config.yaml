@@ -78,6 +78,7 @@ options:
   xorg_append_replace: "append"
   allow_user_commands: false
   rest_port: 8080
+  rest_bearer_token: ""
   debug_mode: false
 
 schema:
@@ -101,6 +102,7 @@ schema:
   xorg_conf: str?
   xorg_append_replace: list(append|replace)
   rest_port: int(1024,49151)
+  rest_bearer_token: password
   allow_user_commands: bool
   debug_mode: bool
 

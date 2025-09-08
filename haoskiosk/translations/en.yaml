@@ -2,10 +2,10 @@
 configuration:
   ha_username:
     name: "HA Username"
-    description: "Home Assistant login user name [required]"
+    description: "Home Assistant login user name [Required]"
   ha_password:
     name: "HA Password"
-    description: "Home Assistant login password [required]"
+    description: "Home Assistant login password [Required]"
   ha_url:
     name: "HA URL"
     description: |
@@ -38,7 +38,7 @@ configuration:
       Set to 1 to use the first connected port. [Default: 1]
   dark_mode:
     name: Dark Mode
-    description: "Prefer dark mode where supported if `true` (Default: true)"
+    description: "Prefer dark mode where supported if `True` [Default: True]"
   ha_sidebar:
     name: "HA Sidebar"
     description: "Status of left sidebar [Default: None]"
@@ -57,9 +57,9 @@ configuration:
   map_touch_inputs:
     name: "Map Touch Inputs"
     description: |
-      If 'true', then map all touch pointer inputs to the selected
+      If 'True', then map all touch pointer inputs to the selected
       video output. In particular, this rotates touch input devices
-      consistently with the video output.
+      consistently with the video output. [Default: True]
   cursor_timeout:
     name: "Cursor Timeout"
     description: |
@@ -71,32 +71,38 @@ configuration:
     description: "Set the keyboard layout and language [Default: us]"
   onscreen_keyboard:
     name: "Onscreen Keyboard"
-    description: "Display an Onscreen Keyboard for text input [Default: false]"
+    description: "Display an Onscreen Keyboard for text input [Default: False]"
   save_onscreen_config:
     name: "Save Onscreen Config"
     description: |
-      "Save and Restore changes to Onscreen keyboard settings [Default: true]
+      Save and Restore changes to Onscreen keyboard settings [Default: True]
   xorg_conf:
     name: "xorg.conf file"
-    description: "Insert custom 'xorg.conf' code"
+    description: |
+      Insert custom 'xorg.conf' code [Default: ""]
   xorg_append_replace:
     name: "Append or Replace"
     description: |
       Choose whether to append to original 'xorg.conf'
-      or replace it
+      or replace it [Default: Append]
     items:
       append: "Append"
       replace: "Replace"
   rest_port:
     name: "REST Port"
-    description: "Listening port for REST API server (1024-49151)"
+    description: |
+      Listening port for REST API server (1024-49151) [Default: 8080]
+  rest_authorization_token:
+    name: "REST Authorization Token"
+    description: |
+      Optional authorization token for REST API. [Default: ""]
   allow_user_commands:
     name: "Allow User Commands"
     description: |
       Allow user to run arbitrary commands in the HAOSkiosk container via the
-      service: `haoskiosk.run_command <CMD>`
+      service: `haoskiosk.run_command <CMD>` [Default: False]
   debug_mode:
     name: "Debug Mode"
     description: |
-      Launch X and Openbox but not Luakit browser.
+      Launch X and Openbox but not Luakit browser. [Default: False]
       Manually access using: sudo docker -exec -it addon_haoskiosk bash

@@ -40,6 +40,7 @@ logging.basicConfig(
 ALLOW_USER_COMMANDS = os.getenv("ALLOW_USER_COMMANDS").lower() == "true"
 SCREEN_TIMEOUT = os.getenv("SCREEN_TIMEOUT")
 REST_PORT = os.getenv("REST_PORT")
+REST_BEARER_TOKEN = os.getenv("REST_BEARER_TOKEN")
 
 # Async subprocess configuration
 MAX_PROCS = 5
@@ -111,10 +112,9 @@ async def single_command_handler(request, command, log_prefix, data_keys=None, r
     """Handle a single command with validation for multiple keys."""
     try:
         data = {}
-        body = await request.text()
-        if body:
+        if request.can_read_body:
             try:
-                data = json.loads(body)
+                data = await request.json()
             except json.JSONDecodeError:
                 logging.error(f"[{log_prefix}] Invalid JSON payload")
                 return web.json_response({"success": False, "error": "Invalid JSON payload"}, status=400)
@@ -174,11 +174,10 @@ async def handle_refresh_browser(request):
 async def handle_display_on(request):
     """Handle /display_on endpoint."""
     try:
-        data = None
-        body = await request.text()
-        if body:
+        data = {}
+        if request.can_read_body:
             try:
-                data = json.loads(body)
+                data = await request.json()
             except json.JSONDecodeError:
                 logging.error("[display_on] Invalid JSON payload")
                 return web.json_response({"success": False, "error": "Invalid JSON payload"}, status=400)
@@ -248,16 +247,15 @@ async def handle_run_command(request):
             return web.json_response({"success": False, "error": "User commands are disabled"}, status=403)
 
         # Validate command input
-        command = None
-        body = await request.text()
-        if body:
+        data = {}
+        if request.can_read_body:
             try:
-                data = json.loads(body)
-                command = data.get("cmd")
+                data = await request.json()
             except json.JSONDecodeError:
                 logging.error("[run_command] Invalid JSON payload")
                 return web.json_response({"success": False, "error": "Invalid JSON payload"}, status=400)
 
+        command = data.get("cmd")
         if not command:
             logging.error("[run_command] No command provided")
             return web.json_response({"success": False, "error": "No command provided"}, status=400)
@@ -297,16 +295,15 @@ async def handle_run_commands(request):
             return web.json_response({"success": False, "error": "User commands are disabled"}, status=403)
 
         # Validate commands input
-        commands = None
-        body = await request.text()
-        if body:
+        data = {}
+        if request.can_read_body:
             try:
-                data = json.loads(body)
-                commands = data.get("cmds", [])
+                data = await request.json()
             except json.JSONDecodeError:
                 logging.error("[run_commands] Invalid JSON payload")
                 return web.json_response({"success": False, "error": "Invalid JSON payload"}, status=400)
 
+        commands = data.get("cmds", [])
         if not commands:
             logging.error("[run_commands] No commands provided")
             return web.json_response({"success": False, "error": "No commands provided"}, status=400)
@@ -323,9 +320,9 @@ async def handle_run_commands(request):
 
         if set(data.keys()) - {"cmds", "cmd_timeout"}:
             logging.error(f"[run_commands] Invalid keys in payload: {set(data.keys()) - {'cmds', 'cmd_timeout'}}")
-            return web.json_response({"success": False, "error": f"Invalid keys in payload: {set(data.keys()) - {'cmds', 'cmd_timeout'}}"}, status=400)
+            return web.json_response({"success": False, "error": f"Invalid keys in payload: {set(data.keys()) - {'cmd', 'cmd_timeout'}}"}, status=400)
 
-        logging.info(f"[run_commands] Called with commands: {commands}")
+        logging.info(f"[run_commands] called with commands: {commands}")
         try:
             commands = [sanitize_command(cmd) for cmd in commands]
         except ValueError as e:
@@ -335,21 +332,38 @@ async def handle_run_commands(request):
         result = await execute_commands(commands, "run_commands", cmd_timeout)
         return web.json_response({"success": result["success"], "results": result["results"]})
     except Exception as e:
-        logging.error(f"[run_commands] Error: {str(e)}")
+        logging.error(f"[run_commands] error: {str(e)}")
         return web.json_response({"success": False, "error": str(e)}, status=500)
+
+@web.middleware
+async def auth_middleware(request, handler):
+    """Middleware to check Authorization Bearer token."""
+    if REST_BEARER_TOKEN:
+        auth_header = request.headers.get("Authorization")
+        if not auth_header or auth_header != f"Bearer {REST_BEARER_TOKEN}":
+            logging.error("[auth] Invalid or missing Authorization token")
+            return web.json_response({"success": False, "error": "Invalid or missing Authorization token"}, status=401)
+        logging.debug("[auth] Valid Authorization token")
+    else:
+        logging.debug("[auth] No REST_BEARER_TOKEN set or empty, bypassing authorization")
+    return await handler(request)
 
 @web.middleware
 async def handle_404_middleware(request, handler):
     """Middleware to handle 404 errors."""
     try:
-        return await handler(request)
+        response = await handler(request)
+        logging.debug(f"[handle_404_middleware] Response type: {type(response)}")
+        if isinstance(response, web.Response):
+            return response
+        return response
     except web.HTTPNotFound:
         logging.error(f"[main] Invalid endpoint requested: {request.path}")
-        return web.json_response({"success": False, "error": f"Requested endpoint '{request.path}' is invalid"}, status=404)
+        return web.json_response({"success": False, "error": f"Requested endpoint {request.path} is invalid"}, status=404)
 
 async def main():
     """Run REST server."""
-    app = web.Application(middlewares=[handle_404_middleware])
+    app = web.Application(middlewares=[auth_middleware, handle_404_middleware])
     app.router.add_post("/launch_url", handle_launch_url)
     app.router.add_post("/refresh_browser", handle_refresh_browser)
     app.router.add_post("/display_on", handle_display_on)

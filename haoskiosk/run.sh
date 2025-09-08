@@ -30,6 +30,7 @@ VERSION="1.1.0"
 #         XORG_CONF
 #         XORG_APPEND_REPLACE
 #         REST_PORT
+#         REST_BEARER_TOKEN
 #         ALLOW_USER_COMMANDS
 #         DEBUG_MODE
 #
@@ -127,6 +128,7 @@ load_config_var SAVE_ONSCREEN_CONFIG true
 load_config_var XORG_CONF ""
 load_config_var XORG_APPEND_REPLACE append
 load_config_var REST_PORT 8080
+load_config_var REST_BEARER_TOKEN "" 1 #Mask token in log
 load_config_var ALLOW_USER_COMMANDS false
 [ "$ALLOW_USER_COMMANDS" = "true" ] && bashio::log.warning "WARNING: 'allow_user_commands' set to 'true'"
 load_config_var DEBUG_MODE false
