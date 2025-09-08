@@ -157,13 +157,13 @@ Append to or replace existing, default xorg.conf file.\
 Select 'Append' or 'Replace options.\
 To restore default, set to empty and select 'Append' option.
 
-### REST_PORT
+### REST Port
 
 Port used for the REST API. Must be between 1024 and 49151. (Default: 8080)
 
 Note for security REST server only listens on localhost (127.0.0.1)
 
-### REST BEARER TOKEN
+### REST Bearer Token
 
 Optional authorization token for REST API. (Default: "") If set, then add
 line `Authorization: Bearer <REST_BEARER_TOKEN>` to REST API calls.
