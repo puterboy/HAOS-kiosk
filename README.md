@@ -251,7 +251,7 @@ Usage:
 
 `curl -X POST http://localhost:<REST_PORT>/run_commands -H "Content-Type: application/json" -d '{"cmds": ["<command1>", "<command2>",...], "cmd_timeout": <seconds>}'`
 
-NOTE: The API commands logs results to the HAOSkiosk log and return:
+**NOTE:** The API commands logs results to the HAOSkiosk log and return:
 
 ```
 {
@@ -265,13 +265,14 @@ NOTE: The API commands logs results to the HAOSkiosk log and return:
 }
 ```
 
-Note that `run_commands` returns instead an array of `"results"`
+Note that `run_commands` returns an array of `"results"` of form:
+`"results": [{"success": bool, "stdout": str, "stderr": str, "error": str (optional)},...]`
 
 You can format the stdout (and similarly stderr) by piping the output to:
 `jq -r .result.stdout`
 
 In the case of `run_commands`, pipe the output to: \`jq -r
-'.results[]?.stdout'
+'.results[]?.stdout'\`
 
 ______________________________________________________________________
 
@@ -352,6 +353,12 @@ actions:
       cmd: "command"
       cmd_timeout: <seconds>
 
+  - action: rest_command.haoskiosk_launch_url:
+    data:
+      args: "<arg-string>"
+
+  - action: rest_command.haoskiosk_current_processes
+
   - action: rest_command.haoskiosk_refresh_browser
 
   - action: rest_command.haoskiosk_run_commands:
@@ -361,19 +368,17 @@ actions:
         - "<command2>"
         ...
       cmd_timeout: <seconds>
-
-  - action: rest_command.haoskiosk_current_processes
 ```
 
 ### REST API Use Cases
 
-1. Create automations & services to:
+1. Create automations and services to:
 
    - Turn on/off display based on time-of-day, proximity, event triggers,
-     or voice commands.
-   - Send dashboard or other url to display based on event triggers or
-     pre-programmed rotation (e.g., to sequentially view different
-     cameras).
+     voice commands, etc.
+   - Send dashboard or other url to HAOSKiosk display based on event
+     triggers or pre-programmed rotation (e.g., to sequentially view
+     different cameras).
 
 2. Use custom command(s) to change internal parameters of HAOSKiosk and the
    luakit browser configuration.
