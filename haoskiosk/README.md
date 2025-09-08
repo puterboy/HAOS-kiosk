@@ -291,6 +291,54 @@ rest_command:
     url: "http://localhost:8080/refresh_browser"
     method: POST
     content_type: "application/json"
+    payload: "{}"
+
+  haoskiosk_display_on:
+    url: "http://localhost:8080/display_on"
+    method: POST
+    content_type: "application/json"
+    payload: '{% if timeout is defined and timeout is number and timeout >= 0 %}{"timeout": {{ timeout | int }}}{% else %}{}{% endif %}'
+
+  haoskiosk_display_off:
+    url: "http://localhost:8080/display_off"
+    method: POST
+    content_type: "application/json"
+    payload: "{}"
+
+  haoskiosk_current_processes:
+    url: "http://localhost:8080/current_processes"
+    method: GET
+    content_type: "application/json"
+
+  haoskiosk_xset:
+    url: "http://localhost:8080/xset"
+    method: POST
+    content_type: "application/json"
+    payload: '{"args": "{{ args }}"}'
+
+  haoskiosk_run_command:
+    url: "http://localhost:8080/run_command"
+    method: POST
+    content_type: "application/json"
+    payload: '{% if cmd_timeout is defined and cmd_timeout is number and cmd_timeout > 0 %}{"cmd": "{{ cmd }}", "cmd_timeout": {{ cmd_timeout | int }}}{% else %}{"cmd": "{{ cmd }}"}{% endif %}'
+
+  haoskiosk_run_commands:
+    url: "http://localhost:8080/run_commands"
+    method: POST
+    content_type: "application/json"
+    payload: '{% if cmd_timeout is defined and cmd_timeout is number and cmd_timeout > 0 %}{"cmds": {{ cmds | tojson }}, "cmd_timeout": {{ cmd_timeout | int }}}{% else %}{"cmds": {{ cmds | tojson }}}{% endif %}'
+
+
+  haoskiosk_launch_url:
+    url: "http://localhost:8080/launch_url"
+    method: POST
+    content_type: "application/json"
+    payload: '{"url": "{{ url }}"}'
+
+  haoskiosk_refresh_browser:
+    url: "http://localhost:8080/refresh_browser"
+    method: POST
+    content_type: "application/json"
     payload: '{}'
 
   haoskiosk_display_on:
