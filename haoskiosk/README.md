@@ -31,9 +31,9 @@ In general, you want to stay in `passthrough` mode.
 touchpad so long as their /dev/input/eventN number is less than 25.
 
 **NOTE:** If not working, please first check the bug reports (open and
-closed), then try the testing branch (use url:
-https://github.com/puterboy/HAOS-kiosk#testing). If still no solution, file
-an issue on github,
+closed), then try the testing branch (add the following url to the
+repository: https://github.com/puterboy/HAOS-kiosk#testing). If still no
+solution, file an issue on github
 [bug report](https://github.com/puterboy/HAOS-kiosk/issues) and include
 full details of your setup and what you did along with a complete log.
 
@@ -211,7 +211,7 @@ Usage:
 
 `curl -X GET http://localhost:8080/is_display_on`
 
-### display_on {"timeout": "\<timeout>"
+### display_on {"timeout": "\<timeout>"}
 
 Turn on display. If optional payload given, then set screen timeout to
 `<timeout>` which if 0 means *never* turn off screen and if positive
@@ -311,7 +311,7 @@ rest_command:
     content_type: "application/json"
     payload: "{}"
 
-  haoskiosk_is_display_on
+  haoskiosk_is_display_on:
     url: "http://localhost:8080/is_display_on"
     method: GET
     content_type: "application/json"
@@ -350,54 +350,6 @@ rest_command:
     method: POST
     content_type: "application/json"
     payload: '{% if cmd_timeout is defined and cmd_timeout is number and cmd_timeout > 0 %}{"cmds": {{ cmds | tojson }}, "cmd_timeout": {{ cmd_timeout | int }}}{% else %}{"cmds": {{ cmds | tojson }}}{% endif %}'
-
-
-  haoskiosk_launch_url:
-    url: "http://localhost:8080/launch_url"
-    method: POST
-    content_type: "application/json"
-    payload: '{"url": "{{ url }}"}'
-
-  haoskiosk_refresh_browser:
-    url: "http://localhost:8080/refresh_browser"
-    method: POST
-    content_type: "application/json"
-    payload: '{}'
-
-  haoskiosk_display_on:
-    url: "http://localhost:8080/display_on"
-    method: POST
-    content_type: "application/json"
-    payload: '{% if timeout is defined and timeout is number and timeout >= 0 %}{"timeout": {{ timeout | int }}}{% else %}{}%}'
-
-  haoskiosk_display_off:
-    url: "http://localhost:8080/display_off"
-    method: POST
-    content_type: "application/json"
-    payload: '{}'
-
-  haoskiosk_current_processes:
-    url: "http://localhost:8080/current_processes"
-    method: GET
-    content_type: "application/json"
-
-  haoskiosk_xset:
-    url: "http://localhost:8080/xset"
-    method: POST
-    content_type: "application/json"
-    payload: '{"args": "{{ args }}"}'
-
-  haoskiosk_run_command:
-    url: "http://localhost:8080/run_command"
-    method: POST
-    content_type: "application/json"
-    payload: '{% if cmd_timeout is defined and cmd_timeout is number and cmd_timeout > 0 %}{"cmd": "{{ cmd }}", "cmd_timeout": {{ cmd_timeout | int }}}{% else %}{"cmd": "{{ cmd }}"}{}%}'
-
-  haoskiosk_run_commands:
-    url: "http://localhost:8080/run_commands"
-    method: POST
-    content_type: "application/json"
-    payload: '{% if cmd_timeout is defined and cmd_timeout is number and cmd_timeout > 0 %}{"cmds": {{ cmds | tojson }}, "cmd_timeout": {{ cmd_timeout | int }}}{% else %}{"cmds": {{ cmds | tojson }}}{}%}'
 ```
 
 Note if optional \`REST_BEARER_TOKEN~ is set, then add the following two
@@ -415,25 +367,25 @@ For example:
 
 ```
 actions:
-  - action: rest_command.haoskiosk_launch_url:
+  - action: rest_command.haoskiosk_launch_url
     data:
       url: "https://homeassistant.local/my_dashboard"
 
-  - action: rest_command.haoskiosk_is_display_on:
+  - action: rest_command.haoskiosk_is_display_on
 
-  - action: rest_command.haoskiosk_display_on:
-  - action: rest_command.haoskiosk_display_on:
+  - action: rest_command.haoskiosk_display_on
+  - action: rest_command.haoskiosk_display_on
     data:
       timeout: 300
 
   - action: rest_command.haoskiosk_display_off
 
-  - action: rest_command.haoskiosk_run_command:
+  - action: rest_command.haoskiosk_run_command
     data:
       cmd: "command"
       cmd_timeout: <seconds>
 
-  - action: rest_command.haoskiosk_launch_url:
+  - action: rest_command.haoskiosk_launch_url
     data:
       args: "<arg-string>"
 
@@ -441,7 +393,7 @@ actions:
 
   - action: rest_command.haoskiosk_refresh_browser
 
-  - action: rest_command.haoskiosk_run_commands:
+  - action: rest_command.haoskiosk_run_commands
     data:
       cmds:
         - "<command1>"
