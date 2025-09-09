@@ -203,13 +203,26 @@ Usage:
 
 `curl -X POST http://localhost:<REST_PORT>/refresh_browser`
 
-### display_on
+### is_display_on
 
-Turn on display
+Returns boolean depending on whether display is on or off.
 
 Usage:
 
-`curl -X POST http://localhost:<REST_PORT>/display_on`
+`curl -X GET http://localhost:8080/is_display_on`
+
+### display_on {"timeout": "\<timeout>"
+
+Turn on display. If optional payload given, then set screen timeout to
+`<timeout>` which if 0 means *never* turn off screen and if positive
+integer then turn off screen after `<timeout>` seconds
+
+Usage:
+
+```
+curl -X POST http://localhost:<REST_PORT>/display_on
+curl -X POST http://localhost:8080/display_on -H "Content-Type: application/json" -d '{"timeout": <timeout>}
+```
 
 ### display_off
 
@@ -298,6 +311,11 @@ rest_command:
     content_type: "application/json"
     payload: "{}"
 
+  haoskiosk_is_display_on
+    url: "http://localhost:8080/is_display_on"
+    method: GET
+    content_type: "application/json"
+
   haoskiosk_display_on:
     url: "http://localhost:8080/display_on"
     method: POST
@@ -382,6 +400,14 @@ rest_command:
     payload: '{% if cmd_timeout is defined and cmd_timeout is number and cmd_timeout > 0 %}{"cmds": {{ cmds | tojson }}, "cmd_timeout": {{ cmd_timeout | int }}}{% else %}{"cmds": {{ cmds | tojson }}}{}%}'
 ```
 
+Note if optional \`REST_BEARER_TOKEN~ is set, then add the following two
+authentication lines to each of the above stanzas:
+
+```
+    headers:
+      Authorization: Bearer <REST_BEARER_TOKEN>
+```
+
 The rest commands can then be referenced from automation actions as:
 `rest_command.haoskiosk_<command-name>`
 
@@ -393,8 +419,9 @@ actions:
     data:
       url: "https://homeassistant.local/my_dashboard"
 
-  - action: rest_command.haoskiosk_display_on
+  - action: rest_command.haoskiosk_is_display_on:
 
+  - action: rest_command.haoskiosk_display_on:
   - action: rest_command.haoskiosk_display_on:
     data:
       timeout: 300

@@ -8,8 +8,11 @@
 # Launch REST API server with following commands:
 #   launch_url {"url": "<url>"}
 #   refresh_browser
+#   display_status
 #   display_on (optional) {"timeout": <non-negative integer>}
 #   display_off
+#   current_processes
+#   xset
 #   run_command {"cmd": "<command>"}
 #   run_commands {"cmds": ["<command1>", "<command2>",...]}
 #
@@ -41,6 +44,7 @@ ALLOW_USER_COMMANDS = os.getenv("ALLOW_USER_COMMANDS").lower() == "true"
 SCREEN_TIMEOUT = os.getenv("SCREEN_TIMEOUT")
 REST_PORT = os.getenv("REST_PORT")
 REST_BEARER_TOKEN = os.getenv("REST_BEARER_TOKEN")
+REST_IP = "127.0.0.1"
 
 # Async subprocess configuration
 MAX_PROCS = 5
@@ -170,6 +174,21 @@ async def handle_refresh_browser(request):
     return await single_command_handler(
         request, "xdotool key --clearmodifiers ctrl+r", "refresh_browser", data_keys=None, cmd_timeout=None
     )
+
+async def handle_is_display_on(request):
+    """Handle /is_display_on endpoint to check if monitor is on or off. Returns boolean true/false"""
+    try:
+        result = await run_command("xset -q | grep 'Monitor is'", "is_display_on")
+        if not result["success"]:
+            logging.error(f"[is_display_on] Failed to get display state: {result['error']}")
+            return web.json_response({"success": False, "error": result["error"]}, status=500)
+
+        monitor_on = "Monitor is On" in result["stdout"]
+        logging.info(f"[display_status] Display is {'on' if monitor_on else 'off'}")
+        return web.json_response({"success": True, "display_on": monitor_on})
+    except Exception as e:
+        logging.error(f"[display_status] error: {str(e)}")
+        return web.json_response({"success": False, "error": str(e)}, status=500)
 
 async def handle_display_on(request):
     """Handle /display_on endpoint."""
@@ -366,6 +385,7 @@ async def main():
     app = web.Application(middlewares=[auth_middleware, handle_404_middleware])
     app.router.add_post("/launch_url", handle_launch_url)
     app.router.add_post("/refresh_browser", handle_refresh_browser)
+    app.router.add_get("/is_display_on", handle_is_display_on)
     app.router.add_post("/display_on", handle_display_on)
     app.router.add_post("/display_off", handle_display_off)
     app.router.add_get("/current_processes", handle_current_processes)
@@ -376,7 +396,7 @@ async def main():
     runner = web.AppRunner(app)
     await runner.setup()
     try:
-        site = web.TCPSite(runner, "127.0.0.1", REST_PORT)
+        site = web.TCPSite(runner, REST_IP, REST_PORT)
         await site.start()
     except OSError as e:
         logging.error(f"[main] Failed to start server on port {REST_PORT}: {str(e)}")
