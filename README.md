@@ -408,6 +408,10 @@ actions:
 
    - Turn on/off display based on time-of-day, proximity, event triggers,
      voice commands, etc.
+
+     See 'examples' folder for trigger based on ultrasonic distance and HA
+     boolean sensor.
+
    - Send dashboard or other url to HAOSKiosk display based on event
      triggers or pre-programmed rotation (e.g., to sequentially view
      different cameras).
