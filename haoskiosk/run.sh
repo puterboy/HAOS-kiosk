@@ -456,23 +456,6 @@ if [[ "$ONSCREEN_KEYBOARD" = true && -n "$SCREEN_WIDTH" && -n "$SCREEN_HEIGHT" ]
     python3 /toggle_keyboard.py "$DARK_MODE" & #Creates 1x1 pixel at extreme top-right of screen to toggle keyboard visibility
 fi
 
-#### Poll to send <Control-r> when screen unblanks to force reload of luakit page if BROWSWER_REFRESH set
-if false && [ "$BROWSER_REFRESH" -ne 0 ]; then
-    bashio::log.info "Start polling for monitor wake-up"
-    (
-        PREV=""
-        while true; do
-            if pgrep luakit > /dev/null; then
-                STATE=$(xset -q | awk '/Monitor is/ {print $3}')
-                [[ "$PREV" == "Off" && "$STATE" == "On" ]] && xdotool key --clearmodifiers ctrl+r
-                PREV=$STATE
-            fi
-            sleep 5; #Wait between polling attempts
-        done
-    )&
-    bashio::log.info "Polling to refresh Luakit browser after display wakeup..."
-fi
-
 #### Start  HAOSKiosk REST server
 bashio::log.info "Starting HAOSKiosk REST server..."
 python3 /rest_server.py &
