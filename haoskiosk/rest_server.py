@@ -184,10 +184,10 @@ async def handle_is_display_on(request):
             return web.json_response({"success": False, "error": result["error"]}, status=500)
 
         monitor_on = "Monitor is On" in result["stdout"]
-        logging.info(f"[display_status] Display is {'on' if monitor_on else 'off'}")
+        logging.info(f"[is_display_on] Display is {'on' if monitor_on else 'off'}")
         return web.json_response({"success": True, "display_on": monitor_on})
     except Exception as e:
-        logging.error(f"[display_status] error: {str(e)}")
+        logging.error(f"[is_display_on] error: {str(e)}")
         return web.json_response({"success": False, "error": str(e)}, status=500)
 
 async def handle_display_on(request):
