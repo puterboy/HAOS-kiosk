@@ -55,7 +55,8 @@ WAIT_TIMEOUT = 0.05           # Timeout for wait_for_pin (seconds)
 HA_PORT = 8123
 HA_BEARER_TOKEN = None       # Needed if using HA_BINARY_SENSOR
 HA_BINARY_SENSOR=None        # Optional binary sensor to determine whether to measure distance and turn on/off display
-DEFAULT_DISPLAY_STATE=False  # Default display state if HA_BINARY_SENSOR is 'True' (False=off; True=on)
+
+DEFAULT_DISPLAY_STATE=True   # Default display state if HA_BINARY_SENSOR is 'True' (False=off; True=on)
 
 # Configure REST API
 REST_PORT = 8080
