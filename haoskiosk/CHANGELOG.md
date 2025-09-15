@@ -1,8 +1,26 @@
 # Changelog
 
+## v1.1.0 - September 2025
+
+- Add REST API to allow remote launching of new urls, display on/off,
+  browser refresh, and execution of one or more shell commands
+- Add onscreen keyboard for touch screens (Thanks GuntherSchulz01)
+- Added 'toogle_keyboard.py' to create 1x1 pixel at extreme top-right to
+  toggle keyboard visibility
+- Save DBUS_SESSION_BUS_ADDRESS to ~/.profile for use in other (login)
+  shells
+- Code now supports xfwm4 window manager as well as Openbox (but xfwm4
+  commented out for now)
+- Revamped 'Xorg.conf.default' to use more modern & generalized structure
+- Prevent luakit from restoring old sessions
+- Patched luakit unique_instance.lua to open remote url's in existing tab
+- Force reversion to (modified) passthrough mode in luakit with every page
+  load to maximize kiosk-like behavior and hide command mode
+- Removed auto refresh on display wake (not necessary)
+
 ## v1.0.1 - August 2025
 
-- Simplified and generalzedlibinput discovery tagging and merged resulting
+- Simplified and generalzed libinput discovery tagging and merged resulting
   code into 'run.sh' (Thanks to GuntherSchulz01 and tacher4000)
 - Added "CURSOR_TIMEOUT" to hide cursor (Thanks tacher4000)
 - Set LANG consistent with keyboard layout (Thanks tacher4000)
