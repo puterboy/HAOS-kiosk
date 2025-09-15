@@ -9,13 +9,11 @@
   toggle keyboard visibility
 - Save DBUS_SESSION_BUS_ADDRESS to ~/.profile for use in other (login)
   shells
-- Only refresh on wakeup if "BROWSER_REFRESH" is non-zero (Thanks
-  tacher4000)
 - Code now supports xfwm4 window manager as well as Openbox (but xfwm4
   commented out for now)
 - Revamped 'Xorg.conf.default' to use more modern & generalized structure
 - Prevent luakit from restoring old sessions
-- Patched luakit unique_instance.lua to open in existing tab
+- Patched luakit unique_instance.lua to open remote url's in existing tab
 - Force reversion to (modified) passthrough mode in luakit with every page
   load to maximize kiosk-like behavior and hide command mode
 - Removed auto refresh on display wake (not necessary)
