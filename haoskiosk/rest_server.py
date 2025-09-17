@@ -71,8 +71,8 @@ def sanitize_command(cmd):
 async def run_command(command: str, log_prefix: str, cmd_timeout: int = None):
     """Run a command asynchronously with optional timeout (seconds)."""
     async with _SUBPROC_SEM:
-        logging.info(f"[{log_prefix}] Acquired semaphore for command: {command}")
-        logging.info(f"[{log_prefix}] run command: {command}")
+        logging.debug(f"[{log_prefix}] Acquired semaphore for command: {command}")
+        logging.info(f"[{log_prefix}] Run command: {command}")
         proc = await asyncio.create_subprocess_shell(
             command,
             stdout=asyncio.subprocess.PIPE,
@@ -85,7 +85,7 @@ async def run_command(command: str, log_prefix: str, cmd_timeout: int = None):
             else:
                 stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=int(cmd_timeout))
         except asyncio.TimeoutError:
-            logging.error(f"[{log_prefix}] timed out after {cmd_timeout}s; killing")
+            logging.error(f"[{log_prefix}] Timed out after {cmd_timeout}s; killing")
             with contextlib.suppress(ProcessLookupError):
                 proc.kill()
             await proc.wait()
@@ -97,7 +97,7 @@ async def run_command(command: str, log_prefix: str, cmd_timeout: int = None):
             raise
         finally:
             _current_procs.discard(proc)
-            logging.info(f"[{log_prefix}] Released semaphore for command: {command}")
+            logging.debug(f"[{log_prefix}] Released semaphore for command: {command}")
 
         stdout_text = stdout.decode(errors="replace").strip() if stdout else ""
         stderr_text = stderr.decode(errors="replace").strip() if stderr else ""
@@ -123,7 +123,7 @@ async def single_command_handler(request, command, log_prefix, data_keys=None, r
                 logging.error(f"[{log_prefix}] Invalid JSON payload")
                 return web.json_response({"success": False, "error": "Invalid JSON payload"}, status=400)
 
-        logging.info(f"[{log_prefix}] called{' with ' + str(data) if data else ''}")
+        logging.info(f"[{log_prefix}] Called{' with ' + str(data) if data else ''}")
 
         allowed_keys = {key for key, _ in data_keys} if data_keys else set()
         if data and set(data.keys()) - allowed_keys:
@@ -146,7 +146,7 @@ async def single_command_handler(request, command, log_prefix, data_keys=None, r
         result = await run_command(command.format(**values) if values else command, log_prefix, cmd_timeout)
         return web.json_response({"success": result["success"], "result": result})
     except Exception as e:
-        logging.error(f"[{log_prefix}] error: {str(e)}")
+        logging.error(f"[{log_prefix}] Error: {str(e)}")
         return web.json_response({"success": False, "error": str(e)}, status=500)
 
 async def execute_commands(commands, log_prefix, cmd_timeout: int = None):
@@ -187,7 +187,7 @@ async def handle_is_display_on(request):
         logging.info(f"[is_display_on] Display is {'on' if monitor_on else 'off'}")
         return web.json_response({"success": True, "display_on": monitor_on})
     except Exception as e:
-        logging.error(f"[is_display_on] error: {str(e)}")
+        logging.error(f"[is_display_on] Error: {str(e)}")
         return web.json_response({"success": False, "error": str(e)}, status=500)
 
 async def handle_display_on(request):
@@ -202,10 +202,10 @@ async def handle_display_on(request):
                 return web.json_response({"success": False, "error": "Invalid JSON payload"}, status=400)
 
         if not data:
-            logging.info("[display_on] called")
+            logging.info("[display_on] Called")
             return await single_command_handler(request, "xset dpms force on", "display_on", data_keys=None, cmd_timeout=None)
 
-        logging.info(f"[display_on] called with {data}")
+        logging.info(f"[display_on] Called with {data}")
 
         if "timeout" in data:
             try:
@@ -230,10 +230,10 @@ async def handle_display_on(request):
             logging.error(f"[display_on] Invalid keys in payload: {set(data.keys()) - {'timeout'}}")
             return web.json_response({"success": False, "error": f"Invalid keys in payload: {set(data.keys()) - {'timeout'}}"}, status=400)
 
-        logging.info("[display_on] called with empty payload")
+        logging.info("[display_on] Called with empty payload")
         return await single_command_handler(request, "xset dpms force on", "display_on", data_keys=None, cmd_timeout=None)
     except Exception as e:
-        logging.error(f"[display_on] error: {str(e)}")
+        logging.error(f"[display_on] Error: {str(e)}")
         return web.json_response({"success": False, "error": str(e)}, status=500)
 
 async def handle_display_off(request):
@@ -341,7 +341,7 @@ async def handle_run_commands(request):
             logging.error(f"[run_commands] Invalid keys in payload: {set(data.keys()) - {'cmds', 'cmd_timeout'}}")
             return web.json_response({"success": False, "error": f"Invalid keys in payload: {set(data.keys()) - {'cmd', 'cmd_timeout'}}"}, status=400)
 
-        logging.info(f"[run_commands] called with commands: {commands}")
+        logging.info(f"[run_commands] Called with commands: {commands}")
         try:
             commands = [sanitize_command(cmd) for cmd in commands]
         except ValueError as e:
@@ -351,7 +351,7 @@ async def handle_run_commands(request):
         result = await execute_commands(commands, "run_commands", cmd_timeout)
         return web.json_response({"success": result["success"], "results": result["results"]})
     except Exception as e:
-        logging.error(f"[run_commands] error: {str(e)}")
+        logging.error(f"[run_commands] Error: {str(e)}")
         return web.json_response({"success": False, "error": str(e)}, status=500)
 
 @web.middleware

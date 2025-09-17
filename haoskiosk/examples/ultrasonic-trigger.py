@@ -50,6 +50,7 @@ TRIG_PIN = 0                  # AD0 - Output
 ECHO_PIN = 1                  # AD1 - Input
 GPIO_READINGS_TO_AVERAGE = 5  # Number of distance readings to average
 WAIT_TIMEOUT = 0.05           # Timeout for wait_for_pin (seconds)
+                              # Note HC-SR04 pulls pin low after 38ms (which with speed of sound 343m/s is equivalent to ~6.5m each way)
 
 # HA general variables
 HA_PORT = 8123
