@@ -217,6 +217,13 @@ libinput list-devices 2>/dev/null | awk '
 #### Start Xorg in the background
 rm -rf /tmp/.X*-lock #Cleanup old versions
 
+# Print out 'drm' (video) cards
+bashio::log.info "DRM video card status:"
+for status in /sys/class/drm/*/status; do
+    card=${status%/status}; card=${card##*/}
+    printf "  %s\t%s\n" "$card" "$(cat "$status")"
+done
+
 # Modify 'xorg.conf' as appropriate
 if [[ -n "$XORG_CONF" && "${XORG_APPEND_REPLACE}" = "replace" ]]; then
     bashio::log.info "Replacing default 'xorg.conf'..."

@@ -102,11 +102,8 @@ end
 
 local onscreen_keyboard = os.getenv("ONSCREEN_KEYBOARD") == "true"
 
---msg.info("USERNAME=%s; URL=%s; DARK_MODE=%s; SIDEBAR=%s; LOGIN_DELAY=%.1f, ZOOM_LEVEL=%d, BROWSER_REFRESH=%d,  ONSCREEN_KEYBOARD=%d",
---    username, ha_url, tostring(dark_mode), sidebar, login_delay, zoom_level, browser_refresh, tostring(onscreen_keyboard))
-
-msg.info("USERNAME=%s; URL=%s; DARK_MODE=%s; SIDEBAR=%s; LOGIN_DELAY=%.1f, ZOOM_LEVEL=%d, BROWSER_REFRESH=%d",
-    username, ha_url, tostring(dark_mode), sidebar, login_delay, zoom_level, browser_refresh)
+msg.info("USERNAME=%s; URL=%s; DARK_MODE=%s; SIDEBAR=%s; LOGIN_DELAY=%.1f, ZOOM_LEVEL=%d, BROWSER_REFRESH=%d,  ONSCREEN_KEYBOARD=%d",
+    username, ha_url, tostring(dark_mode), sidebar, login_delay, zoom_level, browser_refresh, tostring(onscreen_keyboard))
 
 -- -----------------------------------------------------------------------
 -- Forward console messages to stdout
