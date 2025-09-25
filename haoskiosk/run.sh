@@ -55,6 +55,9 @@ echo "." #Almost blank line (Note totally blank or white space lines are swallow
 printf '%*s\n' 80 '' | tr ' ' '#' #Separator
 bashio::log.info "######## Starting HAOSKiosk ########"
 bashio::log.info "$(date) [Version: $VERSION]"
+bashio::log.info "$(uname -a)"
+ha_info=$(bashio::info)
+bashio::log.info "Core=$(echo "$ha_info" | jq -r '.homeassistant')  HAOS=$(echo "$ha_info" | jq -r '.hassos')  MACHINE=$(echo "$ha_info" | jq -r '.machine')  ARCH=$(echo "$ha_info" | jq -r '.arch')"
 
 #### Clean up on exit:
 TTY0_DELETED="" #Need to set to empty string since runs with nounset=on (like set -u)
@@ -214,15 +217,32 @@ libinput list-devices 2>/dev/null | awk '
     printf "  %s: %s\n", a[length(a)], devname
 }' | sort -V
 
+## Determine main display card
+bashio::log.info "DRM video cards: $(ls /dev/dri/card[0-9]* 2>/dev/null)"
+bashio::log.info "DRM video card driver and connection status:"
+selected_card=""
+for status_path in /sys/class/drm/card[0-9]*-*/status; do
+    [ -e "$status_path" ] || continue  # Skip if status file doesn't exist
+
+    status=$(cat "$status_path")
+    card_port=$(basename "$(dirname "$status_path")")
+    card=${card_port%%-*}
+    driver=$(basename "$(readlink "/sys/class/drm/$card/device/driver")")
+    if [ -z "$selected_card" ]  && [ "$status" = "connected" ]; then
+        selected_card="$card" # Select first connected card
+        printf "  *"
+    else
+        printf "   "
+    fi
+    printf "%-20s%-10s%s\n" "$card_port" "$driver" "$status"
+done
+if [ -z "$selected_card" ]; then
+    bashio::log.info "ERROR: No connected video card detected. Exiting.."
+    exit 1
+fi
+
 #### Start Xorg in the background
 rm -rf /tmp/.X*-lock #Cleanup old versions
-
-# Print out 'drm' (video) cards
-bashio::log.info "DRM video card status:"
-for status in /sys/class/drm/*/status; do
-    card=${status%/status}; card=${card##*/}
-    printf "  %s\t%s\n" "$card" "$(cat "$status")"
-done
 
 # Modify 'xorg.conf' as appropriate
 if [[ -n "$XORG_CONF" && "${XORG_APPEND_REPLACE}" = "replace" ]]; then
@@ -230,9 +250,8 @@ if [[ -n "$XORG_CONF" && "${XORG_APPEND_REPLACE}" = "replace" ]]; then
     echo "${XORG_CONF}" >| /etc/X11/xorg.conf
 else
     cp -a /etc/X11/xorg.conf{.default,}
-    if [ "$(uname -m)" = "aarch64" ]; then # Add "kmsdev" line to Device Section for Rpi since uses 'card1' and not 'card0'
-        sed -i '/Option[[:space:]]\+"DRI"[[:space:]]\+"3"/a\    Option     \t\t"kmsdev" "/dev/dri/card1"' /etc/X11/xorg.conf
-    fi
+    #Add "kmsdev" line to Device Section based on 'selected_card'
+    sed -i "/Option[[:space:]]\+\"DRI\"[[:space:]]\+\"3\"/a\    Option     \t\t\"kmsdev\" \"/dev/dri/$selected_card\"" /etc/X11/xorg.conf
 
     if [ -z "$XORG_CONF" ]; then
         bashio::log.info "No user 'xorg.conf' data provided, using default..."

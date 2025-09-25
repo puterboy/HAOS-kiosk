@@ -18,8 +18,10 @@ You can press `ctl-R` at any time to refresh the browser.
 **NOTE:** You must enter your HA username and password in the
 *Configuration* tab for add-on to start.
 
-**NOTE:** If display does not show up, reboot with display attached (e.g.,
-via HDMI cable)
+**NOTE:** The add-on requires a valid, connected display in order to start.
+\
+If display does not show up, try rebooting and restarting the addon with
+the display attached
 
 **Note:** Luakit browser is launched in kiosk-like (*passthrough*) mode.\
 To enter *normal* mode (similar to command mode in `vi`), press
