@@ -1,7 +1,7 @@
 --[[
 Add-on: HAOS Kiosk Display (haoskiosk)
 File: userconf.lua for HA minimal browser run on server
-Version: 1.1.0
+Version: 1.1.1
 Copyright Jeff Kosowsky
 Date: September 2025
 

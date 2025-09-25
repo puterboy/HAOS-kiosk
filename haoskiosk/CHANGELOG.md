@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.1.1 - September 2025
+
+- Auto-detect drm video card used and set 'kmsdev' accordingly in xorg.conf
+- Minor bug fixes and tweaks
+
 ## v1.1.0 - September 2025
 
 - Added REST API to allow remote launching of new urls, display on/off,

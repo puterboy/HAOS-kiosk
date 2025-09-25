@@ -1,10 +1,10 @@
 #!/usr/bin/with-contenv bashio
 # shellcheck shell=bash
-VERSION="1.1.0"
+VERSION="1.1.1"
 ################################################################################
 # Add-on: HAOS Kiosk Display (haoskiosk)
 # File: run.sh
-# Version: 1.1.0
+# Version: 1.1.1
 # Copyright Jeff Kosowsky
 # Date: September 2025
 #
