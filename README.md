@@ -420,5 +420,8 @@ actions:
      triggers or pre-programmed rotation (e.g., to sequentially view
      different cameras).
 
+   - Create simple screensavers using a loop to iterate through an image
+     folder and call `launch_url`
+
 2. Use custom command(s) to change internal parameters of HAOSKiosk and the
    luakit browser configuration.
