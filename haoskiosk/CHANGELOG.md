@@ -3,6 +3,7 @@
 ## v1.1.1 - September 2025
 
 - Auto-detect drm video card used and set 'kmsdev' accordingly in xorg.conf
+- Added more system & display logging
 - Minor bug fixes and tweaks
 
 ## v1.1.0 - September 2025
