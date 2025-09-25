@@ -46,7 +46,7 @@ VERSION="1.1.0"
 #     - Map touch inputs per configuration
 #     - Set keyboard layout and language
 #     - Set up onscreen keyboard per configuration
-#     - Poll to check if monitor wakes up and if so, reload luakit browser
+#     - Start REST API server
 #     - Launch fresh Luakit browser for url: $HA_URL/$HA_DASHBOARD
 #       [If not in DEBUG_MODE; Otherwise, just sleep]
 #
