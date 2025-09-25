@@ -218,7 +218,8 @@ libinput list-devices 2>/dev/null | awk '
 }' | sort -V
 
 ## Determine main display card
-bashio::log.info "DRM video cards: $(ls /dev/dri/card[0-9]* 2>/dev/null)"
+bashio::log.info "DRM video cards:"
+find /dev/dri/ -maxdepth 1 -type c -name 'card[0-9]*' 2>/dev/null | sed 's/^/  /'
 bashio::log.info "DRM video card driver and connection status:"
 selected_card=""
 for status_path in /sys/class/drm/card[0-9]*-*/status; do
@@ -234,7 +235,7 @@ for status_path in /sys/class/drm/card[0-9]*-*/status; do
     else
         printf "   "
     fi
-    printf "%-20s%-10s%s\n" "$card_port" "$driver" "$status"
+    printf "%-25s%-20s%s\n" "$card_port" "$driver" "$status"
 done
 if [ -z "$selected_card" ]; then
     bashio::log.info "ERROR: No connected video card detected. Exiting.."
