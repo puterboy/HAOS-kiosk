@@ -375,6 +375,8 @@ actions:
     data:
       url: "https://homeassistant.local/my_dashboard"
 
+  - action: rest_command.haoskiosk_refresh_browser
+
   - action: rest_command.haoskiosk_is_display_on
 
   - action: rest_command.haoskiosk_display_on
@@ -384,18 +386,16 @@ actions:
 
   - action: rest_command.haoskiosk_display_off
 
+  - action: rest_command.haoskiosk_current_processes
+
+  - action: rest_command.haoskiosk_xset
+    data:
+      args: "<arg-string>"
+
   - action: rest_command.haoskiosk_run_command
     data:
       cmd: "command"
       cmd_timeout: <seconds>
-
-  - action: rest_command.haoskiosk_launch_url
-    data:
-      args: "<arg-string>"
-
-  - action: rest_command.haoskiosk_current_processes
-
-  - action: rest_command.haoskiosk_refresh_browser
 
   - action: rest_command.haoskiosk_run_commands
     data:
