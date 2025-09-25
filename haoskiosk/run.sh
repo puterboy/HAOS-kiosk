@@ -230,8 +230,8 @@ if [[ -n "$XORG_CONF" && "${XORG_APPEND_REPLACE}" = "replace" ]]; then
     echo "${XORG_CONF}" >| /etc/X11/xorg.conf
 else
     cp -a /etc/X11/xorg.conf{.default,}
-    if [ "$(uname -m)" = "aarch64" ]; then # Add "kmsdev" line to Device Section for Rpi
-        sed -i '/Section "Device"/,/EndSection/ s#^\( *Option *"DRI" *"3"\)#\1\n    Option "kmsdev" "/dev/dri/card1"#' /etc/X11/xorg.conf
+    if [ "$(uname -m)" = "aarch64" ]; then # Add "kmsdev" line to Device Section for Rpi since uses 'card1' and not 'card0'
+        sed -i '/Option[[:space:]]\+"DRI"[[:space:]]\+"3"/a\    Option     \t\t"kmsdev" "/dev/dri/card1"' /etc/X11/xorg.conf
     fi
 
     if [ -z "$XORG_CONF" ]; then
