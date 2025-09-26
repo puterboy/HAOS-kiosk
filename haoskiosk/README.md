@@ -423,5 +423,7 @@ actions:
    - Create simple screensavers using a loop to iterate through an image
      folder and call `launch_url`
 
+     See 'examples' folder for simple Bash script example screensaver.
+
 2. Use custom command(s) to change internal parameters of HAOSKiosk and the
    luakit browser configuration.
