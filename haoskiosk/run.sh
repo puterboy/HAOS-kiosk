@@ -68,7 +68,6 @@ cleanup() {
         dconf dump /org/onboard/ > "$ONBOARD_CONFIG_FILE"
     fi
     jobs -p | xargs -r kill
-    [ -n "$TTY0_DELETED" ] && mknod -m 620 /dev/tty0 c 4 0
     exit "$exit_code"
 }
 trap cleanup HUP INT QUIT ABRT TERM EXIT
@@ -161,30 +160,7 @@ export DBUS_SESSION_BUS_ADDRESS
 #Make available to subsequent shells
 echo "export DBUS_SESSION_BUS_ADDRESS='$DBUS_SESSION_BUS_ADDRESS'" >> "$HOME/.profile"
 
-#### Hack to get writable /dev/tty0 for X
-# Note first need to delete /dev/tty0 since X won't start if it is there,
-# because X doesn't have permissions to access it in the container
-# Also, prevents udev permission error warnings & issues
-# Note that remounting rw is not sufficient
-
-# First, remount /dev as read-write since X absolutely, must have /dev/tty access
-# Note: need to use the version of 'mount' in util-linux, not busybox
-# Note: Do *not* later remount as 'ro' since that affect the root fs and
-#       in particular will block HAOS updates
-# if [ -e "/dev/tty0" ]; then
-#     bashio::log.info "Attempting to remount /dev as 'rw' so we can (temporarily) delete /dev/tty0..."
-#     mount -o remount,rw /dev
-#     if ! mount -o remount,rw /dev ; then
-#         bashio::log.error "Failed to remount /dev as read-write..."
-#         exit 1
-#     fi
-#     if  ! rm -f /dev/tty0 ; then
-#         bashio::log.error "Failed to delete /dev/tty0..."
-#         exit 1
-#     fi
-#     TTY0_DELETED=1
-#     bashio::log.info "Deleted /dev/tty0 successfully..."
-# fi
+#### Add read and write permissions for current user to /dev/tty0 for X
 chmod a+rw /dev/tty0
 
 #### Start udev (used by X)
@@ -282,15 +258,6 @@ for ((i=0; i<=XSTARTUP; i++)); do
     fi
     sleep 1
 done
-
-# Restore /dev/tty0
-if [ -n "$TTY0_DELETED" ]; then
-    if mknod -m 620 /dev/tty0 c 4 0; then
-        bashio::log.info "Restored /dev/tty0 successfully..."
-    else
-        bashio::log.error "Failed to restore /dev/tty0..."
-    fi
-fi
 
 if ! xset q >/dev/null 2>&1; then
     bashio::log.error "Error: X server failed to start within $XSTARTUP seconds."
