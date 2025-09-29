@@ -161,7 +161,7 @@ export DBUS_SESSION_BUS_ADDRESS
 echo "export DBUS_SESSION_BUS_ADDRESS='$DBUS_SESSION_BUS_ADDRESS'" >> "$HOME/.profile"
 
 #### Add read and write permissions for current user to /dev/tty0 for X
-sudo chmod a+rw /dev/tty0
+# chmod a+rw /dev/tty0
 
 #### Start udev (used by X)
 bashio::log.info "Starting 'udevd' and (re-)triggering..."
