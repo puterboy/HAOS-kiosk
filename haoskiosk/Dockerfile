@@ -41,6 +41,7 @@ RUN apk update && apk add --no-cache \
     python3-tkinter \
     patch \
     bash \
+    xorgxrdp \
     && apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/v3.21/community luakit=2.3.6-r0 \
     && rm -rf /var/cache/apk/*
 
