@@ -171,20 +171,21 @@ echo "export DBUS_SESSION_BUS_ADDRESS='$DBUS_SESSION_BUS_ADDRESS'" >> "$HOME/.pr
 # Note: need to use the version of 'mount' in util-linux, not busybox
 # Note: Do *not* later remount as 'ro' since that affect the root fs and
 #       in particular will block HAOS updates
-if [ -e "/dev/tty0" ]; then
-    bashio::log.info "Attempting to remount /dev as 'rw' so we can (temporarily) delete /dev/tty0..."
-    mount -o remount,rw /dev
-    if ! mount -o remount,rw /dev ; then
-        bashio::log.error "Failed to remount /dev as read-write..."
-        exit 1
-    fi
-    if  ! rm -f /dev/tty0 ; then
-        bashio::log.error "Failed to delete /dev/tty0..."
-        exit 1
-    fi
-    TTY0_DELETED=1
-    bashio::log.info "Deleted /dev/tty0 successfully..."
-fi
+# if [ -e "/dev/tty0" ]; then
+#     bashio::log.info "Attempting to remount /dev as 'rw' so we can (temporarily) delete /dev/tty0..."
+#     mount -o remount,rw /dev
+#     if ! mount -o remount,rw /dev ; then
+#         bashio::log.error "Failed to remount /dev as read-write..."
+#         exit 1
+#     fi
+#     if  ! rm -f /dev/tty0 ; then
+#         bashio::log.error "Failed to delete /dev/tty0..."
+#         exit 1
+#     fi
+#     TTY0_DELETED=1
+#     bashio::log.info "Deleted /dev/tty0 successfully..."
+# fi
+chmod a+rw /dev/tty0
 
 #### Start udev (used by X)
 bashio::log.info "Starting 'udevd' and (re-)triggering..."
