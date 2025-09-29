@@ -249,8 +249,7 @@ echo "."
 bashio::log.info "Starting X on DISPLAY=$DISPLAY..."
 NOCURSOR=""
 [ "$CURSOR_TIMEOUT" -lt 0 ] && NOCURSOR="-nocursor" #No cursor if <0
-# Xorg $NOCURSOR </dev/null &
-startx -- vt7  $NOCURSOR </dev/null &
+Xorg $NOCURSOR </dev/null &
 
 XSTARTUP=30
 for ((i=0; i<=XSTARTUP; i++)); do
