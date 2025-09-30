@@ -21,6 +21,7 @@ homeassistant_api: true
 auth_api: true
 
 devices:
+  - /dev/tty
   - /dev/tty0
 
   - /dev/dri/card0
