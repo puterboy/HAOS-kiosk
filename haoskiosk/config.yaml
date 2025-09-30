@@ -21,9 +21,6 @@ homeassistant_api: true
 auth_api: true
 
 devices:
-  - /dev/tty
-  - /dev/tty0
-
   - /dev/dri/card0
   - /dev/dri/card1
   - /dev/dri/renderD128
@@ -54,6 +51,8 @@ devices:
   - /dev/input/event23
   - /dev/input/event24
   - /dev/input/event25
+
+video: true
 
 map:
   - addon_config:rw
