@@ -33,14 +33,15 @@
    1: + Printout command gesture dictionary + log gestures and action commands for assigned commands
    2: + Input actions (press/release/motion) + xinput device headers + gesture command loading + execution output
    3: + State info (click_dict, finger state) + double-press timeout + screen dimension + missing gesture commands
-   4: + Key lines from xinput event stanza + contact group data+ GESTURE_NAME_TO_TYPE, DEVICE_TYPE_PATTERN and GESTURE_NAMES_PATTERN  lists
-   5: + RAW data for CLICK_EVENTS
-   6: + RAW data for PARSED_EVENTS
-   7: + RAW data for all xinput X11 events
+   4: + Contact group data+ GESTURE_NAME_TO_TYPE, DEVICE_TYPE_PATTERN and GESTURE_NAMES_PATTERN  lists
+   5: + Key lines from xinput event stanza
+   6: + RAW data for CLICK_EVENTS
+   7: + RAW data for PARSED_EVENTS
+   8: + RAW data for all xinput X11 events
   -2: Log xinput device headers only
-  -5: + RAW data for CLICK_EVENTS
-  -6: + RAW data for PARSED_EVENTS
-  -7: + RAW data for all xinput X11 events
+  -6: + RAW data for CLICK_EVENTS
+  -7: + RAW data for PARSED_EVENTS
+  -8 + RAW data for all xinput X11 events
 
 #### Key Data Structures
 
@@ -298,7 +299,7 @@ import threading
 import traceback
 import uuid
 from collections.abc import Hashable
-from typing import Any, cast, ClassVar, Generic, Iterator, Literal, NotRequired, Protocol, Self, Type, TypeAlias, TypedDict, TypeVar
+from typing import Any, cast, ClassVar, Iterator, Literal, NotRequired, Protocol, Self, Type, TypeAlias, TypedDict, TypeVar
 from Xlib import display                  #type: ignore[import-untyped] #pylint: disable=import-error
 from Xlib.xobject.drawable import Window  #type: ignore[import-untyped] #pylint: disable=import-error
 #-------------------------------------------------------------------------------
@@ -329,7 +330,7 @@ def initialize() -> None:
         'msg': "Toggling Onboard keyboard...",
     }
 
-    DEFAULT_COMMANDS_DICT["[Left]-MOUSE_3-CLICK"] = TOGGLE_ONBOARD_KEYBOARD #JJKCRAP: comment out
+#    DEFAULT_COMMANDS_DICT["[Left]-MOUSE_3-CLICK"] = TOGGLE_ONBOARD_KEYBOARD
 #    DEFAULT_COMMANDS_DICT["3-TOUCH_1-TAP"]        = TOGGLE_ONBOARD_KEYBOARD
 #    DEFAULT_COMMANDS_DICT["1-MOUSE_1-CORNER_TOP"] = TOGGLE_ONBOARD_KEYBOARD
 #    DEFAULT_COMMANDS_DICT["1-TOUCH_1-CORNER_TOP"] = TOGGLE_ONBOARD_KEYBOARD
@@ -593,10 +594,11 @@ PRESS_EVENTS: set[XEvent]   = {XEvent.RawButtonPress, XEvent.TouchBegin} # Use '
 RELEASE_EVENTS: set[XEvent] = {XEvent.RawButtonRelease, XEvent.TouchEnd}
 MOTION_EVENTS: set[XEvent]  = {XEvent.RawMotion, XEvent.TouchUpdate}  # Use 'Raw' for mouse Motion since no motion updates during button presses
 
-CLICK_EVENTS: set[XEvent]   = PRESS_EVENTS | RELEASE_EVENTS
-PARSED_EVENTS: set[XEvent]  = CLICK_EVENTS # Not including motion updates now (same as CLICK
-#PARSED_EVENTS: set[XEvent]  = CLICK_EVENTS | MOTION_EVENTS
+MOUSE_MOTION_EVENTS: set[XEvent] = MOUSE_EVENTS & MOTION_EVENTS
 
+CLICK_EVENTS: set[XEvent]   = PRESS_EVENTS | RELEASE_EVENTS
+PARSED_EVENTS: set[XEvent]  = CLICK_EVENTS # Not including motion updates now (same as CLICK)
+#PARSED_EVENTS: set[XEvent]  = CLICK_EVENTS | MOTION_EVENTS # Include motion updates
 
 class ContactState(Enum):
     """State of Button or Touch event"""
@@ -1518,7 +1520,6 @@ class ContactGroup(RegistryMixin):
         self.peak_contacts: int = 0                      # Maximum number of simultaneous contacts in 'Press' state at any time during the contact
         self.peak_contacts_members: set[int] = set()     # List of current contact_ids during first instance of peak_contacts
 
-
         self.add_event(contact_id, contact_time, contact_pos, ContactState.PRESS)  # Add initial 'Press' event
         self.id: tuple[int, uuid.UUID] = (self.device_id, uuid.uuid4())  #  Unique id, partially indexed by device_id for use in registry
         if not self.is_registered():
@@ -1574,6 +1575,11 @@ class ContactGroup(RegistryMixin):
             if not self.current_pressed:  # All contacts released
                 self.end_time = contact_time
 
+    @classmethod
+    def is_active(cls, dev_id: int) -> bool:
+        """ Return True if group is 'active' -- i.e., between press and release type events"""
+        return (group := ContactGroup.last_group_added(dev_id)) is not None and not group.is_complete
+
     @property
     def is_complete(self) -> bool:
         """Return True if all contact_ids have been released"""
@@ -1593,6 +1599,11 @@ class ContactGroup(RegistryMixin):
         """Return time remaining until double click timeout"""
         return cast(float, self.device_type.spec.get_attr("double_click_timeout")) - (XInputParser.x_uptime() - self.start_time)
 
+    @property
+    def num_events(self) -> int:
+        """Return number of events in the group"""
+        return sum(len(path_list) for path_list in self.path.values())
+
     def classify_click(self) -> GestureData:
         """
         Classify a click based on device thresholds.
@@ -1608,7 +1619,7 @@ class ContactGroup(RegistryMixin):
         """Return debug string summary of ContactGroup entry for specified group associated with dev_id."""
         time_end_string = f" -> {truncate_time(self.end_time)} [{sec_to_ms(self.end_time - self.start_time)} ms]" if self.end_time else ""
         return (f"Group: dev={self.device_id}, type={self.device_type}, " +
-                f"Events={len(self.path)} " +
+                f"Events={self.num_events} " +
                 f"Contacts={self.current_pressed} peak={self.peak_contacts} first={self.first_contact_id}:{self.start_pos}" +
                 (f"->{self.current_pos} " if len(self.path) != 1 else " ") +
                 f"Time: {truncate_time(self.start_time)}{time_end_string}")
@@ -1932,7 +1943,7 @@ class XInputParser:
                 click_event = self.event.xevent in CLICK_EVENTS
 
             # Raw debug printing
-            if abs(LOG_LEVEL) >= 7 or (abs(LOG_LEVEL) == 5 and click_event) or (abs(LOG_LEVEL) == 6 and parse_event):
+            if abs(LOG_LEVEL) >= 8 or (abs(LOG_LEVEL) == 7 and parse_event) or (abs(LOG_LEVEL) == 6 and click_event):
                 if new_event:  # Skip line between events
                     print()
                     event_separator = False
@@ -1943,28 +1954,31 @@ class XInputParser:
             if not parse_event or self.event is None:  # New event not yet started
                 continue
 
+            if self.event.xevent not in CLICK_EVENTS and self.event.device_id is not None and not ContactGroup.is_active(self.event.device_id):
+                continue  # Don't record non-click events (e.g., motion) if not within a contact
+
             try:
                 if new_event:  # Print out (debug) event line
-                    debug(4, ("\n" if event_separator else "") + f"EVENT_NUM={self.event.xevent} ({self.event.name})") # Note can't put '\' inside an f-expression
+                    debug(5, ("\n" if event_separator else "") + f"EVENT_NUM={self.event.xevent} ({self.event.name})") # Note can't put '\' inside an f-expression
 
                 elif line.startswith("device:"):  # Format is device: <device_id> (<device_id> OR <attachment_id>))
                     self.event.device_id = int(line.split('(')[1].rstrip(')'))
-                    debug(4, f"DEVICE={self.event.device_id}")
+                    debug(5, f"DEVICE={self.event.device_id}")
 
                 elif line.startswith("time:"):  # Format is: time: <X-Server uptime in ms>
                     self.event.time = int(line.split(':')[-1].strip()) / 1000
-                    debug(4, f"EVENT_TIME={self.event.time}")
+                    debug(5, f"EVENT_TIME={self.event.time}")
                     type(self)._xtime_offset = time.monotonic() - self.event.time # Update offset
 
                 elif line.startswith("detail:"):  # Format is: detail: <Button number for mouse or touch-finger for Touch>
                     self.event.detail = int(line.split('detail:')[-1].strip())
-                    debug(4, f"DETAIL={self.event.detail}")
+                    debug(5, f"DETAIL={self.event.detail}")
 
                 elif line.startswith("root:"):  # Format is: root: <x_coord>/<y_coord>
                     parts = line.strip().split()
                     x_str, y_str = parts[1].split('/')
                     self.event.position = (int(float(x_str)), int(float(y_str)))
-                    debug(4, f"POSITION={self.event.position}")
+                    debug(5, f"POSITION={self.event.position}")
                     event_end  = True # No more lines need to be parsed for non-raw event
 
                 elif line.startswith("valuators:"):  # End for Touch events
@@ -2092,7 +2106,8 @@ def process_MOTION(ev: XInputEventFilled) -> None:
     debug(2, f"=MOTION {ev.sprint()}")
     with _registry_lock:
         group = ContactGroup.last_group_added(ev.device_id)
-        if group and ev.detail in group.current_pressed:  # Only update if 'detail' is currently pressed in the group (i.e, between presses and releases)
+        if group and not group.is_complete and (ev.xevent in MOUSE_MOTION_EVENTS or ev.detail in group.current_pressed):
+            # Only update if mouse motion or 'detail' is currently pressed in the group (i.e, between presses and releases)
             group.add_event(ev.detail, ev.time, ev.position, ContactState.MOTION)
             debug(4, group.sprint())
 
@@ -2113,7 +2128,7 @@ def main() -> None:
         elif event.is_release:
             process_RELEASE(event)
 
-        # MOTION/TouchUpdate Event (JJKCRAP: NOT TESTED YET)
+        # MOTION/TouchUpdate Event
         elif event.is_motion:
         # Note: need to use RawMotion since no Motion updates when button clicked
             process_MOTION(event)

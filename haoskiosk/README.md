@@ -206,7 +206,8 @@ E.g., `sudo docker exec -it addon_haoskiosk bash`
 
 Editable list of JSON-like key-value pairs where the key represents a
 (valid) *gesture string* and the value is a structured set of one or more
-*action* commands. See section "GESTURE COMMANDS" below for more details.
+*action* commands. See section "GESTURE COMMANDS" below for more details,
+examples, and default gestures.
 
 ## REST APIs
 
@@ -503,6 +504,47 @@ Notes:
      `"timeout":` where the value of `"cmds":` is of form 1 or 2 e.g.,
      `{"cmds": "ls -al", "msg": "list all files", "timeout": 1}` e.g.,
      `{"cmds": ["echo hello", ["ls" "-al"]], "msg": "echo hello and list all files"}`
+
+#### Defaults & Examples
+
+The following gestures are included by default (but can be removed by
+clicking on the `X` next to them):
+
+- **Left Triple Mouse Click**: *Toggle on-screen keyboard*
+
+```
+"[Left]-MOUSE_3-CLICK":    {"cmds": [["dbus-send", "--type=method_call", "--dest=org.onboard.Onboard", "/org/onboard/Onboard/Keyboard", "org.onboard.Onboard.Keyboard.ToggleVisible"]], "msg": "Toggling Onboard keyboard..."}
+```
+
+- **3-Finger Single Tap**: *Toggle on-screen keyboard*
+
+```
+"3-TOUCH_1-TAP":      {"cmds": [["dbus-send", "--type=method_call", "--dest=org.onboard.Onboard", "/org/onboard/Onboard/Keyboard", "org.onboard.Onboard.Keyboard.ToggleVisible"]], "msg": "Toggling Onboard keyboard..."}
+```
+
+- **Single Tap or Click in Topmost Corner**: *Toggle on-screen keyboard*
+
+```
+"1-ANY_1-CORNER_TOP": {"cmds": [["dbus-send", "--type=method_call", "--dest=org.onboard.Onboard", "/org/onboard/Onboard/Keyboard", "org.onboard.Onboard.Keyboard.ToggleVisible"]], "msg": "Toggling Onboard keyboard..."}
+```
+
+- **4-Finger Single Tap**: *Refresh screen*
+
+```
+"4-TOUCH_1-TAP": {"cmds": [["xdotool", "key", "--clearmodifiers ctrl+r"]], "msg": "Refresh Browser"}
+```
+
+- **3-Finger Right Swipe**: *Go back one element in browser history*
+
+```
+"3-TOUCH_1-SWIPE_LEFT": {"cmds": [["xdotool", "key", "--clearmodifiers", "ctrl+Right"]], "msg": "Go forward in the history browser"}
+```
+
+- **3-Finger Left Swipe**: *Go forward one element in browser history*
+
+```
+"3-TOUCH_1-SWIPE_RIGHT": {"cmds": [["xdotool", "key", "--clearmodifiers", "ctrl+Left"]], "msg": "Go back in the history browser"}
+```
 
 ## MISCELLANEOUS NOTES
 
