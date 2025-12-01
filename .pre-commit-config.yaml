@@ -61,7 +61,7 @@ repos:
     hooks:
       - id: jjk-sync-readme
         name: JJK Sync README Files
-        entry: python scripts/jjk-sync-readme.py
+        entry: python jjk-sync-readme.py
         language: system
         files: jjk-sync-readme-files\.yml
         pass_filenames: false
