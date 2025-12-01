@@ -5,9 +5,10 @@
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
+    exclude: ^haoskiosk/gesture_commands\.json$
     hooks:
       - id: check-json
-        exclude: (^|/)gesture_commands\.json$    # JJK: Exclude this file
+        exclude: (^haoskiosk/gesture_commands\.json$    # JJK: Exclude this file
 	args: [--allow-empty]                    # JJK: Allow empty files
       - id: check-yaml
       - id: end-of-file-fixer
