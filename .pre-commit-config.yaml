@@ -54,3 +54,15 @@ repos:
     rev: v0.10.0.1
     hooks:
       - id: shellcheck
+
+#JJK: Added below:
+repos:
+  - repo: local
+    hooks:
+      - id: jjk-sync-readme
+        name: JJK Sync README Files
+        entry: python scripts/jjk-sync-readme.py
+        language: system
+        files: jjk-sync-readme-files\.yml
+        pass_filenames: false
+        always_run: true
