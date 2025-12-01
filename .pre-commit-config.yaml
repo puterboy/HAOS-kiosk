@@ -56,13 +56,15 @@ repos:
       - id: shellcheck
 
 #JJK: Added below:
+# .pre-commit-config.yaml
 repos:
   - repo: local
     hooks:
-      - id: jjk-sync-readme
-        name: JJK Sync README Files
-        entry: python jjk-sync-readme.py
+      - id: sync-readme-jjk
+        name: Sync README files (JJK)
+        entry: gh workflow run "Sync README Files (JJK)" --repo ${{ github.repository }}
         language: system
-        files: jjk-sync-readme-files\.yml
         pass_filenames: false
         always_run: true
+        stages: [pre-push, manual]          # or [pre-commit] if you prefer it earlier
+        require_serial: true
