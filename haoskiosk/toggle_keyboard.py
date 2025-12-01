@@ -1,9 +1,9 @@
 ################################################################################
 # Add-on: HAOS Kiosk Display (haoskiosk)
 # File: toggle_keyboard.py
-# Version: 1.1.1
+# Version: 1.2.0
 # Copyright Jeff Kosowsky
-# Date: September 2025
+# Date: December 2025
 #
 # Creates a 1x1 pixel button at top right corner of screen to toggle onboard
 # keyboard on/off.

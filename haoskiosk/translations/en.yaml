@@ -88,6 +88,11 @@ configuration:
     items:
       append: "Append"
       replace: "Replace"
+  rest_ip:
+    name: "REST IP address"
+    description: |
+      Listening IP address for REST API server [Default: `127.0.0.1`]
+      CAUTION: Set to `0.0.0.0` to listen from anywhere BUT SECURITY RISK.
   rest_port:
     name: "REST Port"
     description: |
@@ -96,6 +101,8 @@ configuration:
     name: "REST Authorization Token"
     description: |
       Optional authorization token for REST API. [Default: ""]
+      If set add the line `-H "Authorization: Bearer <REST_BEARER_TOKEN>"`
+      to your REST API calls.
   allow_user_commands:
     name: "Allow User Commands"
     description: |
@@ -106,3 +113,8 @@ configuration:
     description: |
       Launch X and Openbox but not Luakit browser. [Default: False]
       Manually access using: sudo docker -exec -it addon_haoskiosk bash
+  gestures:
+    name: Gesture Command List
+    description: |
+      Add JSON-like gesture string key and gesture command value pairs. See
+      README for formatting Earlier keys take precedence over later keys

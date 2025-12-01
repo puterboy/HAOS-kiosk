@@ -1,5 +1,22 @@
 # Changelog
 
+## v1.2.0 - November 2025
+
+- Wrote complete Python 'xinput2' parser to detect broad range of mouse and
+  touch gestures and execute gesture-specific commands. Replaces prior very
+  limited tkinter implementation. See 'mouse_touch_inputs.py' and
+  'gesture_commmands.json'
+- Added corresponding 'gestures' list option to config.yaml
+- Changed default onscreen_keyboard to 'true'
+- Added 'Option "GrabDevice" "true"' to keyboard InputClass section in
+  xorg.conf to prevent type-through to console on built-in keyboards (e.g.,
+  i8042)
+- Added mouse buttons (left/right/middle/drag) to default Onboard keyboard
+  layout
+- Refactored and rewrote `rest_server.py`
+- Added `REST_IP` to options to allow users to set the listening IP address
+- README edits
+
 ## v1.1.1 - September 2025
 
 - Auto-detect drm video card used and set 'kmsdev' accordingly in xorg.conf

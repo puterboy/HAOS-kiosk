@@ -3,7 +3,7 @@ name: "HAOS Kiosk Display"
 description: |
   Start X server and browser on local HAOS server and display dashboards in
   kiosk mode (Jeff Kosowsky)
-version: "1.1.1"
+version: "1.2.0"
 slug: "haoskiosk"
 
 arch:
@@ -72,14 +72,22 @@ options:
   map_touch_inputs: true
   keyboard_layout: us
   cursor_timeout: 5
-  onscreen_keyboard: false
+  onscreen_keyboard: true
   save_onscreen_config: true
   xorg_conf: ""
   xorg_append_replace: "append"
   allow_user_commands: false
+  rest_ip: "127.0.0.1"
   rest_port: 8080
   rest_bearer_token: ""
   debug_mode: false
+  gestures:
+    - '"[Left]-MOUSE_3-CLICK":    {"cmds": [[ "dbus-send", "--type=method_call", "--dest=org.onboard.Onboard", "/org/onboard/Onboard/Keyboard", "org.onboard.Onboard.Keyboard.ToggleVisible" ]], "msg": "Toggling Onboard keyboard..."}'
+    - '"3-TOUCH_1-TAP":      {"cmds": [[ "dbus-send", "--type=method_call", "--dest=org.onboard.Onboard", "/org/onboard/Onboard/Keyboard", "org.onboard.Onboard.Keyboard.ToggleVisible" ]], "msg": "Toggling Onboard keyboard..."}'
+    - '"1-ANY_1-CORNER_TOP": {"cmds": [[ "dbus-send", "--type=method_call", "--dest=org.onboard.Onboard", "/org/onboard/Onboard/Keyboard", "org.onboard.Onboard.Keyboard.ToggleVisible" ]], "msg": "Toggling Onboard keyboard..."}'
+    - '"4-TOUCH_1-TAP": {"cmds": [["xdotool", "key", "--clearmodifiers ctrl+r", "msg": "Refresh Browser"}'
+    - '"3-TOUCH_1-SWIPE_LEFT": {"cmds": [["xdotool", "key", "--clearmodifiers", "ctrl+Left"]], "msg": "Go back in the history browser"}'
+    - '"3-TOUCH_1-SWIPE_RIGHT": {"cmds": [["xdotool", "key", "--clearmodifiers", "ctrl+Right"]], "msg": "Go forward in the history browser"}'
 
 schema:
   ha_username: str
@@ -101,10 +109,13 @@ schema:
   save_onscreen_config: bool
   xorg_conf: str?
   xorg_append_replace: list(append|replace)
+  rest_ip: str
   rest_port: int(1024,49151)
   rest_bearer_token: password
   allow_user_commands: bool
   debug_mode: bool
+  gestures:
+    - str
 
 translations:
   - en

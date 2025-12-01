@@ -1,9 +1,9 @@
 ################################################################################
 # Add-on: HAOS Kiosk Display (haoskiosk)
 # File: Dockerfile
-# Version: 1.1.1
+# Version: 1.2.0
 # Copyright Jeff Kosowsky
-# Date: September 2025
+# Date: December 2025
 ################################################################################
 
 ARG BUILD_FROM
@@ -38,7 +38,7 @@ RUN apk update && apk add --no-cache \
 #    xfce4-session \
     onboard \
     py3-pip \
-    python3-tkinter \
+    py3-xlib \
     patch \
     bash \
     && apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/v3.21/community luakit=2.3.6-r0 \
@@ -55,7 +55,8 @@ COPY translations/*.yaml /translations/
 COPY run.sh /
 RUN chmod a+x /run.sh
 
-COPY toggle_keyboard.py rest_server.py /
+COPY mouse_touch_inputs.py gesture_commands.json /
+COPY rest_server.py /
 RUN pip install --no-cache-dir  --break-system-packages aiohttp #Required for rest_server.py
 
 # Need to patch 'unique_instance.lua' so that new instance urls overwrite active url rather than add new tab

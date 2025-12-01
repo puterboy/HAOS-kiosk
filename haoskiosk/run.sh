@@ -1,12 +1,12 @@
 #!/usr/bin/with-contenv bashio
 # shellcheck shell=bash
-VERSION="1.1.1"
+VERSION="1.2.0"
 ################################################################################
 # Add-on: HAOS Kiosk Display (haoskiosk)
 # File: run.sh
-# Version: 1.1.1
+# Version: 1.2.0
 # Copyright Jeff Kosowsky
-# Date: September 2025
+# Date: December 2025
 #
 #  Code does the following:
 #     - Import and sanity-check the following variables from HA/config.yaml
@@ -30,6 +30,7 @@ VERSION="1.1.1"
 #         XORG_CONF
 #         XORG_APPEND_REPLACE
 #         REST_PORT
+#         REST_IP
 #         REST_BEARER_TOKEN
 #         ALLOW_USER_COMMANDS
 #         DEBUG_MODE
@@ -51,8 +52,8 @@ VERSION="1.1.1"
 #       [If not in DEBUG_MODE; Otherwise, just sleep]
 #
 ################################################################################
-echo "." #Almost blank line (Note totally blank or white space lines are swallowed)
-printf '%*s\n' 80 '' | tr ' ' '#' #Separator
+echo "."  # Almost blank line (Note totally blank or white space lines are swallowed)
+printf '%*s\n' 80 '' | tr ' ' '#'  # Separator
 bashio::log.info "######## Starting HAOSKiosk ########"
 bashio::log.info "$(date) [Version: $VERSION]"
 bashio::log.info "$(uname -a)"
@@ -60,7 +61,7 @@ ha_info=$(bashio::info)
 bashio::log.info "Core=$(echo "$ha_info" | jq -r '.homeassistant')  HAOS=$(echo "$ha_info" | jq -r '.hassos')  MACHINE=$(echo "$ha_info" | jq -r '.machine')  ARCH=$(echo "$ha_info" | jq -r '.arch')"
 
 #### Clean up on exit:
-TTY0_DELETED="" #Need to set to empty string since runs with nounset=on (like set -u)
+TTY0_DELETED=""  #Need to set to empty string since runs with nounset=on (like set -u)
 ONBOARD_CONFIG_FILE="/config/onboard-settings.dconf"
 cleanup() {
     local exit_code=$?
@@ -85,7 +86,7 @@ load_config_var() {
 
     local VALUE
     #Check if $VAR_NAME exists before getting its value since 'set +x' mode
-    if declare -p "$VAR_NAME" >/dev/null 2>&1; then #Variable exist, get its value
+    if declare -p "$VAR_NAME" >/dev/null 2>&1; then  #Variable exist, get its value
         VALUE="${!VAR_NAME}"
     elif bashio::config.exists "${VAR_NAME,,}"; then
         VALUE="$(bashio::config "${VAR_NAME,,}")"
@@ -110,28 +111,29 @@ load_config_var() {
 }
 
 load_config_var HA_USERNAME
-load_config_var HA_PASSWORD "" 1 #Mask password in log
+load_config_var HA_PASSWORD "" 1  #Mask password in log
 load_config_var HA_URL "http://localhost:8123"
 load_config_var HA_DASHBOARD ""
 load_config_var LOGIN_DELAY 1.0
 load_config_var ZOOM_LEVEL 100
 load_config_var BROWSER_REFRESH 600
-load_config_var SCREEN_TIMEOUT 600 # Default to 600 seconds
-load_config_var OUTPUT_NUMBER 1 # Which *CONNECTED* Physical video output to use (Defaults to 1)
+load_config_var SCREEN_TIMEOUT 600  # Default to 600 seconds
+load_config_var OUTPUT_NUMBER 1  # Which *CONNECTED* Physical video output to use (Defaults to 1)
 #NOTE: By only considering *CONNECTED* output, this maximizes the chance of finding an output
 #      without any need to change configs. Set to 1, unless you have multiple video outputs connected.
 load_config_var DARK_MODE true
 load_config_var HA_SIDEBAR "none"
 load_config_var ROTATE_DISPLAY normal
 load_config_var MAP_TOUCH_INPUTS true
-load_config_var CURSOR_TIMEOUT 5 #Default to 5 seconds
+load_config_var CURSOR_TIMEOUT 5  # Default to 5 seconds
 load_config_var KEYBOARD_LAYOUT us
 load_config_var ONSCREEN_KEYBOARD false
 load_config_var SAVE_ONSCREEN_CONFIG true
 load_config_var XORG_CONF ""
 load_config_var XORG_APPEND_REPLACE append
 load_config_var REST_PORT 8080
-load_config_var REST_BEARER_TOKEN "" 1 #Mask token in log
+load_config_var REST_IP "127.0.0.1"
+load_config_var REST_BEARER_TOKEN "" 1  # Mask token in log
 load_config_var ALLOW_USER_COMMANDS false
 [ "$ALLOW_USER_COMMANDS" = "true" ] && bashio::log.warning "WARNING: 'allow_user_commands' set to 'true'"
 load_config_var DEBUG_MODE false
@@ -158,7 +160,7 @@ if [ -z "$DBUS_SESSION_BUS_ADDRESS" ]; then
 fi
 bashio::log.info "DBus started with: DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS"
 export DBUS_SESSION_BUS_ADDRESS
-#Make available to subsequent shells
+# Make available to subsequent shells
 echo "export DBUS_SESSION_BUS_ADDRESS='$DBUS_SESSION_BUS_ADDRESS'" >> "$HOME/.profile"
 
 #### Hack to get writable /dev/tty0 for X
@@ -195,7 +197,7 @@ fi
 # Force tagging of event input devices (in /dev/input) to enable recognition by
 # libinput since 'udev' doesn't necessarily trigger their tagging when run from a container.
 echo "/dev/input event devices:"
-for dev in $(find /dev/input/event* | sort -V); do # Loop through all input devices
+for dev in $(find /dev/input/event* | sort -V); do  # Loop through all input devices
     devpath_output=$(udevadm info --query=path --name="$dev" 2>/dev/null; echo -n $?)
     return_status=${devpath_output##*$'\n'}
     [ "$return_status" -eq 0 ] || { echo "  $dev: Failed to get device path"; continue; }
@@ -206,7 +208,7 @@ for dev in $(find /dev/input/event* | sort -V); do # Loop through all input devi
     udevadm test "$devpath" >/dev/null 2>&1 || echo "$dev: No valid udev rule found..."
 done
 
-udevadm settle --timeout=10 #Wait for udev event processing to complete
+udevadm settle --timeout=10  #Wait for udev event processing to complete
 
 # Show discovered libinput devices
 echo "libinput list-devices found:"
@@ -230,7 +232,7 @@ for status_path in /sys/class/drm/card[0-9]*-*/status; do
     card=${card_port%%-*}
     driver=$(basename "$(readlink "/sys/class/drm/$card/device/driver")")
     if [ -z "$selected_card" ]  && [ "$status" = "connected" ]; then
-        selected_card="$card" # Select first connected card
+        selected_card="$card"  # Select first connected card
         printf "  *"
     else
         printf "   "
@@ -243,7 +245,7 @@ if [ -z "$selected_card" ]; then
 fi
 
 #### Start Xorg in the background
-rm -rf /tmp/.X*-lock #Cleanup old versions
+rm -rf /tmp/.X*-lock  #Cleanup old versions
 
 # Modify 'xorg.conf' as appropriate
 if [[ -n "$XORG_CONF" && "${XORG_APPEND_REPLACE}" = "replace" ]]; then
@@ -263,15 +265,15 @@ else
 fi
 
 # Print out current 'xorg.conf'
-echo "." #Almost blank line (Note totally blank or white space lines are swallowed)
-printf '%*s xorg.conf %*s\n' 35 '' 34 '' | tr ' ' '#' #Header
+echo "."  #Almost blank line (Note totally blank or white space lines are swallowed)
+printf '%*s xorg.conf %*s\n' 35 '' 34 '' | tr ' ' '#'  #Header
 cat /etc/X11/xorg.conf
-printf '%*s\n' 80 '' | tr ' ' '#' #Trailer
+printf '%*s\n' 80 '' | tr ' ' '#'  #Trailer
 echo "."
 
 bashio::log.info "Starting X on DISPLAY=$DISPLAY..."
 NOCURSOR=""
-[ "$CURSOR_TIMEOUT" -lt 0 ] && NOCURSOR="-nocursor" #No cursor if <0
+[ "$CURSOR_TIMEOUT" -lt 0 ] && NOCURSOR="-nocursor"  #No cursor if <0
 Xorg $NOCURSOR </dev/null &
 
 XSTARTUP=30
@@ -310,7 +312,7 @@ if [ "$CURSOR_TIMEOUT" -gt 0 ]; then
 fi
 
 #### Start Window manager in the background
-WINMGR=Openbox #Openbox window manager
+WINMGR=Openbox  #Openbox window manager
 openbox &
 
 #WINMGR=xfwm4  #Alternately using xfwm4
@@ -319,14 +321,14 @@ openbox &
 
 O_PID=$!
 sleep 0.5  #Ensure window manager starts
-if ! kill -0 "$O_PID" 2>/dev/null; then #Checks if process alive
+if ! kill -0 "$O_PID" 2>/dev/null; then  #Checks if process alive
     bashio::log.error "Failed to start $WINMGR window  manager"
     exit 1
 fi
 bashio::log.info "$WINMGR window manager started successfully..."
 
 #### Configure screen timeout (Note: DPMS needs to be enabled/disabled *after* starting window manager)
-xset +dpms #Turn on DPMS
+xset +dpms  #Turn on DPMS
 xset s "$SCREEN_TIMEOUT"
 xset dpms "$SCREEN_TIMEOUT" "$SCREEN_TIMEOUT" "$SCREEN_TIMEOUT"
 if [ "$SCREEN_TIMEOUT" -eq 0 ]; then
@@ -341,7 +343,7 @@ fi
 readarray -t ALL_OUTPUTS < <(xrandr --query | awk '/^[[:space:]]*[A-Za-z0-9-]+/ {print $1}')
 bashio::log.info "All video outputs: ${ALL_OUTPUTS[*]}"
 
-readarray -t OUTPUTS < <(xrandr --query | awk '/ connected/ {print $1}') # Read in array of outputs
+readarray -t OUTPUTS < <(xrandr --query | awk '/ connected/ {print $1}')  # Read in array of outputs
 if [ ${#OUTPUTS[@]} -eq 0 ]; then
     bashio::log.info "ERROR: No connected outputs detected. Exiting.."
     exit 1
@@ -357,30 +359,30 @@ for i in "${!OUTPUTS[@]}"; do
     [ "$i" -eq "$((OUTPUT_NUMBER - 1))" ] && marker="*"
     bashio::log.info "  ${marker}[$((i + 1))] ${OUTPUTS[$i]}"
 done
-OUTPUT_NAME="${OUTPUTS[$((OUTPUT_NUMBER - 1))]}" #Subtract 1 since zero-based
+OUTPUT_NAME="${OUTPUTS[$((OUTPUT_NUMBER - 1))]}"  #Subtract 1 since zero-based
 
 # Configure the selected output and disable others
 for OUTPUT in "${OUTPUTS[@]}"; do
-    if [ "$OUTPUT" = "$OUTPUT_NAME" ]; then #Activate
+    if [ "$OUTPUT" = "$OUTPUT_NAME" ]; then  #Activate
         if [ "$ROTATE_DISPLAY" = normal ]; then
             xrandr --output "$OUTPUT_NAME" --primary --auto
         else
             xrandr --output "$OUTPUT_NAME" --primary --rotate "${ROTATE_DISPLAY}"
             bashio::log.info "Rotating $OUTPUT_NAME: ${ROTATE_DISPLAY}"
         fi
-    else # Set as inactive output
+    else  # Set as inactive output
         xrandr --output "$OUTPUT" --off
     fi
 done
 
-if [ "$MAP_TOUCH_INPUTS" = true ]; then #Map touch devices to physical output
-    while IFS= read -r id; do #Loop through all xinput devices
+if [ "$MAP_TOUCH_INPUTS" = true ]; then  #Map touch devices to physical output
+    while IFS= read -r id; do  #Loop through all xinput devices
         name=$(xinput list --name-only "$id" 2>/dev/null)
-        [[ "${name,,}" =~ (^|[^[:alnum:]_])(touch|touchscreen|stylus)([^[:alnum:]_]|$) ]] || continue #Not touch-like input
+        [[ "${name,,}" =~ (^|[^[:alnum:]_])(touch|touchscreen|stylus)([^[:alnum:]_]|$) ]] || continue  #Not touch-like input
         xinput_line=$(xinput list "$id" 2>/dev/null)
         [[ "$xinput_line" =~ \[(slave|master)[[:space:]]+keyboard[[:space:]]+\([0-9]+\)\] ]] && continue
         props="$(xinput list-props "$id" 2>/dev/null)"
-        [[ "$props" = *"Coordinate Transformation Matrix"* ]] ||  continue #No transformation matrix
+        [[ "$props" = *"Coordinate Transformation Matrix"* ]] ||  continue  #No transformation matrix
         xinput map-to-output "$id" "$OUTPUT_NAME" && RESULT="SUCCESS" || RESULT="FAILED"
         bashio::log.info "Mapping: input device [$id|$name] -->  $OUTPUT_NAME [$RESULT]"
 
@@ -391,7 +393,7 @@ fi
 setxkbmap "$KEYBOARD_LAYOUT"
 export LANG=$KEYBOARD_LAYOUT
 bashio::log.info "Setting keyboard layout and language to: $KEYBOARD_LAYOUT"
-setxkbmap -query  | sed 's/^/  /' #Log layout
+setxkbmap -query  | sed 's/^/  /'  #Log layout
 
 ### Get screen width & height for selected output
 read -r SCREEN_WIDTH SCREEN_HEIGHT < <(
@@ -408,11 +410,11 @@ fi
 #### Launch Onboard onscreen keyboard per configuration
 if [[ "$ONSCREEN_KEYBOARD" = true && -n "$SCREEN_WIDTH" && -n "$SCREEN_HEIGHT" ]]; then
     ### Define min/max dimensions for orientation-agnostic calculation
-    if (( SCREEN_WIDTH >= SCREEN_HEIGHT )); then #Landscape
+    if (( SCREEN_WIDTH >= SCREEN_HEIGHT )); then  #Landscape
         MAX_DIM=$SCREEN_WIDTH
         MIN_DIM=$SCREEN_HEIGHT
         ORIENTATION="landscape"
-    else #Portrait
+    else  #Portrait
         MAX_DIM=$SCREEN_HEIGHT
         MIN_DIM=$SCREEN_WIDTH
         ORIENTATION="portrait"
@@ -440,6 +442,7 @@ if [[ "$ONSCREEN_KEYBOARD" = true && -n "$SCREEN_WIDTH" && -n "$SCREEN_HEIGHT" ]
     dconf write /org/onboard/layout "'/usr/share/onboard/layouts/Small.onboard'"
     dconf write /org/onboard/theme "'/usr/share/onboard/themes/Blackboard.theme'"
     dconf write /org/onboard/theme-settings/color-scheme "'/usr/share/onboard/themes/Charcoal.colors'"
+    dconf write /org/onboard/keyboard/show-click-buttons true  # Show buttons on keyboard for left/middle/right click & drag
 
     # Behavior settings
     dconf write /org/onboard/auto-show/enabled true  # Auto-show
@@ -464,7 +467,7 @@ if [[ "$ONSCREEN_KEYBOARD" = true && -n "$SCREEN_WIDTH" && -n "$SCREEN_HEIGHT" ]
         if [ "$SAVE_ONSCREEN_CONFIG" = true ]; then
             bashio::log.info "Restoring Onboard configuration from '$ONBOARD_CONFIG_FILE'"
             dconf load /org/onboard/ < "$ONBOARD_CONFIG_FILE"
-        else #Otherwise delete config file (if it exists)
+        else  #Otherwise delete config file (if it exists)
             rm -f "$ONBOARD_CONFIG_FILE"
         fi
     fi
@@ -480,12 +483,15 @@ if [[ "$ONSCREEN_KEYBOARD" = true && -n "$SCREEN_WIDTH" && -n "$SCREEN_HEIGHT" ]
     ### Launch 'Onboard' keyboard
     bashio::log.info "Starting Onboard onscreen keyboard"
     onboard &
-    python3 /toggle_keyboard.py "$DARK_MODE" & #Creates 1x1 pixel at extreme top-right of screen to toggle keyboard visibility
 fi
+
+### Launch Xinput parsing...
+bashio::log.info "Starting Mouse & Touch input gesture command parsing..."
+python3 -u /mouse_touch_inputs.py -d 1 &
 
 #### Start  HAOSKiosk REST server
 bashio::log.info "Starting HAOSKiosk REST server..."
-python3 /rest_server.py &
+python3 -u /rest_server.py &
 
 #### Start browser (or debug mode)  and wait/sleep
 if [ "$DEBUG_MODE" != true ]; then
@@ -493,8 +499,8 @@ if [ "$DEBUG_MODE" != true ]; then
     bashio::log.info "Launching Luakit browser: $HA_URL/$HA_DASHBOARD"
     luakit "$HA_URL/$HA_DASHBOARD" &
     LUAKIT_PID=$!
-    wait "$LUAKIT_PID" #Wait for luakit to exit to allow for clean-up on termination
-else ### Debug mode
+    wait "$LUAKIT_PID"  #Wait for luakit to exit to allow for clean-up on termination
+else  ### Debug mode
     bashio::log.info "Entering debug mode (X & $WINMGR window manager but no luakit browser)..."
     exec sleep infinite
 fi

@@ -1,0 +1,107 @@
+# ==============================================================================
+# HAOS Kiosk Display — Mouse & Touch Input Engine
+# File: gesture_commands.json
+# Version: 1.2.0
+# Copyright Jeff Kosowsky
+# Date: December 2025
+# ------------------------------------------------------------------------------
+# USER CUSTOMIZABLE  GESTURES — loaded BEFORE built-in
+# defaults in CMD_DICTand thus have higher precedence since
+# commandsare matched in the order they have been added.
+# ------------------------------------------------------------------------------
+# Contents is a series of json key-value pairs separated by commas, where
+#  - Each Key is a Gesture String of form:
+#       N-[MOUSE|TOUCH|ANY]_M-[CLICKTAP|CLICK|TAP|DRAG|SWIPE|LONG|CORNER_TOP|ANY]
+#    where:
+#       N = The contact set during the gesture. Either:
+#         - Digit reprenting (maximum) number of contacts (buttons or fingers)- e.g.,  2
+#         - List of button names and/or numbers of specific buttons pressed (if a mouse) - e.g., [Left, Right] or [1, 3] or [Left, 3] etc.
+#         - 'A' (wildcard)
+#       M = Number of clicks/taps in the gesture (e.g., 1 for single-click, 2 for double-click etc) or 'A' (wildcard)
+#       ANY = Wildcard for any of the string entries (eg., for device type or gesture type)
+#
+#    Examples include:
+#       3-TOUCH_1-TAP
+#       2-TOUCH_2-SWIPE_RIGHT
+#       [Left,Right]-MOUSE_1-DRAG
+#       A-ANY_A-ANY          ← wildcard fallback
+#
+#    Notes:
+#       1. DRAG and SWIPE differ in velocity -- i.e., SWIPE is *faster*
+#       2. The gestures DRAG and SWIPE can also have the optional suffixes: _LEFT, _RIGHT, _UP, or _DOWN
+#       3. Conversely, DRAG and SWIPE serve as wildcard matches relative to their directional counterparts
+#       4. LONG can take the optional suffix _CLICK or _TAP
+#       5. CORNER_TOP activates when click or tap is in the extreme top-right corner of the scree
+#       6. DRAG, SWIPE, and LONG gestures (and their variants) are by definition only single-click
+#       7. Matching is case insensitive
+#       8. Entries are matched in order, so that you should always go from particular to more general when using wildcards
+#
+#  - Each Value is an Action Command which can be expressed in one of the following 3 forms:
+#    1. Single commmand string - e.g., "ls -a -l"
+#    2. List of one or more commands each of which is can be one of the following forms:
+#        - String form - e.g., ["echo hello"]
+#        - List of argv-style component string - e.g., ["ls", "-a", "-l"]
+#       Example: ["echo hello", ["ls", "-a", "-l"]]
+#    3. Dictionary with required key "cmds" and optional keys: "msg", "timeout"
+#        where the value of "cmds" is of form 1 or 2
+#        e.g., {"cmds": "ls -al", "msg": "list all files", "timeout": 1}
+#        e.g., {"cmds": ["echo hello", ["ls" "-al"]], "msg": "echo hello and list all files", "timeout": 5}
+#
+# Note enclosing top-level braces are optional and final entry can optionally
+# end with a comma.
+#
+# Note content following '#' is skipped.
+# If you want to include a '#' in a string, escape it with '\' (i.e. '\#')
+# ==============================================================================
+#{ #JJKCRAP
+"4-TOUCH_1-TAP": {"cmds": "xdotool key --clearmodifiers ctrl+r", "msg": "Refresh Browser"},
+
+"[RIGHT]-MOUSE_1-ANY": "xrandr --output HDMI-1 --gamma 1:1:.01",  # YELLOW #JJKCRAP
+
+"[RIGHT]-MOUSE_1-CLICK": "xrandr --output HDMI-1 --gamma 1:1:.01",  # YELLOW
+"[RIGHT]-MOUSE_2-CLICKTAP": [["xrandr", "--output", "HDMI-1", "--gamma", "1:.01:1"]],  # MAGENTA
+"[RIGHT]-MOUSE_3-CLICK": ["xrandr --output HDMI-1 --gamma .01:.01:.01", "sleep 1", "xrandr --output HDMI-1 --gamma 1:1:1"],  # Dark then Normal
+
+
+"[LEFT, RIGHT]-MOUSE_1-CLICKTAP": "xrandr --output HDMI-1 --gamma 1:.01:.01",   # RED
+"[LEFT, RIGHT]-MOUSE_2-CLICKTAP": {"cmds": "xrandr --output HDMI-1 --gamma .01:.01:1", "msg": "Turn BLUE", "timeout": 1},  # BLUE
+"[LEFT, RIGHT]-MOUSE_3-CLICKTAP": {"cmds": [["xrandr", "--output", "HDMI-1", "--gamma", "1:.01:01"], "sleep 1", ["xrandr", "--output", "HDMI-1", "--gamma", ".01:1:.01"]], "msg": "MAGENTA then GREEN", "timeout": 2}, 
+"[RIGHT]-MOUSE_2-CLICKTAP": "echo duplicate",  # YELLOW #JJKCRAP
+
+"3-TOUCH_1-SWIPE": "echo '3-touch 1-swipe'",
+"3-TOUCH_1-SWIPE_LEFT": [["echo", "hello \"girlfriend\""]],
+
+"4-TOUCH_1-DRAG": [
+    "notify-send 'Switch workspace left'",
+    "xdotool key ctrl+alt+Left"
+],
+
+"2-MOUSE_3-CLICK": {
+    "cmds": ["wmctrl -c :ACTIVE:"],
+    "msg": "Active \#window\# killed",  #Comment starts here
+    "timeout": 2
+},
+
+# Mouse wheel click = middle click paste
+"[Middle]-MOUSE_1-CLICK": "printf \"hello\n\"",
+
+### Invalid examples
+"4-TOUCH_1-CLICK": "echo hello",
+"2-MOUSE_1-LONG_TAP": "echo hello",
+"1-TOUCH_2-DRAG": "echo hello",
+"1-TOUCH_2-LONG": "echo hello2",
+"1-MOUSE_1-CLICK": "",
+"1-MOUSE_2-CLICK": " ",
+"1-MOUSE_3-CLICK": [],
+"1-MOUSE_4-CLICK": ["ls -al", ""],
+"1-MOUSE_5-CLICK": {"cmds": [["ls", "-al"], "echo hello"], "msg": "hi there", "other": "bye"},
+"1-MOUSE_5-CLICK": ["ls -al", ["", "hello"]],
+"1-MOUSE_7-CLICK": ["ls -al", ["echo", ""]],  #Valid
+
+
+#"4-Any_3-CLICK":  "echo hello",
+#"1-Any_A-any": [[["echo hello"]]],
+
+"1-MOUSE_2-CORNER_TOP": "echo 'testing stdout'; echo 'testing stderr' > /dev/stderr"
+#} #JJKCRAP
+
