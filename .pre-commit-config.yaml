@@ -56,3 +56,12 @@ repos:
       - id: shellcheck
 
 #JJK: Added below:
+  - repo: local
+    hooks:
+      - id: sync-readme-jjk
+        name: Sync README files (JJK)
+        entry: /usr/bin//gh workflow run "Sync README Files (JJK)"
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push, commit]          # or [pre-commit] if you prefer it earlier

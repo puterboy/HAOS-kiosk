@@ -1,9 +1,9 @@
 --[[
 Add-on: HAOS Kiosk Display (haoskiosk)
 File: userconf.lua for HA minimal browser run on server
-Version: 1.1.1
+Version: 1.2.0
 Copyright Jeff Kosowsky
-Date: September 2025
+Date: December 2025
 
 Code does the following:
     - Sets browser window to fullscreen
@@ -13,6 +13,7 @@ Code does the following:
     - Redefines key to return to normal mode (used for commands) from 'passthrough' mode to: 'Ctl-Alt-Esc'
       (rather than just 'Esc') to prevent unintended  returns to normal mode and activation of unwanted commands
     - Adds <Control-r> binding to reload browser screen (all modes)
+    - Adds <Control-Left> and <Control-Right> bindings, to move backwards and forwards respectively in the browser history
     - Prevent printing of '--PASS THROUGH--' status line when in 'passthrough' mode
     - Set up periodic browser refresh every $BROWSWER_REFRESH seconds (disabled if 0)
       NOTE: this is important since console messages overwrite dashboards
@@ -278,7 +279,9 @@ modes.add_binds("passthrough", {
 )
 -- Add <Control-r> binding in all modes to reload page
 modes.add_binds("all", {
-    { "<Control-r>", "reload page", function (w) w:reload() end },
+    { "<Control-r>", "Reload page", function(w) w:reload() end },
+    { "<Control-Left>", "Go back in the browser history", function(w, m) w:back(m.count) end },
+    { "<Control-Right>", "Go forward in the browser history", function(w, m) w:forward(m.count) end },
     })
 
 -- Clear the command line when entering passthrough instead of typing '-- PASS THROUGH --'

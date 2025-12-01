@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 #-------------------------------------------------------------------------------
 # pylint: disable=line-too-long
 # pylint: disable=invalid-name
@@ -19,7 +18,7 @@
 #
 #### DESCRIPTION:
    Full-featured X11 parser and command launcher for multi-button press and
-   multi-finger touch gestures. 
+   multi-finger touch gestures.
 
    Commands can then be assigned to a broad range of mouse and touch gestures,
    including multi-button/multi-finger: Click/Tap, Drag, Swipe, Long
@@ -33,7 +32,7 @@
    0: Only errors and action messages
    1: + Printout command gesture dictionary + log gestures and action commands for assigned commands
    2: + Input actions (press/release/motion) + xinput device headers + gesture command loading + execution output
-   3: + State info (click_dict, finger state) + double-press timeout + sreen dimension + missing gesture commands
+   3: + State info (click_dict, finger state) + double-press timeout + screen dimension + missing gesture commands
    4: + Key lines from xinput event stanza + contact group data+ GESTURE_NAME_TO_TYPE, DEVICE_TYPE_PATTERN and GESTURE_NAMES_PATTERN  lists
    5: + RAW data for CLICK_EVENTS
    6: + RAW data for PARSED_EVENTS
@@ -43,7 +42,7 @@
   -6: + RAW data for PARSED_EVENTS
   -7: + RAW data for all xinput X11 events
 
-#### Key Data Structures 
+#### Key Data Structures
 
 ### EventRecord: (Tuple alias)
 
@@ -96,13 +95,13 @@ Said another way, Drag, Swipe and Long gestures consist of a single group while
 N-Click/Tap or N-Corner_Top consists of exactly N groups.
 
 ### DeviceSpec (class)
-#   Associated structures: 
+#   Associated structures:
        DeviceType (enum): MOUSE, TOUCH, DEFAULT, UNKNOWN, ANY
        GestureType (enum): CLICKTAP, LONG, SWIPE, DRAG, CORNER_TOP,
                            SWIPE_[LEFT|RIGHT|UP|DOWN], DRAG_[LEFT|RIGHT|UP|DOWN],
                            UNKNOWN, ANY,
            NOTE: A DRAG differs from a SWIPE in that it is slower (less than
-           swipe velocity threshhold)
+           swipe velocity threshold)
 
 
 
@@ -115,7 +114,7 @@ list of supported gestures to be classified as multi-click
 ### GestureCommand (class)
 #   Associated structures:
        CommandsType (TypeAlias): A single shell command represented either as:
-         - Single commmand string (e.g., "ls -a -l")
+         - Single command string (e.g., "ls -a -l")
          - List of one or more commands in either of the 2 forms
            - String form  (e.g., "ls -a -l")
            - List of argv-style component string (e.g., ["ls", "-a", "-l"])
@@ -134,10 +133,10 @@ list of supported gestures to be classified as multi-click
        GESTURE_COMMANDS_LIST: List of GestureCommands loaded from:
            - CMDS_FILE_LIST: List of one or more external files.
                The contents of each file are either:
-                 1. JSON dictionary of <gesture string>: <CommandsUnion> 
+                 1. JSON dictionary of <gesture string>: <CommandsUnion>
                     pairs, separated by commas
                  2. Same as #1 but without enclosing starting and ending braces
-                 3. JSON dictionary with at least one key called "gestures" 
+                 3. JSON dictionary with at least one key called "gestures"
                     whose value is a dictionary of form #1 (Used in HA add-ons)
            - DEFAULT_COMMANDS_DICT: Internal list of user-defined GestureCommands
           NOTE: Earlier entries loaded *override* later entries
@@ -160,7 +159,7 @@ where:
     - CONTACTS: Represents the buttons/fingers used in the gesture.
       Either:
         - Number of buttons pressed or fingers tapped for the gesture
-        - List of button names or numbers tapped 
+        - List of button names or numbers tapped
           (mouse only since touch can't identify individual fingers)
         - 'A' (wild card i.e,. finger(s)/button(s))
     - DEVICE_TYPE: MOUSE, TOUCH or  "ANY" (wildcard) or the friendly
@@ -170,7 +169,7 @@ where:
       or if DEVICE_TYPE is not "ANY", the friendly name of the gesture
       (as defined in its DeviceSpec or GestureType)
       If DEVICE_TYPE is not "ANY" then validation is done to check that
-      the device suppports the given gesture and number of contacts.
+      the device supports the given gesture and number of contacts.
 
 Matching is case-insensitive.
 
@@ -184,7 +183,7 @@ The format is equivalently:
             - Positive integer
             - List of mouse button names or numbers, e.g.,
                 [1, 2, 3] or [Left, Right] or [1, Middle, Right] or [Left]
-           
+
 Example gesture strings include:
     1-Mouse_3-Click
     [Left, Right]-MOUSE_3-CLICKTAP
@@ -224,7 +223,7 @@ buttons/fingers pressed) or a new group is started for the device.
 If PARSED_EVENTS includes MOTION_EVENTS, then each motion event between press
 and release is added to the current incomplete group for the device. I.e.,
 motion is only (optionally) recorded between individual button or finger presses
-and releaes.
+and releases.
 
 After each release-type event, the event is added to its corresponding already
 created group. If the group then becomes complete (all contacts released), then
@@ -312,7 +311,7 @@ __copyright__ = "Copyright 2025 Jeff Kosowsky"
 # Restart delay
 XINPUT_RESTART_DELAY: int     = 5    # Seconds before restarting xinput after crash
 CMD_TIMEOUT: int | None       = 30   # Seconds before spawned action command timesout or None if no timeout
-GESTURE_CMDS_FILES: list[str] = []   # Use this (if present) unless overriden by input argument
+GESTURE_CMDS_FILES: list[str] = []   # Use this (if present) unless overridden by input argument
 GESTURE_CMDS_FILES            = ["/data/options.json", "gesture_commands.json"]
 
 def initialize() -> None:
@@ -684,7 +683,7 @@ class DeviceSpec:
     SCREEN_DIM: ClassVar[tuple[int, int ] | None] = None # Don't use ClassVar as it makes them "unsubscriptable" (e.g., can do SCREEN_DIM[0])
     @classmethod
     def init_screen_dim(cls) -> None:
-        """Initilizes SCREEN_DIM class variable"""
+        """Initializes SCREEN_DIM class variable"""
         d = None
         try:
             d = display.Display()
@@ -761,7 +760,7 @@ class DeviceSpec:
 
 class DeviceType(EnumNameMixin, Enum):
     """
-    DeviceSpecs for different ypes of input devices
+    DeviceSpecs for different types of input devices
     Non-gesture attributes are inherited from DEFAULT when using 'get' method
     """
 
@@ -831,7 +830,7 @@ DeviceSpec.init_screen_dim()  # Set screen dimension
 ## Commands Type Alias
 CommandsType: TypeAlias = str | list[str | list[str]]
 # CommandsType can be:
-#    - Single commmand string (e.g., "ls -a -l")
+#    - Single command string (e.g., "ls -a -l")
 #    - List of one or more commands in either of the 2 forms
 #        - String form  (e.g., "ls -a -l")
 #        - List of argv-style component string (e.g., ["ls", "-a", "-l"])
@@ -1004,7 +1003,7 @@ class GestureCommand:
     def sprint_gesture(self, button_names: bool = True) -> str:
         """
         Return canonical string representation of gesture type.
-        Tranlate button numbers to names if button_names is True (default)
+        Translate button numbers to names if button_names is True (default)
         Examples:
             [Left]-MOUSE_3-CLICKTAP
             [Left,Right]-MOUSE_3-CLICKTAP
@@ -1068,7 +1067,7 @@ class GestureCommand:
 
     def lookup(self) -> GestureCommand | None:
         """
-        Find the first enty in GESTURE_CMDS_LIST (ordered the same as <external command file> + COMMANDS_DICT)
+        Find the first entity in GESTURE_CMDS_LIST (ordered the same as <external command file> + COMMANDS_DICT)
         that matches the given GestureCommand, including wildcards
         """
 
@@ -1079,8 +1078,8 @@ class GestureCommand:
 
     def append_gesture_command_list(self, add_overridden: bool = False) -> GestureCommand | None:
         """
-        Append new gesture_command to end of GESTURE_CMDS_LIST if not overridden by 
-        prior same or more general gesture or if add_overridden is True. 
+        Append new gesture_command to end of GESTURE_CMDS_LIST if not overridden by
+        prior same or more general gesture or if add_overridden is True.
         Returns first prior overriding gesture if one exist otherwise None.
         """
         prior_match = self.lookup()
@@ -1277,8 +1276,8 @@ class GestureCommand:
     def parse_and_load_dict(cls, commands_dict: dict[str, CommandsUnion], *, source: str = "default dictionary", dropped_keys: int = 0, add_overridden: bool = False) -> None:
         """
         Parse and append existing gesture command dictionary into GestureCommand instances
-        stored in GESTURE_CMDS_LIST list. Note: newer keys have lower precendence than older keys
-        Pass optional number of dropped duplicates (or other parsed erors) that were dropped and not parsed.
+        stored in GESTURE_CMDS_LIST list. Note: newer keys have lower precedence than older keys
+        Pass optional number of dropped duplicates (or other parsed errors) that were dropped and not parsed.
         """
         seen = 0
         added = 0
@@ -1293,7 +1292,7 @@ class GestureCommand:
         """
         Load external gesture command JSON-like file and append onto GESTURE_CMDS_LIST list.
         Each entry is a key-value pair of form:  <gesture_string>: <CommandsUnion>.
-        Note: newer keys have lower precendence than older keys
+        Note: newer keys have lower precedence than older keys
         Any text on line after '#' is treated as a comment
         Any single escaped '#' is double-escaped so valid JSON and not treated as comment
 
@@ -1586,7 +1585,7 @@ class ContactGroup(RegistryMixin):
 
     @property
     def duration(self) -> float:
-        """Return time betwen first press and last release in the group"""
+        """Return time between first press and last release in the group"""
         return self.end_time - self.start_time if self.end_time is not None else 0
 
     @property
@@ -2055,7 +2054,7 @@ def process_PRESS(ev: XInputEventFilled) -> None:
         debug(4, group.sprint(between_presses_string))
 
 def process_RELEASE(ev: XInputEventFilled) -> None:
-    """Add a new ButtonReleae/TouchEnd event to relavent group and attempt to closeout gesture sequence if group is complete (no more contacts)"""
+    """Add a new ButtonReleae/TouchEnd event to relevant group and attempt to closeout gesture sequence if group is complete (no more contacts)"""
     debug(2, f"-RELEASE {ev.sprint()}")
     with _registry_lock:
         group = ContactGroup.last_group_added(ev.device_id)
