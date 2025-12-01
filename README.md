@@ -513,13 +513,13 @@ clicking on the `X` next to them):
 - **Left Triple Mouse Click**: *Toggle on-screen keyboard*
 
 ```
-"[Left]-MOUSE_3-CLICK":    {"cmds": [["dbus-send", "--type=method_call", "--dest=org.onboard.Onboard", "/org/onboard/Onboard/Keyboard", "org.onboard.Onboard.Keyboard.ToggleVisible"]], "msg": "Toggling Onboard keyboard..."}
+"[Left]-MOUSE_3-CLICK": {"cmds": [["dbus-send", "--type=method_call", "--dest=org.onboard.Onboard", "/org/onboard/Onboard/Keyboard", "org.onboard.Onboard.Keyboard.ToggleVisible"]], "msg": "Toggling Onboard keyboard..."}
 ```
 
 - **3-Finger Single Tap**: *Toggle on-screen keyboard*
 
 ```
-"3-TOUCH_1-TAP":      {"cmds": [["dbus-send", "--type=method_call", "--dest=org.onboard.Onboard", "/org/onboard/Onboard/Keyboard", "org.onboard.Onboard.Keyboard.ToggleVisible"]], "msg": "Toggling Onboard keyboard..."}
+"3-TOUCH_1-TAP": {"cmds": [["dbus-send", "--type=method_call", "--dest=org.onboard.Onboard", "/org/onboard/Onboard/Keyboard", "org.onboard.Onboard.Keyboard.ToggleVisible"]], "msg": "Toggling Onboard keyboard..."}
 ```
 
 - **Single Tap or Click in Topmost Corner**: *Toggle on-screen keyboard*
