@@ -2,7 +2,7 @@
 
 Display HA dashboards in kiosk mode directly on your HAOS server.
 
-## Author: Jeff Kosowsky
+## Author: Jeff Kosowsky (version: 1.2.0"3-TOUCH_1-SWIPE_RIGHT": {"cmds": \[["xdotool", "key", "--clearmodifiers", "ctrl+Right"]\], "msg": "Go forward in the history browser"})
 
 ## Description
 
@@ -13,7 +13,10 @@ Supports touchscreens (including onscreen keyboard) and screen rotation.
 Includes REST API that can be used to control the display state and to send
 new URLs (e.g., dashboards) to the kiosk browser.
 
-You can press `ctl-R` at any time to refresh the browser.
+You can press `ctl-R` at any time to refresh ( reload) the browser./
+Alternatively, you can right click (or long press touchscreen) to access
+browser menu that includes options for page `Back`, `Forward`, `Stop`, and
+`Reload`.
 
 **NOTE:** You must enter your HA username and password in the
 *Configuration* tab for add-on to start.
@@ -146,7 +149,7 @@ within the `Return` key. You can also resize the keyboard by pressing and
 dragging along the keyboard edges.
 
 You can manually toggle keyboard visibility on/off by tapping extreme top
-right of screen.
+right of screen or triple-clicing.
 
 See https://github.com/dr-ni/onboard for more details
 
@@ -161,6 +164,16 @@ Append to or replace existing, default xorg.conf file.\
 Select 'Append' or 'Replace options.\
 To restore default, set to empty and select 'Append' option.
 
+### REST IP address
+
+IP address where the REST Server listens. (Default: 127.0.0.1) By default,
+for security it only accepts request from localhost -- meaning that REST
+commands must originate from the homeassistant localhost.
+
+If you want to accept requests from anywhere, then set to \`\`0.0.0.0\` BUT
+BE FOREWARNED that unless you set up and use a REST Bearker Token, this is
+a security vulnerability.
+
 ### REST Port
 
 Port used for the REST API. Must be between 1024 and 49151. (Default: 8080)
@@ -170,7 +183,7 @@ Note for security REST server only listens on localhost (127.0.0.1)
 ### REST Bearer Token
 
 Optional authorization token for REST API. (Default: "") If set, then add
-line `Authorization: Bearer <REST_BEARER_TOKEN>` to REST API calls.
+line `-H "Authorization: Bearer <REST_BEARER_TOKEN>"` to REST API calls.
 
 ### Allow User Commands
 
@@ -188,6 +201,12 @@ without launching `luakit`.\
 Manually, launch `luakit` (e.g.,
 `luakit -U localhost:8123/<your-dashboard>`) from Docker container.\
 E.g., `sudo docker exec -it addon_haoskiosk bash`
+
+### Gestures
+
+Editable list of JSON-like key-value pairs where the key represents a
+(valid) *gesture string* and the value is a structured set of one or more
+*action* commands. See section "GESTURE COMMANDS" below for more details.
 
 ## REST APIs
 
@@ -400,7 +419,8 @@ actions:
   - action: rest_command.haoskiosk_run_commands
     data:
       cmds:
-        - "<command1>"
+
+- "<command1>"
         - "<command2>"
         ...
       cmd_timeout: <seconds>
@@ -427,3 +447,68 @@ actions:
 
 2. Use custom command(s) to change internal parameters of HAOSKiosk and the
    luakit browser configuration.
+
+### GESTURE COMMANDS
+
+Each Gesture Command is a JSON-like key-value pair where the key is a valid
+*Gesture String* corresponding to a specific sequence of button clicks or
+finger taps and the value is an \*Action Command" containing a structured
+set of one or more commands to execute when the gesture is recognized.
+
+The formats of the Gesture Strings and Action Commands are precisely
+defined, so if they fail to load check your log for error messages.
+
+````
+- Each Gesture String key is of form:
+  ```
+  "N-[MOUSE|TOUCH|ANY]_M-[CLICKTAP|CLICK|TAP|DRAG|SWIPE|LONG|CORNER_TOP|ANY]":
+  ```
+ where:
+   `N` = The contact set during the gesture. Either:
+    - Digit representing (maximum) number of contacts (buttons or fingers) - e.g.,  2
+       - List of button names and/or numbers of specific buttons pressed (if a mouse) - e.g., [Left, Right] or [1, 3] or [Left, 3] etc.
+       - 'A' (wildcard)
+
+   `M` = Number of clicks/taps in the gesture (e.g., 1 for single-click, 2 for double-click etc) or 'A' (wildcard)
+   ANY = Wildcard for any of the string entries (eg., for device type or gesture type)
+
+Examples include:
+```
+   3-TOUCH_1-TAP
+   2-TOUCH_2-SWIPE_RIGHT
+   [Left,Right]-MOUSE_1-DRAG
+   A-ANY_A-ANY          ← wildcard fallback
+```
+
+Notes:
+   1. `DRAG` and SWIPE differ in velocity -- i.e., SWIPE is *faster*
+   2. The gestures DRAG and SWIPE can also have the optional suffixes: _LEFT, _RIGHT, _UP, or _DOWN
+   3. Conversely, DRAG and SWIPE serve as wildcard matches relative to their directional counterparts
+   4. LONG can take the optional suffix _CLICK or _TAP
+   5. CORNER_TOP activates when click or tap is in the extreme top-right corner of the scree
+   6. DRAG, SWIPE, and LONG gestures (and their variants) are by definition only single-click
+   7. Matching is case insensitive
+   8. Entries are matched in order, so that you should always go from particular to more general when using wildcards
+````
+
+- Each value is an *Action Command* which can be expressed in one of the
+  following 3 forms:
+  1. Single command string - e.g., `"ls -a -l"`
+  2. List of one or more commands each of which is can be one of the
+     following forms:
+     - String form - e.g., `["echo hello"]`
+     - List of argv-style component string - e.g., `["ls", "-a", "-l"]`
+       Example: `["echo hello", ["ls", "-a", "-l"]]`
+  3. Dictionary with required key `"cmds":` and optional keys: `"msg":`,
+     `"timeout":` where the value of `"cmds":` is of form 1 or 2 e.g.,
+     `{"cmds": "ls -al", "msg": "list all files", "timeout": 1}` e.g.,
+     `{"cmds": ["echo hello", ["ls" "-al"]], "msg": "echo hello and list all files"}`
+
+## MISCELLANEOUS NOTES
+
+- If screen is not working on an RPI3, try adding the following lines to
+  the `[pi3]` section of your `config.txt` on the boot partition:
+  ```
+  dtoverlay=vc4-fkms-v3d
+  max_framebuffers=2
+  ```
