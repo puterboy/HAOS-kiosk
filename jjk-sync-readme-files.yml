@@ -1,0 +1,110 @@
+name: Sync README Files (JJK)
+on: [push, pull_request]
+jobs:
+  sync-files:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Configure Git
+        run: |
+          git config --global core.autocrlf false
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+      - name: Sync README files
+        run: |
+          # Define git_sync_copies function
+          git_sync_copies() {
+            local FILE1="$1"
+            local FILE2="$2"
+            # Check if both files are missing
+            if [ ! -f "$FILE1" ] && [ ! -f "$FILE2" ]; then
+              echo "WARNING: Sync skipped: $FILE1 and $FILE2 both missing"
+              return 0
+            fi
+            # If FILE1 is missing, copy from FILE2
+            if [ ! -f "$FILE1" ]; then
+              echo "WARNING: Sync skipped: $FILE1 is missing, copying from $FILE2"
+              cp -av "$FILE2" "$FILE1" || { echo "ERROR: Sync failed: Failed to copy $FILE2 to $FILE1"; exit 1; }
+              git add "$FILE1" || { echo "ERROR: Sync failed: Failed to git add $FILE1"; exit 1; }
+              git commit -m "Copied $FILE2 to $FILE1" || { echo "ERROR: Sync failed: Failed to commit $FILE1"; exit 1; }
+              git push || { echo "ERROR: Sync failed: Failed to push $FILE1"; exit 1; }
+              echo "Sync successful: $FILE2 copied to missing $FILE1"
+              return 0
+            fi
+            # If FILE2 is missing, copy from FILE1
+            if [ ! -f "$FILE2" ]; then
+              echo "WARNING: Sync skipped: $FILE2 is missing, copying from $FILE1"
+              cp -av "$FILE1" "$FILE2" || { echo "ERROR: Sync failed: Failed to copy $FILE1 to $FILE2"; exit 1; }
+              git add "$FILE2" || { echo "ERROR: Sync failed: Failed to git add $FILE2"; exit 1; }
+              git commit -m "Copied $FILE1 to $FILE2" || { echo "ERROR: Sync failed: Failed to commit $FILE2"; exit 1; }
+              git push || { echo "ERROR: Sync failed: Failed to push $FILE2"; exit 1; }
+              echo "Sync successful: $FILE1 copied to missing $FILE2"
+              return 0
+            fi
+            # Both files exist, check if identical
+            if cmp -s "$FILE1" "$FILE2"; then
+              echo "Sync skipped: $FILE1 and $FILE2 identical"
+              return 0
+            fi
+            # Get commit timestamps
+            FILE1_COMMIT_TIME=$(git log --pretty=%ct --max-count=1 -- "$FILE1" 2>/dev/null || echo 0)
+            FILE2_COMMIT_TIME=$(git log --pretty=%ct --max-count=1 -- "$FILE2" 2>/dev/null || echo 0)
+            # Get modification timestamps
+            FILE1_MOD_TIME=$(stat --format=%Y "$FILE1" 2>/dev/null || echo 0)
+            FILE2_MOD_TIME=$(stat --format=%Y "$FILE2" 2>/dev/null || echo 0)
+            # Validate numeric values
+            if ! [[ "$FILE1_COMMIT_TIME" =~ ^[0-9]+$ ]] || ! [[ "$FILE2_COMMIT_TIME" =~ ^[0-9]+$ ]] || \
+               ! [[ "$FILE1_MOD_TIME" =~ ^[0-9]+$ ]] || ! [[ "$FILE2_MOD_TIME" =~ ^[0-9]+$ ]]; then
+              echo "ERROR: Sync failed: Invalid timestamp values for $FILE1 or $FILE2"
+              exit 1
+            fi
+            # If neither file is committed
+            if [ "$FILE1_COMMIT_TIME" -eq 0 ] && [ "$FILE2_COMMIT_TIME" -eq 0 ]; then
+              echo "WARNING: Sync skipped: $FILE1 and $FILE2 differ but neither is committed"
+              exit 1
+            # If FILE1 is committed and has more recent commit and mod time
+            elif [ "$FILE1_COMMIT_TIME" -gt 0 ] && [ "$FILE1_COMMIT_TIME" -gt "$FILE2_COMMIT_TIME" ] && \
+                 [ "$FILE1_MOD_TIME" -gt "$FILE2_MOD_TIME" ]; then
+              cp -av "$FILE1" "$FILE2" || { echo "ERROR: Sync failed: Failed to copy $FILE1 to $FILE2"; exit 1; }
+              git add "$FILE2" || { echo "ERROR: Sync failed: Failed to git add $FILE2"; exit 1; }
+              git commit -m "Copied $FILE1 to $FILE2" || { echo "ERROR: Sync failed: Failed to commit $FILE2"; exit 1; }
+              git push || { echo "ERROR: Sync failed: Failed to push $FILE2"; exit 1; }
+              echo "Sync successful: $FILE1 copied over existing $FILE2"
+              return 0
+            # If FILE2 is committed and has more recent commit and mod time
+            elif [ "$FILE2_COMMIT_TIME" -gt 0 ] && [ "$FILE2_COMMIT_TIME" -gt "$FILE1_COMMIT_TIME" ] && \
+                 [ "$FILE2_MOD_TIME" -gt "$FILE1_MOD_TIME" ]; then
+              cp -av "$FILE2" "$FILE1" || { echo "ERROR: Sync failed: Failed to copy $FILE2 to $FILE1"; exit 1; }
+              git add "$FILE1" || { echo "ERROR: Sync failed: Failed to git add $FILE1"; exit 1; }
+              git commit -m "Copied $FILE2 to $FILE1" || { echo "ERROR: Sync failed: Failed to commit $FILE1"; exit 1; }
+              git push || { echo "ERROR: Sync failed: Failed to push $FILE1"; exit 1; }
+              echo "Sync successful: $FILE2 copied over existing $FILE1"
+              return 0
+            # Inconsistent state
+            else
+              # Determine which file has newer commit and mod times
+              if [ "$FILE1_COMMIT_TIME" -gt "$FILE2_COMMIT_TIME" ]; then
+                COMMIT_NEWER="$FILE1"
+                COMMIT_OLDER="$FILE2"
+              else
+                COMMIT_NEWER="$FILE2"
+                COMMIT_OLDER="$FILE1"
+              fi
+              if [ "$FILE1_MOD_TIME" -gt "$FILE2_MOD_TIME" ]; then
+                MOD_NEWER="$FILE1"
+                MOD_OLDER="$FILE2"
+              else
+                MOD_NEWER="$FILE2"
+                MOD_OLDER="$FILE1"
+              fi
+              echo "WARNING: Sync skipped: latest commit times ($COMMIT_NEWER > $COMMIT_OLDER) and mod times ($MOD_NEWER < $MOD_OLDER) are inconsistent"
+              exit 1
+            fi
+          }
+          # Call function
+          git_sync_copies README.md haoskiosk/README.md
