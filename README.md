@@ -2,7 +2,7 @@
 
 Display HA dashboards in kiosk mode directly on your HAOS server.
 
-## Author: Jeff Kosowsky (version: 1.2.0"3-TOUCH_1-SWIPE_RIGHT": {"cmds": \[["xdotool", "key", "--clearmodifiers", "ctrl+Right"]\], "msg": "Go forward in the history browser"})
+## Author: Jeff Kosowsky (version: 1.2.0, December 2025)
 
 ## Description
 
