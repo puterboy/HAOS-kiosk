@@ -1,5 +1,5 @@
 """-------------------------------------------------------------------------------
-# Add-on: HAOS Kiosk Display (haoskiosk) dogg
+# Add-on: HAOS Kiosk Display (haoskiosk)
 # File: services.py
 # Version: 1.2.0
 # Copyright Jeff Kosowsky
