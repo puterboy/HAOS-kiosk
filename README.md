@@ -614,7 +614,7 @@ ______________________________________________________________________
 
 ## MISCELLANEOUS NOTES
 
-- If screen is not working on an RPI3, try adding the following lines to
+- If screen is not working on an RPi3, try adding the following lines to
   the `[pi3]` section of your `config.txt` on the boot partition:
   ```
   dtoverlay=vc4-fkms-v3d
