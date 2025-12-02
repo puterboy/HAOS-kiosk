@@ -207,6 +207,8 @@ where:
 
 - Action Command values (CommandsUnion-like type) can be expressed in one of the following 3 forms:
     1. Single command string - e.g., "ls -a -l"
+       Note that an empty string acts as a No-Op -- i.e., it will be ignored and can be
+       used with wildcard gestures to block actions of lower priority.
 
     2. List of one or more commands each of which is can be one of the following forms:
         - String form - e.g., ["echo hello"]
@@ -919,16 +921,16 @@ DEFAULT_COMMANDS_DICT: dict[str, CommandsUnion] = {}
 #          Typically, more restrictive to less restrictive or else the more restrictive
 #          options may never apply
 
-def is_CommandsType(obj: object) -> bool:  #pylint: disable=too-many-return-statements
+def is_CommandsType(obj: object, allow_empty: bool = False) -> bool:  #pylint: disable=too-many-return-statements
     """
     Check if value is a CommandsType, consisting either of:
       - A single command expressed as a string
-      - List of one or more commands, in one of 2 forms
-          - Single command expressed as a string
+      - List of one or more (non-empty) commands, in one of 2 forms
+          - Single command expressed as a string (can be empty if allow_empty=True
           - Single command expressed as an argv-style lists (e.g., ["ls", "-a", "-l"])
     """
     if isinstance(obj, str):  # Single *non-empty* command as string
-        return len(obj.strip()) > 0
+        return len(obj.strip()) > 0 or allow_empty
 
     if not isinstance(obj, list) or len(obj) == 0: # Reject non-list or empty list
         return False
@@ -954,7 +956,7 @@ def is_CommandsUnion(obj: object) -> bool:  #pylint: disable=too-many-return-sta
         - CommandsType: list[str | list[str]]
         - CommandsDict: Dictionary with keys 'cmds' (CommandsType) and optional 'msg' (str) and 'timeout' (int) in seconds
     """
-    if is_CommandsType(obj): # Just a CommandsType
+    if is_CommandsType(obj, allow_empty=True): # Just a CommandsType (allow top-level empty command)
         return True
 
     # Dict form: {"cmds": ..., "msg"?: str, "timeout"?: int}
@@ -1423,6 +1425,8 @@ class GestureCommand:
             msg: str | None = value.get("msg")
             timeout: int | None = value.get("timeout")
         else: # value is just a CommandsType
+            if isinstance(value, str) and value == "":
+                value = None # No-op
             cmds = value
             msg = None
             timeout = None
@@ -1919,23 +1923,23 @@ class GestureSequence(RegistryMixin):
             ContactGroup.unregister_all(self.device_id)
             GestureSequence.unregister(self.id)
 
-        result = False
         gesture_command_match = gesture_command.lookup()  # Lookup gesture in command dictionary
         if gesture_command_match is not None:  #Match found
-            debug(1, f">ACTION: gesture={gesture_command_match} cmds={gesture_command_match.sprint_commands()}")
-            if (msg := gesture_command_match.msg) is not None:  # Print the associated message
-                debug(0, f"   Message: {msg}")
-
             if (cmds := gesture_command_match.cmds) is not None:
+                debug(1, f">ACTION: gesture={gesture_command_match} cmds={gesture_command_match.sprint_commands()}")
+                if (msg := gesture_command_match.msg) is not None:  # Print the associated message
+                    debug(0, f"   Message: {msg}")
+
                 # Run commands in a separate thread so as not to slow down event parsing loop
                 timeout = gesture_command_match.timeout or CMD_TIMEOUT
                 threading.Thread(target=run_bash_commands, args=(cmds, timeout,), daemon=True).start()
-                result = True
-        if not result:
+            else:  # No op
+                debug(2, f">ACTION: gesture={gesture_command_match} cmds=NO-OP")
+        else:
             debug(3, f"Notice: GestureCommand not present in GESTURE_CMDS_LIST: {gesture_str}")
 
         debug(2, "----------\n")
-        return result
+        return True
 
     def queue_closeout_sequence(self, gesture_data: GestureData, timeout: float) -> None:
         """ Queue closeout sequence to run in 'timeout' seconds"""

@@ -550,7 +550,9 @@ always enter keys from particular to more general when using wildcards
 
 Action command values may be expressed in one of three forms:
 
-1. **Single command string** e.g., `"ls -a -l"`
+1. **Single command string** e.g., `"ls -a -l"` Note that an empty string
+   acts as a No-Op -- i.e., it will be ignored and can be used with
+   wildcard gestures to block actions of lower priority.
 
 2. **List of commands** - Each command may be either:
 

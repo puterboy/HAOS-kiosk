@@ -63,6 +63,8 @@
 #
 #  - Each Value is an Action Command which can be expressed in one of the following 3 forms:
 #    1. Single command string - e.g., "ls -a -l"
+#       Note that an empty string acts as a No-Op -- i.e., it will be ignored and can be
+#       used with wildcard gestures to block actions of lower priority.
 #
 #    2. List of one or more commands each of which is can be one of the following forms:
 #        - String form - e.g., ["echo hello"]
