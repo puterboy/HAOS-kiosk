@@ -85,7 +85,7 @@ options:
     - '"[Left]_MOUSE_3_CLICK": {"cmds": [["dbus-send", "--type=method_call", "--dest=org.onboard.Onboard", "/org/onboard/Onboard/Keyboard", "org.onboard.Onboard.Keyboard.ToggleVisible"]], "msg": "Toggling Onboard keyboard..."}'
     - '"3_TOUCH_1_TAP": {"cmds": [["dbus-send", "--type=method_call", "--dest=org.onboard.Onboard", "/org/onboard/Onboard/Keyboard", "org.onboard.Onboard.Keyboard.ToggleVisible"]], "msg": "Toggling Onboard keyboard..."}'
     - '"1_ANY_1_CORNER_TOP": {"cmds": [["dbus-send", "--type=method_call", "--dest=org.onboard.Onboard", "/org/onboard/Onboard/Keyboard", "org.onboard.Onboard.Keyboard.ToggleVisible"]], "msg": "Toggling Onboard keyboard..."}'
-    - '"4_TOUCH_1_TAP": {"cmds": [["xdotool", "key", "--clearmodifiers ctrl+r"]], "msg": "Refresh Browser"}'
+    - '"3_TOUCH_2_TAP": {"cmds": [["xdotool", "key", "--clearmodifiers", "ctrl+r"]], "msg": "Refresh Browser"}'
     - '"3+_TOUCH_1_SWIPE_LEFT": {"cmds": [["xdotool", "key", "--clearmodifiers", "ctrl+Right"]], "msg": "Go forward in the history browser"}'
     - '"3+_TOUCH_1_SWIPE_RIGHT": {"cmds": [["xdotool", "key", "--clearmodifiers", "ctrl+Left"]], "msg": "Go back in the history browser"}'
 

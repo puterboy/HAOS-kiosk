@@ -594,10 +594,10 @@ clicking on the `X` next to them):
 "1_ANY_1_CORNER_TOP": {"cmds": [["dbus-send", "--type=method_call", "--dest=org.onboard.Onboard", "/org/onboard/Onboard/Keyboard", "org.onboard.Onboard.Keyboard.ToggleVisible"]], "msg": "Toggling Onboard keyboard..."}
 ```
 
-- **4_Finger Single Tap**: *Refresh screen*
+- **3-Finger Double Tap**: *Refresh screen*
 
 ```
-"4_TOUCH_1_TAP": {"cmds": [["xdotool", "key", "--clearmodifiers ctrl+r"]], "msg": "Refresh Browser"}
+"3_TOUCH_2_TAP": {"cmds": [["xdotool", "key", "--clearmodifiers ctrl+r"]], "msg": "Refresh Browser"}
 ```
 
 - **3-Finger Right Swipe**: *Go back one element in browser history*

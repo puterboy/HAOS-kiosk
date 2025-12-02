@@ -605,24 +605,31 @@ class MouseButton(EnumNameMixin, IntEnum):
 
 class XEvent(EnumNameMixin, IntEnum):
     """X11 Events (Note: in general only the non-raw versions expose root coordinates for Mouse and Touch contacts and movements)"""
-    DeviceChanged = 1
-    KeyPress = 2
-    KeyRelease = 3
-    ButtonPress = 4        # Not broadcast to root, use raw version instead
-    ButtonRelease = 5      # Not broadcast to root, use raw version instead
-    Motion = 6             # Root coordinates
-    RawKeyPress = 13
-    RawKeyRelease = 14
-    RawButtonPress = 15    # Use this since no unraw version broadcast to root (but lacks root coordinates)
+    DeviceChanged    = 1   # Device enabled/disabled
+    KeyPress         = 2
+    KeyRelease       = 3
+    ButtonPress      = 4   # Not broadcast to root, use raw version instead
+    ButtonRelease    = 5   # Not broadcast to root, use raw version instead
+    Motion           = 6   # Root coordinates
+    Enter            = 7   # Pointer enters window
+    Leave            = 8   # Pointer leaves window
+    FocusIn          = 9
+    FocusOut         = 10
+    HierarchyChanged = 11
+    PropertyEvent    = 12
+    RawKeyPress      = 13
+    RawKeyRelease    = 14
+    RawButtonPress   = 15  # Use this since no unraw version broadcast to root (but lacks root coordinates)
     RawButtonRelease = 16  # Use this since no unraw version broadcast to root (but lacks root coordinates)
-    RawMotion = 17
-    TouchBegin = 18        # Root coordinates
-    TouchUpdate = 19       # Root coordinates
-    TouchEnd = 20          # Root coordinates
-    RawTouchBegin = 22
-    RawTouchUpdate = 23
-    RawTouchEnd = 24
-    UNKNOWN = 1000
+    RawMotion        = 17
+    TouchBegin       = 18  # Root coordinates
+    TouchUpdate      = 19  # Root coordinates
+    TouchEnd         = 20  # Root coordinates
+    TouchOwnership   = 21
+    RawTouchBegin    = 22
+    RawTouchUpdate   = 23
+    RawTouchEnd      = 24
+    UNKNOWN          = 1000
 
     @classmethod
     def get_event(cls, number: int) -> "XEvent":
