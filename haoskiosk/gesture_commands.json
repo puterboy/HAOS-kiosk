@@ -11,37 +11,64 @@
 # ------------------------------------------------------------------------------
 # Contents is a series of json key-value pairs separated by commas, where
 #  - Each Key is a Gesture String of form:
-#       N-[MOUSE|TOUCH|ANY]_M-[CLICKTAP|CLICK|TAP|DRAG|SWIPE|LONG|CORNER_TOP|ANY]
+#       <CONTACTS>_<DEVICE>_<CLICKS>_<GESTURE>
 #    where:
-#       N = The contact set during the gesture. Either:
-#         - Digit representing (maximum) number of contacts (buttons or fingers)- e.g.,  2
-#         - List of button names and/or numbers of specific buttons pressed (if a mouse) - e.g., [Left, Right] or [1, 3] or [Left, 3] etc.
-#         - 'A' (wildcard)
-#       M = Number of clicks/taps in the gesture (e.g., 1 for single-click, 2 for double-click etc) or 'A' (wildcard)
-#       ANY = Wildcard for any of the string entries (eg., for device type or gesture type)
+#       <CONTACTS> = The maximal contact set during the gesture. Either:
+#         - Number (N, N+, N-) representing (maximum) number of contacts (buttons or fingers)
+#           where N+ and N- are respectively greater than and less than or equal to N
+#         - List of button numbers and/or corresponding button names if a mouse
+#           (e.g., [Left, Right] or [1, 3] or [Left, 3])
 #
-#    Examples include:
-#       3-TOUCH_1-TAP
-#       2-TOUCH_2-SWIPE_RIGHT
-#       [Left,Right]-MOUSE_1-DRAG
-#       A-ANY_A-ANY          ← wildcard fallback
+#       <DEVICE> =  Either:
+#           - Device Type (e.g., MOUSE, TOUCH) or the wildcard "ANY"
+#           - Device Name (e.g., Button, Finger)
 #
-#    Notes:
-#       1. DRAG and SWIPE differ in velocity -- i.e., SWIPE is *faster*
-#       2. The gestures DRAG and SWIPE can also have the optional suffixes: _LEFT, _RIGHT, _UP, or _DOWN
-#       3. Conversely, DRAG and SWIPE serve as wildcard matches relative to their directional counterparts
-#       4. LONG can take the optional suffix _CLICK or _TAP
-#       5. CORNER_TOP activates when click or tap is in the extreme top-right corner of the scree
-#       6. DRAG, SWIPE, and LONG gestures (and their variants) are by definition only single-click
-#       7. Matching is case insensitive
-#       8. Entries are matched in order, so that you should always go from particular to more general when using wildcards
+#       <CLICKS> = Number (M, M+, M-) of clicks/taps in the gesture where M+ and M-
+#                  are respectively greater than or less than or equal to M
+#                  (e.g., 1 for single-click, 2 for double-click, 2+ for 2 or more clicks)
+#
+#      <GESTURE> = Either:
+#           - GestureType (e.g., CLICKTAP, DRAG, SWIPE, LONG, CORNER_TOP) or the wildcard "ANY"
+#           - Gesture Name (e.g., Click, Tap, Drag, Swipte, Long Click, Long Tap)
+#               Note that gesture names are device specific (e.g. Click for Mouse, Tap for Touch)
+#
+#         where:
+#           - ANY is a wildcard match for any gesture
+#           - DRAG and SWIPE differ in velocity -- i.e., SWIPE is *faster*
+#           - The gestures DRAG and SWIPE can also have the optional suffixes: _LEFT, _RIGHT, _UP, or _DOWN
+#           - Conversely, DRAG and SWIPE serve as wildcard matches relative to their directional counterparts
+#           - LONG can take the optional suffix _CLICK or _TAP
+#           - CORNER_TOP activates when click or tap is in the extreme top-right corner of the scree
+#           - DRAG, SWIPE, and LONG gestures (and their variants) are by definition only single-click
+#           - Matching is case insensitive
+#
+#    NOTE: Keys are matched in order, so that you should always go from particular to more general when using wildcards
+#    NOTE: Validity checks are imposed including:
+#            - Cannot have more than 1 click for single click gestures
+#            - Click and Tap gesture woreds  correspond only to Mouse and Touch devices
+#
+# Example gesture strings include:
+#    [Left, Right]_MOUSE_3_CLICKTAP
+#    [1,2,3]_MOUSE_1+_CORNER_TOP
+#    2_TOUCH_1_DRAG_LEFT
+#    2_Button_1_Long Click
+#    3_Finger_2_Tap
+#    2+_Finger_1_Swipe_down
+#    1_ANY_2-_CLICKTAP
+#    1+_ANY_1+_ANY
+#
+# Invalid examples include:
+#    1-Mouse_3-Tap  (Tap is for Touch)
+#    1-Touch_2-Long (Long gestures can only be single contact)
 #
 #  - Each Value is an Action Command which can be expressed in one of the following 3 forms:
 #    1. Single command string - e.g., "ls -a -l"
+#
 #    2. List of one or more commands each of which is can be one of the following forms:
 #        - String form - e.g., ["echo hello"]
 #        - List of argv-style component string - e.g., ["ls", "-a", "-l"]
 #       Example: ["echo hello", ["ls", "-a", "-l"]]
+#
 #    3. Dictionary with required key "cmds" and optional keys: "msg", "timeout"
 #        where the value of "cmds" is of form 1 or 2
 #        e.g., {"cmds": "ls -al", "msg": "list all files", "timeout": 1}

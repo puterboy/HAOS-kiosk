@@ -104,8 +104,6 @@ N-Click/Tap or N-Corner_Top consists of exactly N groups.
            NOTE: A DRAG differs from a SWIPE in that it is slower (less than
            swipe velocity threshold)
 
-
-
 A DeviceSpec assigns attributes to each DeviceType (currently, MOUSE and TOUCH),
 including: device name (e.g., Mouse, Touch), contact type (Button, Finger),
 gesture dictionary of supported GestureTypes, double click timeout, long click
@@ -114,6 +112,11 @@ list of supported gestures to be classified as multi-click
 
 ### GestureCommand (class)
 #   Associated structures:
+       RangeNumber (class): Integer with optional range semantics where
+         - 'N+' means N or greater (and 1+ is thus a wildcard for positive integers)
+         - 'N-' means N or less
+         - 'N' (no sign) means exactly N
+
        CommandsType (TypeAlias): A single shell command represented either as:
          - Single command string (e.g., "ls -a -l")
          - List of one or more commands in either of the 2 forms
@@ -131,72 +134,114 @@ list of supported gestures to be classified as multi-click
            - CommandsDict
          NOTE: This is the form that can be used for user-defined commands
 
-       GESTURE_COMMANDS_LIST: List of GestureCommands loaded from:
-           - CMDS_FILE_LIST: List of one or more external files.
-               The contents of each file are either:
-                 1. JSON dictionary of <gesture string>: <CommandsUnion>
-                    pairs, separated by commas
-                 2. Same as #1 but without enclosing starting and ending braces
-                 3. JSON dictionary with at least one key called "gestures"
-                    whose value is a dictionary of form #1 (Used in HA add-ons)
-           - DEFAULT_COMMANDS_DICT: Internal list of user-defined GestureCommands
-          NOTE: Earlier entries loaded *override* later entries
-
 The GestureCommand class is used to define and parse gesture strings and map
 them to the user-defined command(s) that are to be triggered and executed by the
 gesture.
 
 Each gesture command instance is characterized by:
   - Device type (e.g, mouse or touch)
-  - Number of contacts (N)
+  - Number of contacts (N, N+, N-)
   - Contact members (list of buttons/fingers) and/or Contact number (number of contacts)
-  - Number of separate clicks/touches in the gesture
-  - Gesture type: Click/Tap, Drag, Swipe, Long, Corner_Top
-  - Commands in form of CommandsDict instance
+  - Number of separate clicks/touches in the gesture (N, N+, N-)
+  - Gesture type: GestureType (e.g., CLICKTAP, LONG, DRAG, SWIPE, CORNER_TOP, etc.)
+  - Commands: CommandsDict ("cmds" plus optional "msg" and "timeout")
 
-Each "gesture string" has the following format:
-    <CONTACTS>-<DEVICE_TYPE>_<NUM_CLICKS/TAPS>-<GESTURE_TYPE>
+Corresponding to the GestureCommand class, users can enter human readable lists
+of key-value pairs consisting of Gesture String Keysand Action command Values
 where:
-    - CONTACTS: Represents the buttons/fingers used in the gesture.
-      Either:
-        - Number of buttons pressed or fingers tapped for the gesture
-        - List of button names or numbers tapped
-          (mouse only since touch can't identify individual fingers)
-        - 'A' (wild card i.e,. finger(s)/button(s))
-    - DEVICE_TYPE: MOUSE, TOUCH or  "ANY" (wildcard) or the friendly
-      name of the device type (as defined in its DeviceSpec)
-    - NUM_CLICKS/TAPS: Number of groups in the gesture or the wildcard 'A'
-    - GESTURE_TYPE: type of gesture (as defined above) or "ANY" (wildcard)
-      or if DEVICE_TYPE is not "ANY", the friendly name of the gesture
-      (as defined in its DeviceSpec or GestureType)
-      If DEVICE_TYPE is not "ANY" then validation is done to check that
-      the device supports the given gesture and number of contacts.
 
-Matching is case-insensitive.
+- Gesture String keys are of form:
+    <CONTACTS>_<DEVICE>_<CLICKS>_<GESTURE>
+    where:
+       <CONTACTS> = The maximal contact set during the gesture. Either:
+         - Number (N, N+, N-) representing (maximum) number of contacts (buttons or fingers)
+           where N+ and N- are respectively greater than and less than or equal to N
+         - List of button numbers and/or corresponding button names if a mouse
+           (e.g., [Left, Right] or [1, 3] or [Left, 3])
 
-The format is equivalently:
-    N-[MOUSE|TOUCH|ANY]_M-[CLICKTAP|CLICK|TAP|DRAG|SWIPE|LONG|CORNER_TOP
-                           |LONG_CLICK|LONG_TAP|
-                           |DRAG_[LEFT|RIGHT|UP|DOWN]|SWIPE_[LEFT|RIGHT|UP|DOWN]
-                           |ANY]
-    plus any of the friendly names for the device or gesture.
-        where N is either:
-            - Positive integer
-            - List of mouse button names or numbers, e.g.,
-                [1, 2, 3] or [Left, Right] or [1, Middle, Right] or [Left]
+       <DEVICE> =  Either:
+           - Device Type (e.g., MOUSE, TOUCH) or the wildcard "ANY"
+           - Device Name (e.g., Button, Finger)
 
-Example gesture strings include:
-    1-Mouse_3-Click
-    [Left, Right]-MOUSE_3-CLICKTAP
-    [1,2,3]-MOUSE_3-CORNER_TOP
-    3-Touch_2-Tap
-    1-Touch-1-Swipe_down
-    1-ANY_1-LONG
-    A-TOUCH_1_Tap
+       <CLICKS> = Number (M, M+, M-) of clicks/taps in the gesture where M+ and M-
+                  are respectively greater than or less than or equal to M
+                  (e.g., 1 for single-click, 2 for double-click, 2+ for 2 or more clicks)
 
-Invalid examples include:
-    1-Mouse_3-Tap  (Tap is for Touch)
+      <GESTURE> = Either:
+           - GestureType (e.g., CLICKTAP, DRAG, SWIPE, LONG, CORNER_TOP) or the wildcard "ANY"
+           - Gesture Name (e.g., Click, Tap, Drag, Swipte, Long Click, Long Tap)
+               Note that gesture names are device specific (e.g. Click for Mouse, Tap for Touch)
+
+        where:
+          - ANY is a wildcard match for any gesture
+          - DRAG and SWIPE differ in velocity -- i.e., SWIPE is *faster*
+          - The gestures DRAG and SWIPE can also have the optional suffixes: _LEFT, _RIGHT, _UP, or _DOWN
+          - Conversely, DRAG and SWIPE serve as wildcard matches relative to
+            their directional counterparts
+          - LONG can take the optional suffix _CLICK or _TAP
+          - CORNER_TOP activates when click or tap is in the extreme top-right corner of the scree
+          - DRAG, SWIPE, and LONG gestures (and their variants) are by definition only single-click
+          - Matching is case insensitive
+
+    NOTE: Keys are matched in order, so that you should always go from
+    particular to more general when using wildcards
+
+    NOTE: Validity checks are imposed including:
+            - Cannot have more than 1 click for single click gestures
+            - Click and Tap gesture words correspond only to Mouse and Touch
+              devices respectively
+
+ Example gesture strings include:
+    [Left, Right]_MOUSE_3_CLICKTAP
+    [1,2,3]_MOUSE_1+_CORNER_TOP
+    2_TOUCH_1_DRAG_LEFT
+    2_Button_1_Long Click
+    3_Finger_2_Tap
+    2+_Finger_1_Swipe_down
+    1_ANY_2-_CLICKTAP
+    1+_ANY_1+_ANY
+
+ Invalid examples include:
+    1_Mouse_3-Tap  (Tap is for Touch)
     1-Touch_2-Long (Long gestures can only be single contact)
+
+- Action Command values (CommandsUnion-like type) can be expressed in one of the following 3 forms:
+    1. Single command string - e.g., "ls -a -l"
+
+    2. List of one or more commands each of which is can be one of the following forms:
+        - String form - e.g., ["echo hello"]
+        - List of argv-style component string - e.g., ["ls", "-a", "-l"]
+       Example: ["echo hello", ["ls", "-a", "-l"]]
+
+    3. Dictionary with required key "cmds" and optional keys: "msg", "timeout"
+        where the value of "cmds" is of form 1 or 2
+        e.g., {"cmds": "ls -al", "msg": "list all files", "timeout": 1}
+        e.g., {"cmds": ["echo hello", ["ls" "-al"]], "msg": "echo hello and list all files", "timeout": 5}
+
+Users can enter such lists either as:
+
+- A DEFAULT_CMDS_DICT dictionary global variable in this file with Gesture
+  String Keys and Acttion Command Values
+
+- One or more external files (contained in the variable CMDS_FILE_LIST or
+  entered via the command line parameter --file|-f)
+
+  Key-pairs can be entered in these files in any of the following formats:
+    1. JSON dictionary of <gesture string>: <CommandsUnion> pairs, separated by commas
+    2. Same as #1 but without enclosing starting and ending braces
+    3. JSON dictionary with at least one key called "gestures" whose value is a
+       dictionary of form #1 (Used in HA add-ons to load /data/options.json)
+
+All these sources, are parsed, validated, and loaded at runtime into a
+GESTURE_CMDS_LIST which is a list of GestureCommand instances. Files are loaded
+in the following order:
+   - Command line file (if any)
+   - CMDS_FILE_LIST (in order of listing)
+   - DEFAULT_CMDS_DICT
+
+When a gesture sequence is generated, the GESTURE_CMDS_LIST is used to find the
+first matching Gesture String Key entry and associated Action Command. As such,
+entries loaded earlier *override* later entries in matching hierrarchy.
 
 
 ### XInputParser (class)
@@ -288,7 +333,7 @@ XInputParser -> XInputEvent -> ContactGroup -> GestureSequence
 from __future__ import annotations  # ensures forward references are strings
 from dataclasses import dataclass, field
 from enum import Enum, IntEnum, auto
-from math import atan2, degrees
+from math import atan2, degrees, inf
 import argparse
 import json
 import os
@@ -299,7 +344,7 @@ import threading
 import traceback
 import uuid
 from collections.abc import Hashable
-from typing import Any, cast, ClassVar, Iterator, Literal, NotRequired, Protocol, Self, Type, TypeAlias, TypedDict, TypeVar
+from typing import Any, cast, ClassVar, Iterator, NotRequired, Protocol, Self, Type, TypeAlias, TypedDict, TypeVar
 from Xlib import display                  #type: ignore[import-untyped] #pylint: disable=import-error
 from Xlib.xobject.drawable import Window  #type: ignore[import-untyped] #pylint: disable=import-error
 #-------------------------------------------------------------------------------
@@ -312,8 +357,7 @@ __copyright__ = "Copyright 2025 Jeff Kosowsky"
 # Restart delay
 XINPUT_RESTART_DELAY: int     = 5    # Seconds before restarting xinput after crash
 CMD_TIMEOUT: int | None       = 30   # Seconds before spawned action command timesout or None if no timeout
-GESTURE_CMDS_FILES: list[str] = []   # Use this (if present) unless overridden by input argument
-GESTURE_CMDS_FILES            = ["/data/options.json", "gesture_commands.json"]
+GESTURE_CMDS_FILES: list[str] = ["/data/options.json", "gesture_commands.json"]
 
 def initialize() -> None:
     """Initialize variables"""
@@ -374,7 +418,7 @@ if input_args.file is not None:
 
 #-------------------------------------------------------------------------------
 #### Globals
-### Global State
+GESTURE_SEP = "_"
 _registry_lock: threading.RLock = threading.RLock()
 
 #-------------------------------------------------------------------------------
@@ -631,6 +675,14 @@ class GestureType(EnumNameMixin, Enum):
 
     ANY = "ANY"  # Wildcard
 
+    @property
+    def base_type(self) -> GestureType:
+        """Return SWIPE or DRAG from SWIPE_LEFT, etc."""
+        try:
+            return GestureType[self.name.split('_', 1)[0]]
+        except (ValueError, IndexError):
+            return self  # for ANY, UNKNOWN, CLICKTAP, etc.
+
 GestureData: TypeAlias = tuple[GestureType, float, float, float]  # (GestureType, distance, angle, velocity)
 
 #-------------------------------------------------------------------------------
@@ -856,9 +908,9 @@ CommandsUnion: TypeAlias = CommandsType | CommandsDict
 
 DEFAULT_COMMANDS_DICT: dict[str, CommandsUnion] = {}
 # Mapping dictionary whose keys are normalized gesture identifiers of form:
-#    N-[MOUSE|TOUCH|ANY]_M-[CLICK|TAP|DRAG|SWIPE|LONG|CORNER_TOP|ANY]
-# where N and M are positive integers or 'A' (wildcard) for any.
-# 'ANY' is a wildcard for the string entries
+#    N_[MOUSE|TOUCH|ANY]_M_[CLICK|TAP|DRAG|SWIPE|LONG|CORNER_TOP|ANY]
+# where N and M are RangeNumbers, which can optionally be followed by '+' or '-'
+# respectively meaning greater than or equal and less than or equal.
 # Note that DRAG and SWIPE also take the optional suffixes _LEFT, _RIGHT, _UP, _DOWN
 #
 # Each value is a CommandsUnion
@@ -921,6 +973,136 @@ def is_CommandsUnion(obj: object) -> bool:  #pylint: disable=too-many-return-sta
     return False
 
 #-------------------------------------------------------------------------------
+# RangeNumber class is used to represent pseudo numbers like greater/less than or equal to N
+
+class RangeNumber:
+    """
+    An integer with optional range semantics:
+      - 'N+' means N or greater
+      - 'N-' means N or less
+      - 'N' (no sign) means exactly N
+
+    Equality:
+      - RangeNumber vs int: Uses range semantics
+      - RangeNumber vs RangeNumber: Signs and values must match
+
+    Ordering (<, <=, >, >=) is based on subset/superset logic:
+      - self <= other: the set of integers represented by self is a subset of other
+      - self < other: the set of integers represented by self is a proper subset of other
+
+    Examples:
+        RangeNumber("5")    -> exact 5
+        RangeNumber("5+")   -> 5 or more
+        RangeNumber("5-")   -> 5 or less
+    """
+
+    __slots__ = ("number", "range")  # range: None, '+', '-'
+
+    def __init__(self, s: str | int) -> None:
+        """Initialize from string or int"""
+        if isinstance(s, int):
+            self.number = s
+            self.range = None
+        elif isinstance(s, str):
+            s = s.strip()
+            if s[-1] in ('+', '-'):
+                self.range = s[-1]
+                self.number = int(s[:-1])  # Will raise ValueError if invalid
+            else:
+                self.range = None
+                self.number = int(s)
+        else:
+            raise TypeError(f"Cannot construct RangeNumber from {type(s)}")
+
+    def __str__(self) -> str:
+        """Human-readable string representation"""
+        return f"{self.number}{self.range or ''}"
+
+    def __repr__(self) -> str:
+        "Debugging representation"
+        return f"RangeNumber('{self}')"
+
+    def __hash__(self) -> int:
+        """Fast hash encoding"""
+        return self.number * 3 + ({'+': 1, '-': 2, None: 0}.get(self.range, 0))
+
+    @property
+    def bounds(self) -> tuple[float, float]:
+        """Return (lower_bound, upper_bound) tuple"""
+        if self.range == '+':
+            return self.number, inf
+        if self.range == '-':
+            return -inf, self.number
+        return self.number, self.number
+
+    def _subset_compare(self, other: RangeNumber) -> tuple[bool, bool]:
+        """Check subset/superset relation"""
+        self_lo, self_hi = self.bounds
+        other_lo, other_hi = other.bounds
+        is_subset = self_lo >= other_lo and self_hi <= other_hi
+        is_superset = self_lo <= other_lo and self_hi >= other_hi
+        return is_subset, is_superset
+
+    def __eq__(self, other: Any) -> bool:
+        """Equality with int or RangeNumber"""
+        if isinstance(other, RangeNumber):
+            return self.number == other.number and self.range == other.range
+        if isinstance(other, int):
+            lo, hi = self.bounds
+            return lo <= other <= hi
+        return NotImplemented
+
+    def __lt__(self, other: RangeNumber | int) -> bool:
+        if isinstance(other, int):
+            _, hi = self.bounds
+            return hi < other
+        if isinstance(other, RangeNumber):
+            is_subset, _ = self._subset_compare(other)
+            return is_subset and self != other
+        return NotImplemented
+
+    def __le__(self, other: RangeNumber | int) -> bool:
+        if isinstance(other, int):
+            _, hi = self.bounds
+            return hi <= other
+        if isinstance(other, RangeNumber):
+            is_subset, _ = self._subset_compare(other)
+            return is_subset
+        return NotImplemented
+
+    def __gt__(self, other: RangeNumber | int) -> bool:
+        if isinstance(other, int):
+            lo, _ = self.bounds
+            return lo > other
+        if isinstance(other, RangeNumber):
+            _, is_superset = self._subset_compare(other)
+            return is_superset and self != other
+        return NotImplemented
+
+    def __ge__(self, other: RangeNumber | int) -> bool:
+        if isinstance(other, int):
+            lo, _ = self.bounds
+            return lo >= other
+        if isinstance(other, RangeNumber):
+            _, is_superset = self._subset_compare(other)
+            return is_superset
+        return NotImplemented
+
+    def __match_args__(self) -> tuple[str, str]:
+        """Enable match-case logic"""
+        return ("number", "range")
+
+    @classmethod
+    def is_range_number(cls, s: str) -> bool:
+        """Check if string is valid RangeNumber: N, N+, N-"""
+        try:
+            cls(s)
+            return True
+        except (ValueError, TypeError):
+            return False
+
+
+#-------------------------------------------------------------------------------
 ### Gesture Command Class
 
 ## Create reverse lookup from gesture-type strings to GestureType
@@ -952,14 +1134,20 @@ class GestureCommand:
     Class for parsing and storing gesture commands that can be used to map a specific gesture
     definition (including: device type, number/list of contacts, number of clicks, gesture type)
     to one or more executable commands.
-    Note: 'A' is used for numerical-like wildcards, 'ANY' for string wildcards
     """
-    device_type: DeviceType = DeviceType.ANY
-    contacts_num: int | Literal['A'] | None = None # For Touch (only number of fingers matter)
-    contacts_members: set[int] | None = None        # For Mouse (individual buttons are specified)
-    num_clicks: int | Literal['A'] = 'A'
-    gesture_type: GestureType = GestureType.ANY
+    device_type: DeviceType = DeviceType.ANY      # Note DeviceType.ANY is the wildcard device
+    contacts_num: RangeNumber | None = None       # For Touch (only number of fingers matter)
+    contacts_members: set[int] | None = None      # For Mouse (individual buttons are specified)
+    num_clicks: RangeNumber = field(default_factory=lambda: RangeNumber("1+"))  # Default is any number of clicks/taps
+    gesture_type: GestureType = GestureType.ANY   # Note that GestureType.ANY is the gesture wildcard
     cmds_dict: CommandsDict | None = None
+
+    def __post_init__(self) -> None:
+        """Normalize to convert integer to RangeNumber"""
+        if isinstance(self.contacts_num, int):
+            self.contacts_num = RangeNumber(self.contacts_num)
+        if isinstance(self.num_clicks, int):
+            self.num_clicks = RangeNumber(self.num_clicks)
 
     # Holds all loaded and parsed instances of Gesture Commands from external file and/or COMMANDS_DICT
     GESTURE_CMDS_LIST: ClassVar[list[GestureCommand]] = []
@@ -992,9 +1180,7 @@ class GestureCommand:
                 contact_list_str =  [MouseButton.safe_name(n) if button_names else str(n) for n in contact_list_int]  # Returns button name or number if can't find name or button_names in False
                 return "[" + ",".join(contact_list_str) + "]"
             return str(len(self.contacts_members))  # If touch device then numbers in contact_members are not identifiable so just use count
-        if isinstance(self.contacts_num, int):  # Then try using the number of contacts (this alsow works if = 'A')
-            return str(self.contacts_num)
-        return "A"
+        return str(self.contacts_num or RangeNumber("1+"))  # Otherwise, return number of contacs (with default being the wildcard '1+')
 
     def __str__(self) -> str:
         """
@@ -1006,29 +1192,28 @@ class GestureCommand:
         """
         Return canonical string representation of gesture type.
         Translate button numbers to names if button_names is True (default)
+        Format is: <Contacts>_<DeviceType>_<NumClicks>_<GestureType>
+        where:
+           <Contacts> is either a RangeNumber or a list of contacts (including button names) if for a Mouse
+           <NumClicks> is a RangeNumber
         Examples:
-            [Left]-MOUSE_3-CLICKTAP
-            [Left,Right]-MOUSE_3-CLICKTAP
-            [1,3]]-MOUSE_3-CLICKTAP  (if button_names is false)
-            3-TOUCH_1-CLICKTAP
-            1-MOUSE_1-LONG
-            3-TOUCH_1-SWIPE_RIGHT
-            A-ANY_A-ANY
+            [Left, Right]_MOUSE_3_CLICKTAP
+            3_TOUCH_1_LONG
         """
         contacts_str = self.sprint_contacts(button_names)
-        return f"{contacts_str}-{self.device_type}_{self.num_clicks}-{self.gesture_type}"
+        return f"{contacts_str}{GESTURE_SEP}{self.device_type}{GESTURE_SEP}{self.num_clicks}{GESTURE_SEP}{self.gesture_type}"
 
     def sprint_friendly_gesture(self, button_names: bool = True) -> str:
         """
         Return friendly string representation of gesture type
+        Translate button numbers to names if button_names is True (default)
+        Format is: <Contacts>_<DeviceName>_<NumClicks>_<GestureName>
+        where:
+           <Contacts> is either a RangeNumber or a list of contacts (including button names) if for a Mouse
+           <NumClicks> is a RangeNumber
         Examples:
-            [Left]-Button_3-Click
-            [Left,Right]-Button_3-Click
-            [1, 3]-Button_3-Click  (if button_names is false)
-            3-Finger_1-Tap
-            1-Button_1-Long Tap
-            3-Finger_1-Swipe Right
-            A-Any_A-Any
+            [Left,Right]_Button_3_Click
+            3_Finger_1_Long Tap
         """
         contacts_str = self.sprint_contacts(button_names)
 
@@ -1039,7 +1224,7 @@ class GestureCommand:
             contact_type = "Any"  # Can't determine without device type
             gesture_str = self.gesture_type.value_str if self.gesture_type is not GestureType.ANY else str(self.gesture_type)
 
-        return f"{contacts_str}-{contact_type}_{self.num_clicks}-{gesture_str}"
+        return f"{contacts_str}{GESTURE_SEP}{contact_type}{GESTURE_SEP}{self.num_clicks}{GESTURE_SEP}{gesture_str}"
 
     def sprint_commands(self) -> str:
         """Print out CommandsType attribute as string"""
@@ -1048,23 +1233,30 @@ class GestureCommand:
             return ""
         return '"' + cmds.replace('"', r'\"') + '"' if isinstance(cmds, str) else str(cmds)
 
-    def wild_matches(self, other: GestureCommand) -> bool:
+    def matches_rule(self, other: GestureCommand) -> bool:
         """
         Return true if self matches another GestureCommand
         Note this is not symmetric since wildcards are appended only to 'other'
         """
-        if not other.device_type in (self.device_type, DeviceType.ANY): # Devices match or other is GestureType.ANY
-            return False  # Device types don't match
-        if not (self.contacts_members is None and other.contacts_num in (self.contacts_num, 'A') or # Contacts_num match or other is 'A'
-                (self.contacts_members is not None and (
-                    (other.contacts_members is not None and self.contacts_members == other.contacts_members) or           # Both contacts_members sets are non-None and match
-                    (other.contacts_members is None and len(self.contacts_members) == other.contacts_num)))): # Number of self members matches other number of contacts
-            return False  # Contacts numbers/members don't match
-        if not other.num_clicks in (self.num_clicks, 'A'):  # Number of clicks match or other is 'A'
-            return False  # Number of clicks don't match
-        if not (other.gesture_type in (self.gesture_type, GestureType.ANY) or  # Gestures match or other GestureType.ANY
-                 ((prefix := self.gesture_type.name.split('_', maxsplit=1)[0]) in GestureType.__members__ and GestureType[prefix] == other.gesture_type)): # Gesture stripped of '_' suffix matches other
+        device_type_matches = other.device_type in (self.device_type, DeviceType.ANY) # Devices match or other is GestureType.ANY
+        if not device_type_matches:
             return False
+
+        contacts_match =((self.contacts_members is None and self.contacts_num == other.contacts_num) or # Self contacts range number equals other contacts range number
+                         (self.contacts_members is not None and (
+                             (other.contacts_members is not None and self.contacts_members == other.contacts_members) or  # Both contacts_members sets are non-None and match
+                             (other.contacts_members is None and len(self.contacts_members) == other.contacts_num))))    # Number self members is in the "subrange" of other contacts number
+        if not contacts_match:
+            return False
+
+        clicks_match = other.num_clicks == self.num_clicks # Range numbers of clicks are equal
+        if not clicks_match:
+            return False
+
+        gestures_match =  other.gesture_type in (self.gesture_type, self.gesture_type.base_type, GestureType.ANY)  # Other matches gesture, its base or ANY
+        if not gestures_match:
+            return False
+
         return True
 
     def lookup(self) -> GestureCommand | None:
@@ -1074,7 +1266,7 @@ class GestureCommand:
         """
 
         for cmd in GestureCommand.GESTURE_CMDS_LIST:
-            if self.wild_matches(cmd):
+            if self.matches_rule(cmd):
                 return cmd
         return None  # no match found
 
@@ -1125,14 +1317,14 @@ class GestureCommand:
     debug(4, f"GESTURE_NAMES_PATTERN={_GESTURE_NAMES_PATTERN}" +'\n')
 
     GESTURE_KEY_PATTERN = re.compile(
-        rf"(?P<contacts>\[[A-Za-z\s\d,_-]+\]|\d+|A)-"
-        rf"(?P<device_type>{_DEVICE_TYPE_PATTERN})_"
-        rf"(?P<num_clicks>\d+|A)-"
+        r"(?P<contacts>\[[A-Za-z\s\d,_-]+\]|\d+[+-]?)" + GESTURE_SEP +
+        rf"(?P<device_type>{_DEVICE_TYPE_PATTERN})" + GESTURE_SEP +
+        r"(?P<num_clicks>\d+[+-]?)" + GESTURE_SEP +
         rf"(?P<gesture>{_GESTURE_NAMES_PATTERN})",
         flags=re.IGNORECASE)
 
     @staticmethod
-    def _parse_gesture_key(key_str: str) -> tuple[DeviceType, int | Literal['A'] | None, set[int] | None, int | Literal['A'], GestureType]:
+    def _parse_gesture_key(key_str: str) -> tuple[DeviceType, RangeNumber | None, set[int] | None, RangeNumber, GestureType]:
         """Parse and fully validate a COMMANDS_DICT gesture string key.
         Returns parsed components on success, None on failure.
           - Device type (dev_type)
@@ -1169,12 +1361,12 @@ class GestureCommand:
 
         # --- num_clicks ---
         num_clicks_raw = m.group("num_clicks")
-        if num_clicks_raw == "A":
-            num_clicks: int | Literal['A'] = 'A'
-        elif num_clicks_raw.isdigit() and int(num_clicks_raw) >= 1:
-            num_clicks = int(num_clicks_raw)
-        else:
-            raise ValueError(f"Number of clicks must be positive integer or 'A': {num_clicks_raw}")
+        try:
+            num_clicks = RangeNumber(num_clicks_raw)
+            if num_clicks < 1:
+                raise ValueError()
+        except (TypeError, ValueError) as e:
+            raise ValueError(f"Number of clicks must be N, N+ or N- where N>1: {num_clicks_raw}") from e
 
         # Validation for gesture_type
         if gesture_type is not GestureType.ANY and isinstance(dev_type.spec, DeviceSpec) and dev_type not in (DeviceType.DEFAULT, DeviceType.UNKNOWN):
@@ -1183,21 +1375,19 @@ class GestureCommand:
                     (gesture_raw in GestureType.__members__ and GestureType[gesture_raw] in dev_type.spec.gestures) # gesture_raw is a DeviceType name and is a gesture for the device
                     or (gesture_type in dev_type.spec.gestures and dev_type.spec.gestures[gesture_type].upper() == gesture_raw)): # gesture_raw is the friendly name for gesture_type in the device
                 raise ValueError(f"Invalid gesture type for {dev_type.name}: {gesture_raw!r}")
-            # If num_clicks > 1, check that multi-clicks allowed for gesture_type on this device
-            if num_clicks != 'A' and num_clicks > 1 and dev_type.spec.is_single_click(gesture_type):
+            if num_clicks > 1 and dev_type.spec.is_single_click(gesture_type):
                 raise ValueError(f"Multi-click not supported on {dev_type.name} for: {gesture_raw!r}")
 
         # --- contacts: Can be absolute number or for mouse can also be list of button numbers and/or names
         contacts_raw = m.group("contacts").strip().upper()
-        contacts_num: int | Literal['A'] | None = None  # Needed to keep mypy happy
-        contacts_members: set[int] | None = None  # Needed to keep mypy happy
 
-        if contacts_raw == "A":
-            contacts_num = 'A'
-        elif contacts_raw.isdigit():  # Raw number of (unnamed) contacts - works for Mouse and Touch
-            contacts_num = int(contacts_raw)
+        contacts_num: RangeNumber | None = None
+        contacts_members: set[int] | None = None
+
+        if RangeNumber.is_range_number(contacts_raw):
+            contacts_num = RangeNumber(contacts_raw)
             if contacts_num < 1:
-                raise ValueError(f"Number of contacts pressed or touched  must be positive: {contacts_raw}")
+                raise ValueError(f"Number of contacts pressed or touched must be positive: {contacts_num}")
         elif isinstance(dev_type, DeviceType) and dev_type is DeviceType.MOUSE:  #Mouse can also specify buttons by list of name or numbers (e.g., [1,2,Right])
             if not contacts_raw.startswith("[") or not contacts_raw.endswith("]"):
                 raise ValueError(f"Mouse button list must be in [X1, X2, X3,...] form where the elements are either button numbers or names: {contacts_raw}")
@@ -1719,7 +1909,7 @@ class GestureSequence(RegistryMixin):
 
             gesture, duration, movement, velocity = gesture_data  #pylint: disable=unused-variable
 
-            gesture_command = GestureCommand(self.device_type, self.contacts_num, self.contacts_members, num_groups, gesture) #pylint: disable=too-many-function-args
+            gesture_command = GestureCommand(self.device_type, RangeNumber(self.contacts_num), self.contacts_members, RangeNumber(num_groups), gesture) #pylint: disable=too-many-function-args
             gesture_str = gesture_command.sprint_friendly_gesture()
             debug(2, f"**RESULT: {gesture_str} [device={self.device_id}] "
                   f"seq_len={num_groups} contacts={self.contacts_num} duration={(self.duration * 1000):.1f}ms" +

@@ -48,6 +48,8 @@ full details of your setup and what you did along with a complete log.
 
 [![Buy Me a Coffee](https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png)](https://www.buymeacoffee.com/puterboy)
 
+______________________________________________________________________
+
 ## Configuration Options
 
 ### HA Username [required]
@@ -209,6 +211,8 @@ Editable list of JSON-like key-value pairs where the key represents a
 *action* commands. See section "GESTURE COMMANDS" below for more details,
 examples, and default gestures.
 
+______________________________________________________________________
+
 ## REST APIs
 
 ### launch_url {"url": "\<url>"}
@@ -318,6 +322,8 @@ In the case of `run_commands`, pipe the output to:
 
 ______________________________________________________________________
 
+#### HA REST Command Syntax
+
 You can also configure all the above REST commands in your
 `configuration.yaml` as follows (assuming REST_PORT=8080)
 
@@ -387,7 +393,7 @@ authentication lines to each of the above stanzas:
 The rest commands can then be referenced from automation actions as:
 `rest_command.haoskiosk_<command-name>`
 
-For example:
+#### Examples
 
 ```
 actions:
@@ -449,61 +455,119 @@ actions:
 2. Use custom command(s) to change internal parameters of HAOSKiosk and the
    luakit browser configuration.
 
+______________________________________________________________________
+
 ### GESTURE COMMANDS
 
 Each Gesture Command is a JSON-like key-value pair where the key is a valid
 *Gesture String* corresponding to a specific sequence of button clicks or
-finger taps and the value is an \*Action Command" containing a structured
+finger taps and the value is an *Action Command* containing a structured
 set of one or more commands to execute when the gesture is recognized.
 
 The formats of the Gesture Strings and Action Commands are precisely
 defined, so if they fail to load check your log for error messages.
 
-````
-- Each Gesture String key is of form:
-  ```
-  "N-[MOUSE|TOUCH|ANY]_M-[CLICKTAP|CLICK|TAP|DRAG|SWIPE|LONG|CORNER_TOP|ANY]":
-  ```
- where:
-   `N` = The contact set during the gesture. Either:
-    - Digit representing (maximum) number of contacts (buttons or fingers) - e.g.,  2
-       - List of button names and/or numbers of specific buttons pressed (if a mouse) - e.g., [Left, Right] or [1, 3] or [Left, 3] etc.
-       - 'A' (wildcard)
+#### Gesture String Keys
 
-   `M` = Number of clicks/taps in the gesture (e.g., 1 for single-click, 2 for double-click etc) or 'A' (wildcard)
-   ANY = Wildcard for any of the string entries (eg., for device type or gesture type)
+Each Gesture String key is of form:
 
-Examples include:
+**`<CONTACTS>_<DEVICE>_<CLICKS>_<GESTURE>`**
+
+where:
+
+**`<CONTACTS>`** field captures he maximal contact set during the gesture.
+Either:
+
+- A number (`N`, `N+`, `N-`) representing the (maximum) number of contacts
+  (buttons or fingers), where `N+` and `N-` respectively indicate greater
+  than and less than or equal to `N`
+  - List of button numbers and/or corresponding button names (for
+    mouse-type devices only) e.g., `[Left, Right]`, `[1, 3]`, `[Left, 3]`
+
+**`<DEVICE>`** field identifies the type of input contact either by:
+
+- Device Type (e.g., `MOUSE`, `TOUCH`) or the wildcard `ANY`
+- Mechanism (e.g., `Button`, `Finger`)
+
+**`<CLICKS>`** field captures the number (`M`, `M+`, `M-`) of clicks/taps
+in the gesture where `M+` and `M-` are respectively greater than or less
+than or equal to `M` (e.g., `1` for single-click, `2` for double-click,
+`2+` for 2 or more clicks)
+
+**`<GESTURE>`** field specifies the general class or device-specific name
+of the gesture
+
+- Class (e.g., `CLICKTAP`, `DRAG`, `SWIPE`, `LONG`, `CORNER_TOP`) or the
+  wildcard `ANY`
+- Friendly Name (e.g., `Click`, `Tap`, `Drag`, `Swipe`, `Long Click`,
+  `Long Tap`). Note the names may be device-specific (e.g., Click for
+  Mouse, Tap for Touch)
+
+##### Additional notes regarding gesture naming:
+
+- `ANY` is a wildcard matching any gesture
+- `DRAG` and `SWIPE` differ primarily in velocity (`SWIPE` is faster)
+- Both `DRAG` and `SWIPE` may include suffixes `_LEFT`, `_RIGHT`, `_UP`, or
+  `_DOWN`
+- Undirected `DRAG`/`SWIPE` act as wildcards for their directional variants
+- `LONG` can take the optional device-specific suffixes `_CLICK` or `TAP`
+- `CORNER_TOP` triggers if the Click/Tap occurs in the extreme top-right
+  corner
+- `DRAG`, `SWIPE`, and `LONG` (and their variants) are always single-click
+  gestures
+- Matching is case-insensitive
+
+Note that Gesture String Keys are matched in order, so that you should
+always enter keys from particular to more general when using wildcards
+
+#### Validity Checks
+
+- Single-click gestures cannot be used if more than 1 Click/Tap
+- `Click` applies only to mouse devices; `Tap` applies only to touch
+  devices
+
+#### Valid Examples
+
 ```
-   3-TOUCH_1-TAP
-   2-TOUCH_2-SWIPE_RIGHT
-   [Left,Right]-MOUSE_1-DRAG
-   A-ANY_A-ANY          ← wildcard fallback
+[Left, Right]_MOUSE_3_CLICKTAP
+[1,2,3]_MOUSE_1+_CORNER_TOP
+2_TOUCH_1_DRAG_LEFT
+2_Button_1_Long Click
+3_Finger_2_Tap
+2+_Finger_1_Swipe_down
+1_ANY_2-_CLICKTAP
+1+_ANY_1+_ANY
 ```
 
-Notes:
-   1. `DRAG` and SWIPE differ in velocity -- i.e., SWIPE is *faster*
-   2. The gestures DRAG and SWIPE can also have the optional suffixes: _LEFT, _RIGHT, _UP, or _DOWN
-   3. Conversely, DRAG and SWIPE serve as wildcard matches relative to their directional counterparts
-   4. LONG can take the optional suffix _CLICK or _TAP
-   5. CORNER_TOP activates when click or tap is in the extreme top-right corner of the scree
-   6. DRAG, SWIPE, and LONG gestures (and their variants) are by definition only single-click
-   7. Matching is case insensitive
-   8. Entries are matched in order, so that you should always go from particular to more general when using wildcards
-````
+#### Invalid Examples
 
-- Each value is an *Action Command* which can be expressed in one of the
-  following 3 forms:
-  1. Single command string - e.g., `"ls -a -l"`
-  2. List of one or more commands each of which is can be one of the
-     following forms:
-     - String form - e.g., `["echo hello"]`
-     - List of argv-style component string - e.g., `["ls", "-a", "-l"]`
-       Example: `["echo hello", ["ls", "-a", "-l"]]`
-  3. Dictionary with required key `"cmds":` and optional keys: `"msg":`,
-     `"timeout":` where the value of `"cmds":` is of form 1 or 2 e.g.,
-     `{"cmds": "ls -al", "msg": "list all files", "timeout": 1}` e.g.,
-     `{"cmds": ["echo hello", ["ls" "-al"]], "msg": "echo hello and list all files"}`
+```
+1_Mouse_3-Tap     (Tap is for Touch)
+1-Touch_2-Long    (Long gestures must be single contact)
+```
+
+#### Action Command Values
+
+Action command values may be expressed in one of three forms:
+
+1. **Single command string** e.g., `"ls -a -l"`
+
+2. **List of commands** - Each command may be either:
+
+   - A string: `"echo hello"`
+     - An argv-style list: `["ls", "-a", "-l"]`
+
+Example `["echo hello", ["ls", "-a", "-l"]]`
+
+3. **Command dictionary** with required key `"cmds":` and optional keys:
+   `"msg":` and `"timeout"`
+
+Examples:
+
+```
+{"cmds": "ls -al", "msg": "list all files", "timeout": 1}
+{"cmds": ["echo hello", ["ls", "-al"]], "msg": "echo hello and list all files", "timeout": 5}
+```
 
 #### Defaults & Examples
 
@@ -513,38 +577,40 @@ clicking on the `X` next to them):
 - **Left Triple Mouse Click**: *Toggle on-screen keyboard*
 
 ```
-"[Left]-MOUSE_3-CLICK": {"cmds": [["dbus-send", "--type=method_call", "--dest=org.onboard.Onboard", "/org/onboard/Onboard/Keyboard", "org.onboard.Onboard.Keyboard.ToggleVisible"]], "msg": "Toggling Onboard keyboard..."}
+"[Left]_MOUSE_3_CLICK": {"cmds": [["dbus-send", "--type=method_call", "--dest=org.onboard.Onboard", "/org/onboard/Onboard/Keyboard", "org.onboard.Onboard.Keyboard.ToggleVisible"]], "msg": "Toggling Onboard keyboard..."}
 ```
 
 - **3-Finger Single Tap**: *Toggle on-screen keyboard*
 
 ```
-"3-TOUCH_1-TAP": {"cmds": [["dbus-send", "--type=method_call", "--dest=org.onboard.Onboard", "/org/onboard/Onboard/Keyboard", "org.onboard.Onboard.Keyboard.ToggleVisible"]], "msg": "Toggling Onboard keyboard..."}
+"3_TOUCH_1_TAP": {"cmds": [["dbus-send", "--type=method_call", "--dest=org.onboard.Onboard", "/org/onboard/Onboard/Keyboard", "org.onboard.Onboard.Keyboard.ToggleVisible"]], "msg": "Toggling Onboard keyboard..."}
 ```
 
 - **Single Tap or Click in Topmost Corner**: *Toggle on-screen keyboard*
 
 ```
-"1-ANY_1-CORNER_TOP": {"cmds": [["dbus-send", "--type=method_call", "--dest=org.onboard.Onboard", "/org/onboard/Onboard/Keyboard", "org.onboard.Onboard.Keyboard.ToggleVisible"]], "msg": "Toggling Onboard keyboard..."}
+"1_ANY_1_CORNER_TOP": {"cmds": [["dbus-send", "--type=method_call", "--dest=org.onboard.Onboard", "/org/onboard/Onboard/Keyboard", "org.onboard.Onboard.Keyboard.ToggleVisible"]], "msg": "Toggling Onboard keyboard..."}
 ```
 
-- **4-Finger Single Tap**: *Refresh screen*
+- **4_Finger Single Tap**: *Refresh screen*
 
 ```
-"4-TOUCH_1-TAP": {"cmds": [["xdotool", "key", "--clearmodifiers ctrl+r"]], "msg": "Refresh Browser"}
+"4_TOUCH_1_TAP": {"cmds": [["xdotool", "key", "--clearmodifiers ctrl+r"]], "msg": "Refresh Browser"}
 ```
 
 - **3-Finger Right Swipe**: *Go back one element in browser history*
 
 ```
-"3-TOUCH_1-SWIPE_LEFT": {"cmds": [["xdotool", "key", "--clearmodifiers", "ctrl+Right"]], "msg": "Go forward in the history browser"}
+"3_TOUCH_1_SWIPE_LEFT": {"cmds": [["xdotool", "key", "--clearmodifiers", "ctrl+Right"]], "msg": "Go forward in the history browser"}
 ```
 
 - **3-Finger Left Swipe**: *Go forward one element in browser history*
 
 ```
-"3-TOUCH_1-SWIPE_RIGHT": {"cmds": [["xdotool", "key", "--clearmodifiers", "ctrl+Left"]], "msg": "Go back in the history browser"}
+"3_TOUCH_1_SWIPE_RIGHT": {"cmds": [["xdotool", "key", "--clearmodifiers", "ctrl+Left"]], "msg": "Go back in the history browser"}
 ```
+
+______________________________________________________________________
 
 ## MISCELLANEOUS NOTES
 
