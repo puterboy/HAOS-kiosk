@@ -19,6 +19,8 @@ init: false
 ingress: true
 homeassistant_api: true
 auth_api: true
+audio: true
+usb: true
 
 devices:
   - /dev/dri/card0
@@ -72,7 +74,7 @@ options:
   map_touch_inputs: true
   keyboard_layout: us
   cursor_timeout: 5
-  onscreen_keyboard: false
+  onscreen_keyboard: true
   save_onscreen_config: true
   xorg_conf: ""
   xorg_append_replace: "append"

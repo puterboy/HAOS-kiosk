@@ -15,6 +15,8 @@
   layout
 - Refactored and rewrote `rest_server.py`
 - Added `REST_IP` to options to allow users to set the listening IP address
+- Added USB audio (`audio: true` and `usb: true` in config.yaml)
+- Changed onscreen_keyboard option default to `true`
 - README edits
 
 ## v1.1.1 - September 2025
