@@ -9,8 +9,7 @@
 - Added corresponding 'gestures' list option to config.yaml
 - Changed default onscreen_keyboard to 'true'
 - Added 'Option "GrabDevice" "true"' to keyboard InputClass section in
-  xorg.conf to prevent type-through to console on built-in keyboards (e.g.,
-  i8042)
+  xorg.conf
 - Added mouse buttons (left/right/middle/drag) to default Onboard keyboard
   layout
 - Refactored and rewrote `rest_server.py`
