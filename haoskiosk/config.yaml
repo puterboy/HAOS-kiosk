@@ -91,6 +91,7 @@ options:
     - '"3_TOUCH_3_TAP": {"cmds": "luakit \"$HA_URL/$HA_DASHBOARD\"", "msg": "Restore default dashboard"}'
     - '"3+_TOUCH_1_SWIPE_LEFT": {"cmds": [["xdotool", "key", "--clearmodifiers", "ctrl+Right"]], "msg": "Go forward in the history browser"}'
     - '"3+_TOUCH_1_SWIPE_RIGHT": {"cmds": [["xdotool", "key", "--clearmodifiers", "ctrl+Left"]], "msg": "Go back in the history browser"}'
+    - '"2_TOUCH_3_TAP": {"cmds": "luakit \"www.google.com\"", "msg": "Open Google Search"}'    
 
 schema:
   ha_username: str
