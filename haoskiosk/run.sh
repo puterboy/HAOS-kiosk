@@ -160,6 +160,7 @@ if [ -z "$DBUS_SESSION_BUS_ADDRESS" ]; then
 fi
 bashio::log.info "DBus started with: DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS"
 export DBUS_SESSION_BUS_ADDRESS
+echo "$DBUS_SESSION_BUS_ADDRESS" >| /tmp/DBUS_SESSION_BUS_ADDRESS
 # Make available to subsequent shells
 echo "export DBUS_SESSION_BUS_ADDRESS='$DBUS_SESSION_BUS_ADDRESS'" >> "$HOME/.profile"
 

@@ -231,8 +231,9 @@ Users can enter such lists either as:
   Key-pairs can be entered in these files in any of the following formats:
     1. JSON dictionary of <gesture string>: <CommandsUnion> pairs, separated by commas
     2. Same as #1 but without enclosing starting and ending braces
-    3. JSON dictionary with at least one key called "gestures" whose value is a
-       dictionary of form #1 (Used in HA add-ons to load /data/options.json)
+    3. JSON dictionary with at least one key called "gestures" whose value is a list of
+       strings of form: "<gesture string>: <CommandsUnion>"
+       Used in HA add-ons to load /data/options.json)
 
 All these sources, are parsed, validated, and loaded at runtime into a
 GESTURE_CMDS_LIST which is a list of GestureCommand instances. Files are loaded
@@ -689,7 +690,7 @@ class GestureType(EnumNameMixin, Enum):
         """Return SWIPE or DRAG from SWIPE_LEFT, etc."""
         try:
             return GestureType[self.name.split('_', 1)[0]]
-        except (ValueError, IndexError):
+        except (ValueError, IndexError, KeyError):
             return self  # for ANY, UNKNOWN, CLICKTAP, etc.
 
 GestureData: TypeAlias = tuple[GestureType, float, float, float]  # (GestureType, distance, angle, velocity)
@@ -1502,7 +1503,8 @@ class GestureCommand:
         Note the entries can be entered in any of the following ways
           1. JSON dictionary of <gesture string>: <CommandsUnion>  pairs, separated by commas
           2. Same as #1 but without enclosing starting and ending braces
-          3. JSON dictionary with at least one key called "gestures" whose value is a dictionary of form #1 (Used in HA add-ons)
+          3. JSON dictionary with at least one key called "gestures" whose value is a dictionary or list of strings
+             of key-value pairs of form #1 (Used to parse the 'options.json' file in HA add-ons)
 
         Note: Unlike conventional JSON, a trailing comma on the last key-value pair entry is allowed in #1 and #2
         Note: File paths are relative to current working directory
@@ -1550,7 +1552,7 @@ class GestureCommand:
         def get_key_value_text(text: str, key: str) -> str | None:
             """
             Return raw JSON value corresponding to 'key', if exists and is a dict or list, otherwise return None
-            Note if list, then strip off enclosing parentheses for each line
+            Note if list, then strip off enclosing quotations for each line
             """
             pattern = rf'"{re.escape(key)}"\s*:\s*(\{{|\[)'   # Match "<key":<whitespace><[ or {>
             match = re.search(pattern, text)
@@ -1586,11 +1588,11 @@ class GestureCommand:
                 return None  # Malformed dict or list
 
             text = text[start+1:i-1] # Value of key (stripped of enclosing braces or brackets)
-            if opening == '[':  # List of strings containing key-value pairs
+            if opening == '[':  # Convert list of strings containing key-value pairs to dictionary of key-value pairs
                 text = re.sub(r'(?<!\\)"', '', text)  # Remove unescaped quotes
                 text = text.replace(r'\"', '"') # Replace: \" -> "
-
-            return '\n' * lines_before_start + text  # Prepend blank lines to preserve line numbering
+                text = text.replace('\\\\', '\\') # Replace: \\" -> \  (unescape escapes)
+            return '\n' * lines_before_start + '{' + text + '}' # Prepend blank lines to preserve line numbering and enclose in bracesg1
 
         # Check existence and readability
         if file_path is None:  # Return without error if no file given

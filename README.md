@@ -576,6 +576,12 @@ Examples:
 The following gestures are included by default (but can be removed by
 clicking on the `X` next to them):
 
+- **Single Tap or Click in Topmost Corner**: *Toggle on-screen keyboard*
+
+```
+"1_ANY_1_CORNER_TOP": {"cmds": [["dbus-send", "--type=method_call", "--dest=org.onboard.Onboard", "/org/onboard/Onboard/Keyboard", "org.onboard.Onboard.Keyboard.ToggleVisible"]], "msg": "Toggling Onboard keyboard..."}
+```
+
 - **Left Triple Mouse Click**: *Toggle on-screen keyboard*
 
 ```
@@ -588,16 +594,17 @@ clicking on the `X` next to them):
 "3_TOUCH_1_TAP": {"cmds": [["dbus-send", "--type=method_call", "--dest=org.onboard.Onboard", "/org/onboard/Onboard/Keyboard", "org.onboard.Onboard.Keyboard.ToggleVisible"]], "msg": "Toggling Onboard keyboard..."}
 ```
 
-- **Single Tap or Click in Topmost Corner**: *Toggle on-screen keyboard*
-
-```
-"1_ANY_1_CORNER_TOP": {"cmds": [["dbus-send", "--type=method_call", "--dest=org.onboard.Onboard", "/org/onboard/Onboard/Keyboard", "org.onboard.Onboard.Keyboard.ToggleVisible"]], "msg": "Toggling Onboard keyboard..."}
-```
-
 - **3-Finger Double Tap**: *Refresh screen*
 
 ```
 "3_TOUCH_2_TAP": {"cmds": [["xdotool", "key", "--clearmodifiers ctrl+r"]], "msg": "Refresh Browser"}
+```
+
+- **3-Finger Triple Tap**: *Restore Default HA dashboard
+  (HA_URL/HA_Dashboard)*
+
+```
+"3_TOUCH_3_TAP": {"cmds": "luakit \"$HA_URL/$HA_DASHBOARD\"", "msg": "Restore default dashboard"}
 ```
 
 - **3-Finger Right Swipe**: *Go back one element in browser history*
