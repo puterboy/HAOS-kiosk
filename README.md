@@ -619,6 +619,12 @@ clicking on the `X` next to them):
 "3_TOUCH_1_SWIPE_RIGHT": {"cmds": [["xdotool", "key", "--clearmodifiers", "ctrl+Left"]], "msg": "Go back in the history browser"}
 ```
 
+- **2-Finger Triple Tap**: *Open Google search*
+
+```
+"2_TOUCH_3_TAP": {"cmds": "luakit \"www.google.com\"", "msg": "Open Google search"}'
+```
+
 ______________________________________________________________________
 
 ## MISCELLANEOUS NOTES
