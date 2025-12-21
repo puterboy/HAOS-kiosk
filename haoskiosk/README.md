@@ -215,7 +215,7 @@ Note that if you want to truly allow *all* commands, then use the wildcard
 set the regex to `^$`.
 
 Note that regardless of setting only commands found in `/bin`, `/usr/bin`,
-and `/usr/local/bin` of the add-on are allowed.
+and `/usr/local/bin` of the add-on container are allowed.
 
 ______________________________________________________________________
 
