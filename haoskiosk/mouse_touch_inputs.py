@@ -22,7 +22,7 @@
 
    Commands can then be assigned to a broad range of mouse and touch gestures,
    including multi-button/multi-finger: Click/Tap, Drag, Swipe, Long
-   click/tap, and Click/Tap in the top-right corner.  Multi click/tap
+   click/tap, and Click/Tap in any of the 4 screen corners.  Multi click/tap
    gestures are allowed for click/tap events
 
 #### USAGE:
@@ -93,12 +93,12 @@ when either:
       (e.g., Drag, Swipe, or Long)
 
 Said another way, Drag, Swipe and Long gestures consist of a single group while
-N-Click/Tap or N-Corner_Top consists of exactly N groups.
+N-Click/Tap or N-Corner_<name> consists of exactly N groups.
 
 ### DeviceSpec (class)
 #   Associated structures:
        DeviceType (enum): MOUSE, TOUCH, DEFAULT, UNKNOWN, ANY
-       GestureType (enum): CLICKTAP, LONG, SWIPE, DRAG, CORNER_TOP,
+       GestureType (enum): CLICKTAP, LONG, SWIPE, DRAG, CORNER_[TOPLEFT|TOPRIGHT|BOTLEFT|BOTRIGHT]
                            SWIPE_[LEFT|RIGHT|UP|DOWN], DRAG_[LEFT|RIGHT|UP|DOWN],
                            UNKNOWN, ANY,
            NOTE: A DRAG differs from a SWIPE in that it is slower (less than
@@ -118,33 +118,38 @@ list of supported gestures to be classified as multi-click
          - 'N' (no sign) means exactly N
 
        CommandsType (TypeAlias): A single shell command represented either as:
-         - Single command string (e.g., "ls -a -l")
-         - List of one or more commands in either of the 2 forms
+         - Single command string consisting of either a shell command (e.g., "ls -a -l")
+           or an internally defined user function (e.g., "kiosk.launch_url <url>")
+         - List of one or more such commands in either of the 2 forms
            - String form  (e.g., "ls -a -l")
            - List of argv-style component string (e.g., ["ls", "-a", "-l"])
+           Examples include: ["ls -al], "kiosk.forward", ["echo", "hello"]]
 
        CommandsDict (TypeDict)  Commands stored as a dictionary with keys:
-           - cmds: CommandType representing command(s) to be executed
+           - cmds: CommandsType representing command(s) to be executed
            - msg: Message string to printout (optional)
            - timeout: Overrides default CMD_TIMEOUT (per command) (optional)
-         NOTE: This is the primary form for storing commands
+           - execs: List of parsed, processed and execution-ready executable commands
 
-       CommandsUnion (TypeAlias): Union of two forms of commands:
-           - CommandsType
-           - CommandsDict
-         NOTE: This is the form that can be used for user-defined commands
+         Note that this is the primary structure for storing commands.
+         Note that input commands are either of type CommandsType or CommandsDict (minus
+         the execs key)
 
-The GestureCommand class is used to define and parse gesture strings and map
-them to the user-defined command(s) that are to be triggered and executed by the
-gesture.
+       ExecutablesType consists of a callable function with an optional timeout parameter
+         The callable functions correspond to the commands that need to be launched
+         whether internal or shell commands, whether originally in string or list form.
+
+The GestureCommand class is used to define and parse gesture-command key-pair
+input strings and map them to the user-defined executable command(s) that are to
+be triggered and executed by the gesture.
 
 Each gesture command instance is characterized by:
   - Device type (e.g, mouse or touch)
   - Number of contacts (N, N+, N-)
   - Contact members (list of buttons/fingers) and/or Contact number (number of contacts)
   - Number of separate clicks/touches in the gesture (N, N+, N-)
-  - Gesture type: GestureType (e.g., CLICKTAP, LONG, DRAG, SWIPE, CORNER_TOP, etc.)
-  - Commands: CommandsDict ("cmds" plus optional "msg" and "timeout")
+  - Gesture type: GestureType (e.g., CLICKTAP, LONG, DRAG, SWIPE, CORNER_<name>, etc.)
+  - Commands: CommandsDict (raw "cmds" plus optional "execs", "msg" and "timeout")
 
 Corresponding to the GestureCommand class, users can enter human readable lists
 of key-value pairs consisting of Gesture String Keysand Action command Values
@@ -168,7 +173,7 @@ where:
                   (e.g., 1 for single-click, 2 for double-click, 2+ for 2 or more clicks)
 
       <GESTURE> = Either:
-           - GestureType (e.g., CLICKTAP, DRAG, SWIPE, LONG, CORNER_TOP) or the wildcard "ANY"
+           - GestureType (e.g., CLICKTAP, DRAG, SWIPE, LONG, CORNER_<name>) or the wildcard "ANY"
            - Gesture Name (e.g., Click, Tap, Drag, Swipte, Long Click, Long Tap)
                Note that gesture names are device specific (e.g. Click for Mouse, Tap for Touch)
 
@@ -179,7 +184,7 @@ where:
           - Conversely, DRAG and SWIPE serve as wildcard matches relative to
             their directional counterparts
           - LONG can take the optional suffix _CLICK or _TAP
-          - CORNER_TOP activates when click or tap is in the extreme top-right corner of the scree
+          - CORNER_<name> activates when click or tap is within 'corner_dim' of the named corner
           - DRAG, SWIPE, and LONG gestures (and their variants) are by definition only single-click
           - Matching is case insensitive
 
@@ -193,7 +198,7 @@ where:
 
  Example gesture strings include:
     [Left, Right]_MOUSE_3_CLICKTAP
-    [1,2,3]_MOUSE_1+_CORNER_TOP
+    [1,2,3]_MOUSE_1+_CORNER_TOPRIGHT
     2_TOUCH_1_DRAG_LEFT
     2_Button_1_Long Click
     3_Finger_2_Tap
@@ -205,7 +210,8 @@ where:
     1_Mouse_3-Tap  (Tap is for Touch)
     1-Touch_2-Long (Long gestures can only be single contact)
 
-- Action Command values (CommandsUnion-like type) can be expressed in one of the following 3 forms:
+- Action Command values (in either CommandsType or CommandsDict format) can be expressed
+  in one of the following 3 forms:
     1. Single command string - e.g., "ls -a -l"
        Note that an empty string acts as a No-Op -- i.e., it will be ignored and can be
        used with wildcard gestures to block actions of lower priority.
@@ -221,7 +227,6 @@ where:
         e.g., {"cmds": ["echo hello", ["ls" "-al"]], "msg": "echo hello and list all files", "timeout": 5}
 
 Users can enter such lists either as:
-
 - A DEFAULT_CMDS_DICT dictionary global variable in this file with Gesture
   String Keys and Acttion Command Values
 
@@ -242,10 +247,16 @@ in the following order:
    - CMDS_FILE_LIST (in order of listing)
    - DEFAULT_CMDS_DICT
 
+Each command string/list is validated to make sure that all programs mentioned are
+allowed (using function is_command_allowed). Specifically, unless ALLOW_ALL_USER_COMMANDS
+is True, the programs are tested to ensure:
+   - Program exists within ALLOWED_PATH
+   - Program is white-listed (if COMMAND_WHITELIST_REGEX is not None)
+   - Program is not black-listed (note whitelist when set overrides blacklist)
+
 When a gesture sequence is generated, the GESTURE_CMDS_LIST is used to find the
 first matching Gesture String Key entry and associated Action Command. As such,
 entries loaded earlier *override* later entries in matching hierrarchy.
-
 
 ### XInputParser (class)
 #   Associated structures
@@ -302,7 +313,8 @@ A gesture sequence can be closed-out if any of the following conditions are met:
 If the sequence is closeable, the associated gesture string is used to look for
 a matching gesture string in the Gesture Commands List.  The lookup returns the
 first gesture command on the list that matches (whether exactly or as a wildcard
-superset). If a match exists, the commands are then processed asynchronously.
+superset). If a match exists, the pre-computed executable version of the
+commands is then processed asynchronously.
 
 Note: 'xinput' provides both 'Raw' and 'Cooked' (non-Raw) events for TouchBegin
 and TouchEnd events but only 'Raw' events for ButtonPress and ButtonRelease
@@ -327,27 +339,33 @@ In summary, you can think of the following sequence:
 XInputParser -> XInputEvent -> ContactGroup -> GestureSequence
 -> GestureType classification -> GestureCommand execution
 
-"""
+#-------------------------------------------------------------------------------
+###  MYTODOS:
+ - Add arbitrary positions
+ - Test
+#-------------------------------------------------------------------------------
 
-#-------------------------------------------------------------------------------
-# MYTODOS: <None>
-#-------------------------------------------------------------------------------
+"""
 #### Imports
 from __future__ import annotations  # ensures forward references are strings
 from dataclasses import dataclass, field
 from enum import Enum, IntEnum, auto
 from math import atan2, degrees, inf
 import argparse
+import inspect
 import json
 import os
 import re
 import subprocess
+import shlex
+import shutil
 import time
 import threading
 import traceback
 import uuid
 from collections.abc import Hashable
-from typing import Any, cast, ClassVar, Iterator, NotRequired, Protocol, Self, Type, TypeAlias, TypedDict, TypeVar
+from functools import wraps
+from typing import Any, cast, Callable, ClassVar, Final, Iterator, NotRequired, Protocol, Self, Sequence, Type, TypeAlias, TypedDict, TypeVar
 from Xlib import display                  #type: ignore[import-untyped] #pylint: disable=import-error
 from Xlib.xobject.drawable import Window  #type: ignore[import-untyped] #pylint: disable=import-error
 #-------------------------------------------------------------------------------
@@ -357,11 +375,12 @@ __copyright__ = "Copyright 2025 Jeff Kosowsky"
 #-------------------------------------------------------------------------------
 #### User Configuration
 
-# Restart delay
 XINPUT_RESTART_DELAY: int     = 5    # Seconds before restarting xinput after crash
 CMD_TIMEOUT: int | None       = 30   # Seconds before spawned action command timesout or None if no timeout
 GESTURE_CMDS_FILES: list[str] = ["/data/options.json", "gesture_commands.json"]
 
+#-------------------------------------------------------------------------------
+## Initialization
 def initialize() -> None:
     """Initialize variables"""
 
@@ -377,10 +396,10 @@ def initialize() -> None:
         'msg': "Toggling Onboard keyboard...",
     }
 
-#    DEFAULT_COMMANDS_DICT["[Left]-MOUSE_3-CLICK"] = TOGGLE_ONBOARD_KEYBOARD
-#    DEFAULT_COMMANDS_DICT["3-TOUCH_1-TAP"]        = TOGGLE_ONBOARD_KEYBOARD
-#    DEFAULT_COMMANDS_DICT["1-MOUSE_1-CORNER_TOP"] = TOGGLE_ONBOARD_KEYBOARD
-#    DEFAULT_COMMANDS_DICT["1-TOUCH_1-CORNER_TOP"] = TOGGLE_ONBOARD_KEYBOARD
+#    DEFAULT_COMMANDS_DICT["[Left]-MOUSE_3-CLICK"]      = TOGGLE_ONBOARD_KEYBOARD
+#    DEFAULT_COMMANDS_DICT["3-TOUCH_1-TAP"]             = TOGGLE_ONBOARD_KEYBOARD
+#    DEFAULT_COMMANDS_DICT["1-MOUSE_1-CORNER_TOPRIGHT"] = TOGGLE_ONBOARD_KEYBOARD
+#    DEFAULT_COMMANDS_DICT["1-TOUCH_1-CORNER_TOPRIGHT"] = TOGGLE_ONBOARD_KEYBOARD
 
     ## Load COMMANDS_DICT into GESTURE_CMDS_FILES
     GestureCommand.initialize_gesture_command_list(GESTURE_CMDS_FILES)
@@ -392,8 +411,22 @@ def parse_args() -> argparse.Namespace:
     """Parse command line arguments: -d|--debug, -f|--file"""
     parser = argparse.ArgumentParser(description="Mouse Touch Inputs")
 
-    parser.add_argument("-d", "--debug", type=int, default=0,
-                        help="""
+    parser.add_argument(
+        "-a", "--allow_all", action="store_true",
+        help="DANGEROUS: If true allow all commands -- even if black-listed, not white listed or shell-dangerous")
+
+    parser.add_argument(
+        "-w", "--white_list", type=str, default="$^",
+        help="""
+Regext of allowed commands.
+  - Default is '^$' (no commands allowed).
+  - Set to blank to allow all commands subject to black list.
+  - Set to '.*' to allow all commands
+    Note all commands are subject to the following path restriction: /bin, /usr/bin, /usr/local/bin
+""")
+    parser.add_argument(
+        "-d", "--debug", type=int, default=0,
+        help="""
 Debug levels:
   0: No logging
   1: Log only final results
@@ -414,23 +447,245 @@ Debug levels:
 
 input_args: argparse.Namespace  = parse_args()
 
-LOG_LEVEL = input_args.debug
+ALLOW_ALL_USER_COMMANDS = input_args.allow_all
+DEBUG_LEVEL = input_args.debug
+
+def debug(level: int, msg: str) -> None:
+    """Conditional debug print."""
+    if DEBUG_LEVEL >= level:
+        print(msg)
 
 if input_args.file is not None:
     GESTURE_CMDS_FILES.insert(0, input_args.file)
+
+# --------------------------------------------------------------------------- #
+# Security Model
+# --------------------------------------------------------------------------- #
+
+## Restrict paths to specific, non-system bins
+ALLOWED_PATHS = {"/bin", "/usr/bin", "/usr/local/bin"} # Executables must be in these directoriesp
+
+## Commands that are white-listed -- all others are blocked (Note: set to ".*" to allow all or "" to block all)
+DEFAULT_COMMAND_WHITELIST_REGEX = r"cat|date|dbus-send|echo|false|grep|head|ls|luakit|notify-send|ping|ping6|ps|pstree|sleep|tail|test|top|tree|xdotool|xset"
+COMMAND_WHITELIST_REGEX = os.getenv("COMMAND_WHITELIST", DEFAULT_COMMAND_WHITELIST_REGEX).strip()
+
+COMPILED_WHITELIST_REGEX: re.Pattern[str] | None = None
+if COMMAND_WHITELIST_REGEX:
+    COMMAND_WHITELIST_REGEX = '^(?:' + COMMAND_WHITELIST_REGEX + ')$'  # Make sure starts with '^' and ends with '$'
+    try:
+        COMPILED_WHITELIST_REGEX = re.compile(COMMAND_WHITELIST_REGEX)
+    except re.error as e:
+        debug(0, f"Invalid COMMAND_WHITELIST_REGEX '{COMMAND_WHITELIST_REGEX}', blocking all commands: {e}")
+        COMPILED_WHITELIST_REGEX = re.compile(r"(?!)")  # Match nothing
+
+## Commands blocked (unless 'ALLOW_ALL_USER_COMMANDS' is True)
+# Note we only need to consider commands in ALLOWED_PATHS
+COMPILED_BLACKLIST_REGEX: Final[re.Pattern[str]] = re.compile(
+    r"^(?:"  # Always pin beginning
+    r"python[\d.]+|"
+    r"ash|bash|sh|su|"
+    r"env|exec|"
+    r"kill|killall|pkill|"
+    r"cp|chmod|chown|dd|ln|mv|rm|tar|"
+    r"mount|umount|"
+    r"curl|nc|wget|"
+    r"find|xargs"
+    r")$" # Always pin end
+)
+
+# Allowed Redirections
+SAFE_REDIRECT_REGEX: Final[re.Pattern[str]] = re.compile(
+    r">\s*/dev/null|"
+    r">>\s*/dev/null|"
+    r"2\s*>\s*/dev/null|"
+    r"2\s*>>\s*/dev/null|"
+    r"&\s*>\s*/dev/null|"
+    r"&\s*>>\s*/dev/null|"
+    r"2\s*>&\s*1|"
+    r"1\s*>&\s*2"
+)
+
+# Command separators to parse and split
+SEPARATORS: frozenset[str] = frozenset({ "&&", "||", ";", "|", "&", "$(", "${", "`", "(", "{", "[[", "((" })
+SEP_REGEX: Final[re.Pattern[str]] = re.compile('(?:' + '|'.join(re.escape(op) for op in sorted(SEPARATORS, key=len, reverse=True)) + ')')
+
+VALID_URL_REGEX: Final[re.Pattern[str]] = re.compile(
+    r'^(https?://)?'                  # Optional scheme
+    r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+[A-Z]{2,6}\.?|'  # Domain
+    r'localhost|'                     # localhost
+    r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'  # IPv4
+    r'(?::\d{1,5})?'                  # Optional port (1-65535 max, but \d+ is fine)
+    r'(?:/?|[/?][^\s]*)?$',           # Path/query/fragment (allows #fragment, rejects spaces)
+    re.IGNORECASE
+)
+
+def is_valid_url(url: str) -> bool:
+    """Validate URL format (allows http://, https://, bare domain/IP, path, query, fragment)."""
+    return bool(VALID_URL_REGEX.fullmatch(url.strip()))
 
 #-------------------------------------------------------------------------------
 #### Globals
 GESTURE_SEP = "_"
 _registry_lock: threading.RLock = threading.RLock()
 
+# ----------------------------------------------------------------------
+# Internally-defined, User callable functions
+
+# Registry of internal functions
+FunctionRegistry: dict[str, Callable[..., Any]] = {}
+
+# Optional custom error message for validation
+class ValidatorSpec(TypedDict, total=False):
+    """ Class that bundles validation test and error messages for registry function validation tests"""
+    test: Callable[[Any], bool]
+    err: str
+
+# Accept either callable or dict
+Validator = Callable[[Any], bool] | ValidatorSpec
+
+Payload = dict[str, Any]
+F = TypeVar('F', bound=Callable[..., Any])
+prefix: str | None  = "kiosk"
+def register_function(
+        name: str,
+        *,
+        required: list[str] | None = None,
+        optional: list[str] | None = None,
+        validators: dict[str, Validator] | None = None,
+) -> Callable[[F], F]:
+    """
+    Register a user-callable internal function.
+    Name is the friendly name of the function (without the optional prefix)
+    - If the function has a 'timeout' parameter -> validate it
+    - If not -> silently inject timeout=None
+    - If user passes timeout=0 or omits it -> treat as "no timeout" (timeout=None)
+    Returns a decorator
+    Use as: @register_function("kiosk.<name>", required=[...], optional=[...], validators={...}
+    """
+
+    required = required or []
+    optional = optional or []
+    validators = validators or {}
+    allowed_params = set(required) | set(optional)
+
+    fullname = prefix + "." + name  if prefix is not None else name
+    def decorator(func: F) -> F:
+        sig = inspect.signature(func)
+
+        @wraps(func)
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            # Case 1: REST style — first arg is dict (Payload)
+            if args and isinstance(args[0], dict):
+                data = args[0]
+            else:
+                # Case 2: Shell function style — bind args/kwargs
+                bound = sig.bind(*args, **kwargs)
+                bound.apply_defaults()
+                data = bound.arguments
+
+            # === Validation ===
+            missing = [k for k in required if k not in data]
+            if missing: # Missing parameters
+                raise ValueError(f"{fullname}: Missing required parameters: {missing}")
+
+            extra = [k for k in data if k not in allowed_params and k != "timeout"]
+            if extra: # Extra parameters
+                raise ValueError(f"{fullname}: Unknown parameters: {extra}")
+
+            for key, spec in validators.items(): # Custom validation
+                if key not in data:
+                    continue
+
+                value = data[key]
+                if isinstance(spec, dict):
+                    test = spec["test"]
+                    err = spec.get("err", f"{key} is invalid")
+                else:
+                    test = spec
+                    err = f"{key} is invalid"
+
+                if not test(value):
+                    raise ValueError(f"{fullname}: {err}")
+
+            # === Smart timeout handling (only for internal functions) ===
+            if "timeout" in data:
+                raw = data["timeout"]
+                if raw is not None:
+                    if not isinstance(raw, int) or raw <= 0:
+                        raise ValueError(f"{name}: Timeout must be int > 0 or omitted, got {raw!r}")
+                    data["timeout"] = raw
+
+            data["_cmd_name"] = fullname  # Inject _cmd_name
+
+            # === Call original function ===
+            if args and isinstance(args[0], dict):
+                return func(data)                # REST style payload
+            return func(**data)                  # Internal function style args
+
+        wrapper.__name__ = func.__name__
+        wrapper.__doc__ = func.__doc__
+        FunctionRegistry[fullname] = wrapper  # Register function
+        return cast(F, wrapper)
+
+    return decorator
+
+### Internal function definitions for user-callable functions
+@register_function("back")
+def handle_back(timeout: int | None = None, *, _cmd_name: str = "unknown") -> None:
+    """Go back in browser history."""
+    _run_subprocess(["xdotool", "key", "--clearmodifiers", "ctrl+Left"], timeout=timeout, description=_cmd_name)
+
+@register_function("forward")
+def handle_forward(timeout: int | None = None, *, _cmd_name: str = "unknown") -> None:
+    """Go forward in browser history."""
+    _run_subprocess(["xdotool", "key", "--clearmodifiers", "ctrl+Right"], timeout=timeout, description=_cmd_name)
+
+@register_function("refresh_browser")
+def handle_refresh_browser(timeout: int | None = None, *, _cmd_name: str = "unknown") -> None:
+    """Reload current page."""
+    _run_subprocess(["xdotool", "key", "--clearmodifiers", "ctrl+r"], timeout=timeout, description=_cmd_name)
+
+@register_function("launch_url")
+def handle_launch_url(url: str, timeout: int | None = None, *, _cmd_name: str = "unknown") -> None:
+    """Launch URL  — validates URL"""
+    if not isinstance(url, str):
+        raise ValueError(f"{_cmd_name}: URL must be str, got {type(url).__name__}")
+    if not url.strip():
+        raise ValueError("{_cmd_name}: URL cannot be empty or whitespace")
+    if not is_valid_url(url):
+        raise ValueError(f"{_cmd_name}: Invalid URL format")
+    if not url.startswith(("http://", "https://")):
+        url = "http://" + url
+    _run_subprocess(["luakit", url], timeout=timeout, description=_cmd_name)
+
+@register_function("display_on", optional=["blank_timeout"],
+                   validators=
+                   {"blank_timeout": {
+                       "test": lambda x: x is None or (isinstance(x, int) and x >= 0),
+                       "err": "Blank timeout must be positive integer or 0 to disable"}})
+def handle_display_on(blank_timeout: int | None = None, timeout: int | None = None, *, _cmd_name: str = "unknown") -> None:
+    """Turn display on, optionally set blanking timeout. If 0, then disables timeout"""
+
+    descr = _cmd_name
+    cmds = [ ["xset", "dpms", "force", "on"] ]
+    if blank_timeout is not None:
+        if blank_timeout == 0:
+            cmds += [ ["xset", "s", "off"], ["xset", "-dpms"] ]
+            descr += ": blanking disabled"
+        elif blank_timeout > 0:
+            t = str(blank_timeout)
+            cmds += [ ["xset", "s", t], ["xset", "dpms", t, t, t] ]
+            descr += f": blanking set to {blank_timeout} seconds"
+    for cmd in cmds:
+        _run_subprocess(cmd, shell=False, timeout=timeout, description=descr)
+
+@register_function("display_off")
+def handle_display_off(timeout: int | None = None, *, _cmd_name: str = "unknown") -> None:
+    """Force display off immediately."""
+    _run_subprocess(["xset", "dpms", "force", "off"], timeout=timeout, description=_cmd_name)
+
 #-------------------------------------------------------------------------------
 #### Utility Functions
-def debug(level: int, msg: str) -> None:
-    """Conditional debug print."""
-    if LOG_LEVEL >= level:
-        print(msg)
-
 def truncate_time(t: float | None) -> str:
     """Format time in seconds, with 1000s rollover."""
     if t is not None:
@@ -671,7 +926,10 @@ class GestureType(EnumNameMixin, Enum):
     SWIPE = auto()
     DRAG = auto()
 
-    CORNER_TOP = auto()
+    CORNER_TOPLEFT = auto()
+    CORNER_TOPRIGHT = auto()
+    CORNER_BOTLEFT = auto()
+    CORNER_BOTRIGHT = auto()
 
     SWIPE_LEFT = auto()
     SWIPE_RIGHT = auto()
@@ -715,7 +973,7 @@ class DeviceSpec:
     movement_threshold: float | None = None # Minimum distance to distinguis swipe or drag (pixels)
     swipe_velocity_threshold: float | None = None  # Minimum velocity for swipe (pixels/sec)
     drag_velocity_threshold: float | None = None  # Maximum velocity for drag (pixels/sec)
-    corner_dim: int | None = None# Dimension of corner block (used for determining, for example, CORNER_TOP).
+    corner_dim: int | None = None# Dimension of corner block (used for determining, for example, CORNER_TOPRIGHT).
     multi_click_gestures: set[GestureType] | None = None  # Gesture types that can be multi-click/tap
 
     # Non-inherited
@@ -810,10 +1068,21 @@ class DeviceSpec:
               and duration > long_click_dur):
             gesture = GestureType.LONG
 
-        # --- CORNER_TOP gesture ---
-        elif (self.supports(GestureType.CORNER_TOP) and (corner_dim := self.get_attr("corner_dim")) is not None
-              and cls.SCREEN_DIM is not None and (start_pos[0] >= cls.SCREEN_DIM[0] - corner_dim and start_pos[1] <= corner_dim)):  #pylint: disable=unsubscriptable-object  # Note this is a pylint bug
-            gesture = GestureType.CORNER_TOP
+        # --- CORNER gesture ---
+        elif (corner_dim := self.get_attr("corner_dim")) is not None and (screen_dim := cls.SCREEN_DIM) is not None:
+            x, y = start_pos
+            x_min, y_min = corner_dim, corner_dim
+            x_max, y_max = (screen_dim[0] - 1) - corner_dim, (screen_dim[1] - 1) - corner_dim  # pylint: disable=unsubscriptable-object  # Note this is a pylint bug
+            # Note subtract 1 since  numbering starts at (0,0) in top left corner
+
+            if self.supports(GestureType.CORNER_TOPLEFT) and x < x_min and y < y_min:
+                gesture = GestureType.CORNER_TOPLEFT
+            elif self.supports(GestureType.CORNER_TOPRIGHT) and x > x_max and y < y_min:
+                gesture = GestureType.CORNER_TOPRIGHT
+            elif self.supports(GestureType.CORNER_BOTLEFT) and x < x_min and y > y_max:
+                gesture = GestureType.CORNER_BOTLEFT
+            elif self.supports(GestureType.CORNER_BOTRIGHT) and x > x_max and y > y_max:
+                gesture = GestureType.CORNER_BOTRIGHT
 
         return gesture, distance, angle, velocity
 
@@ -837,7 +1106,12 @@ class DeviceType(EnumNameMixin, Enum):
         movement_threshold       = 10,
         swipe_velocity_threshold = 800,
         corner_dim               = 5,
-        multi_click_gestures     = {GestureType.CLICKTAP, GestureType.CORNER_TOP},
+        multi_click_gestures     = {GestureType.CLICKTAP,
+                                    GestureType.CORNER_TOPLEFT,
+                                    GestureType.CORNER_TOPRIGHT,
+                                    GestureType.CORNER_BOTLEFT,
+                                    GestureType.CORNER_BOTRIGHT,
+        },
     )
 
     MOUSE = DeviceSpec(
@@ -847,8 +1121,11 @@ class DeviceType(EnumNameMixin, Enum):
             GestureType.CLICKTAP:   "Click",
             GestureType.DRAG:       "Drag",
             GestureType.SWIPE:      "Swipe",
-            GestureType.LONG:       "Long Click",
-            GestureType.CORNER_TOP: "Top Corner",
+            GestureType.LONG:            "Long Click",
+            GestureType.CORNER_TOPLEFT:  "Top Left Corner",
+            GestureType.CORNER_TOPRIGHT: "Top Right Corner",
+            GestureType.CORNER_BOTLEFT : "Bottom Left Corner",
+            GestureType.CORNER_BOTRIGHT: "Bottom Right Corner",
         },
         DEFAULT=DEFAULT,
     )
@@ -864,7 +1141,10 @@ class DeviceType(EnumNameMixin, Enum):
             GestureType.SWIPE_UP:    "Swipe Up",
             GestureType.SWIPE_DOWN:  "Swipe Down",
             GestureType.LONG:        "Long Tap",
-            GestureType.CORNER_TOP:  "Top Corner"
+            GestureType.CORNER_TOPLEFT:  "Top Left Corner",
+            GestureType.CORNER_TOPRIGHT: "Top Right Corner",
+            GestureType.CORNER_BOTLEFT : "Bottom Left Corner",
+            GestureType.CORNER_BOTRIGHT: "Bottom Right Corner",
         },
         double_click_timeout     = 0.3,
         long_click_duration      = 0.8,
@@ -894,8 +1174,9 @@ DeviceSpec.init_screen_dim()  # Set screen dimension
 ## Commands Type Alias
 CommandsType: TypeAlias = str | list[str | list[str]]
 # CommandsType can be:
-#    - Single command string (e.g., "ls -a -l")
-#    - List of one or more commands in either of the 2 forms
+#    - Single command string containing either shell commands (e.g., "ls -a -l")
+#      or internally defined functions (e.g., "kiosk.back")
+#    - List of one or more commands in either of the above 2 forms
 #        - String form  (e.g., "ls -a -l")
 #        - List of argv-style component string (e.g., ["ls", "-a", "-l"])
 # Examples include:
@@ -903,27 +1184,30 @@ CommandsType: TypeAlias = str | list[str | list[str]]
 #           [["ls", "-a", "-l"]
 #           [ "ls -l", ["echo", "hello"],...]#
 
-class CommandsDict(TypedDict):  # Note not a real data class - really a TypeAlias with deeper level hinting
-    """Class used to constrain the keys allowed when the value of CommandsUnion is a dictionary"""
-    cmds: CommandsType
-    msg: NotRequired[str | None]
-    timeout: NotRequired[int | None]
+ExecutablesType: TypeAlias = Callable[[int | None], None]
+# Callable pre-processed, function. Takes a single optional timeout argument
 
-CommandsUnion: TypeAlias = CommandsType | CommandsDict
-# Either:
+class CommandsDict(TypedDict):  # Note not a real data class - really a TypeAlias with deeper level hinting
+    """Class used to contain the parsed components of a raw input command and to capture the corresponding processed executable"""
+    cmds: CommandsType                           # Raw initial command string or list
+    msg: NotRequired[str | None]                 # Optional message to print after launching commands
+    timeout: NotRequired[int | None]             # Optional timeout in second for each of the executable commands
+    execs: NotRequired[list[ExecutablesType]]    # List of parsed, processed and execution ready executable commands
+
+DEFAULT_COMMANDS_DICT: dict[str, CommandsType | CommandsDict] = {}
+# Mapping dictionary whose keys are normalized gesture identifiers of form:
+#    N_[MOUSE|TOUCH|ANY]_M_[CLICK|TAP|DRAG|SWIPE|LONG|CORNER_<name>|ANY]
+# where N and M are RangeNumbers, which can optionally be followed by '+' or '-'
+# respectively meaning greater than or equal and less than or equal.
+# Corner types are named: CORNER_TOPLEFT, CORNER_TOPRIGHT, CORNER_BOTLEFT, CORNER_BOTRIGHT
+# Note that DRAG and SWIPE also take the optional suffixes _LEFT, _RIGHT, _UP, _DOWN
+#
+# Each value is either:
 #    - CommandsType encoding one or more commands
-#    - Dictionary with entries {"cmds": <CommandsType>, "msg": <string>, "timeout": <int>}
+#    - CommandsDict  with entries {"cmds": <CommandsType>, "execs:" <list of execution-ready commands>, "msg": <string>, "timeout": <int>}
 #      where the second entry is an (optional) message to print after launching commands
 #      and the 3rd entry is an optional timeout in seconds for the commands
 
-DEFAULT_COMMANDS_DICT: dict[str, CommandsUnion] = {}
-# Mapping dictionary whose keys are normalized gesture identifiers of form:
-#    N_[MOUSE|TOUCH|ANY]_M_[CLICK|TAP|DRAG|SWIPE|LONG|CORNER_TOP|ANY]
-# where N and M are RangeNumbers, which can optionally be followed by '+' or '-'
-# respectively meaning greater than or equal and less than or equal.
-# Note that DRAG and SWIPE also take the optional suffixes _LEFT, _RIGHT, _UP, _DOWN
-#
-# Each value is a CommandsUnion
 #
 # **NOTE** When using wildcards, order DEFAULT_COMMANDS_DICT in the order of preferred matches
 #          Typically, more restrictive to less restrictive or else the more restrictive
@@ -948,39 +1232,32 @@ def is_CommandsType(obj: object, allow_empty: bool = False) -> bool:  #pylint: d
         if isinstance(cmd, str):  # Single string command
             if len(cmd.strip()) == 0:  # Empty string
                 return False
-            continue # Valid
+            continue
         if isinstance(cmd, list): # Argv-style list command
             if len(cmd) == 0:  # Empty list
                 return False
             if not all(isinstance(arg, str) for arg in cmd) or len(cmd[0].strip()) == 0:
                 return False  # Must be all strings with first one non-empty
-            continue   # Valid
+            continue
         return False
     return True
 
-def is_CommandsUnion(obj: object) -> bool:  #pylint: disable=too-many-return-statements
-    """
-    Returns True if value is compatible with CommandsUnion type, i.e., either:
-        - CommandsType: list[str | list[str]]
-        - CommandsDict: Dictionary with keys 'cmds' (CommandsType) and optional 'msg' (str) and 'timeout' (int) in seconds
-    """
-    if is_CommandsType(obj, allow_empty=True): # Just a CommandsType (allow top-level empty command)
-        return True
+def is_RawCommandsDict(obj: object) -> bool:
+    """Returns True if object is a raw CommandsDict object (i.e., CommandsDict without a (processed) 'execs' key"""
+    if not isinstance(obj, dict):
+        return False
 
-    # Dict form: {"cmds": ..., "msg"?: str, "timeout"?: int}
-    if isinstance(obj, dict):
-        if not {'cmds'} <= obj.keys() <= {'cmds', 'msg', 'timeout'}:  # 'cmds' required, 'msg' & 'timeout' optional
-            return False
-        if not is_CommandsType(obj['cmds']):
-            return False
+    if not {'cmds'} <= obj.keys() <= {'cmds', 'msg', 'timeout'}:  # 'cmds' required, 'msg' & 'timeout' optional
+        return False
+    if not is_CommandsType(obj['cmds']):
+        return False
 
-        # Optional fields
-        if 'msg' in obj and not isinstance(obj['msg'], str):  # If 'msg' key, its value must be a string
-            return False
-        if 'timeout' in obj and not isinstance(obj['timeout'], int) and not obj['timeout'] >= 0:  # If 'timeout' key, its value must be a non-negative integer
-            return False
-        return True
-    return False
+    # Optional fields
+    if 'msg' in obj and not isinstance(obj['msg'], str):  # If 'msg' key, its value must be a string
+        return False
+    if 'timeout' in obj and not isinstance(obj['timeout'], int) and not obj['timeout'] >= 0:  # If 'timeout' key, its value must be a non-negative integer
+        return False
+    return True
 
 #-------------------------------------------------------------------------------
 # RangeNumber class is used to represent pseudo numbers like greater/less than or equal to N
@@ -1166,9 +1443,15 @@ class GestureCommand:
 
     @property
     def cmds(self) -> CommandsType | None:
-        """Return the CommandsType element"""
+        """Return the raw command associated with the GestureCommand"""
         cmds_dict = self.cmds_dict
         return cmds_dict["cmds"] if cmds_dict is not None else None
+
+    @property
+    def execs(self) -> list[ExecutablesType] | None:
+        """Return the parsed, processed list of executable commands"""
+        cmds_dict = self.cmds_dict
+        return cmds_dict["execs"] if cmds_dict is not None else None
 
     @property
     def msg(self) -> str | None:
@@ -1245,7 +1528,7 @@ class GestureCommand:
 
     def matches_rule(self, other: GestureCommand) -> bool:
         """
-        Return true if self matches another GestureCommand
+        Return true if self matches another GestureCommand rule
         Note this is not symmetric since wildcards are appended only to 'other'
         """
         device_type_matches = other.device_type in (self.device_type, DeviceType.ANY) # Devices match or other is GestureType.ANY
@@ -1421,25 +1704,143 @@ class GestureCommand:
     @staticmethod
     def _parse_command_value(value: Any) -> CommandsDict:
         """
-        Returns the corresponding CommandsDict object with "cmds" and optional "msg" and "timeout" keys.
-        If not a valid CommandsUnion object, then raises an exception.
+        Returns the corresponding CommandsDict object with "cmds" and "execs" plus the optional "msg" and "timeout" keys.
+        Raise an exception if:
+        - Not a valid raw command object (i.e. not a CommandsType or CommandsDict)
+        - Command is blacklisted or not whitelisted (and ALLOW_ALL_USER_COMMANDS is False)
         """
-        if not is_CommandsUnion(value):
+
+        def is_path_allowed(prog_path: str) -> bool:
+            """Return True if binary is in an allowed directory."""
+            try:
+                real_path = os.path.realpath(prog_path)
+                return any(real_path.startswith(allowed + "/") for allowed in ALLOWED_PATHS)
+            except Exception:
+                return False
+
+        def is_command_allowed(command_str: str) -> tuple[bool, str]:  #pylint: disable=too-many-return-statements
+            """ Return True if all programs called bycommand string are in the white list and not in the blacklist.
+                Also returns True if 'ALLOW_ALL_USER_COMMANDS' is True
+            """
+
+            if ALLOW_ALL_USER_COMMANDS:
+                return True, "All commands allowed"
+
+            # Extract all programs in the potentially compound command
+            programs = set()
+            parts = SEP_REGEX.split(command_str)
+            for part in parts:
+                part = part.strip()
+                if not part:
+                    continue
+                try:
+                    tokens = shlex.split(part)
+                    if tokens:
+                        prog = tokens[0]
+                        programs.add(prog)
+                except (ValueError, IndexError):
+                    continue
+
+            if not programs:
+                return False, "No programs found"
+
+            for prog in programs:
+                # 1. Program not found
+                prog_path = shutil.which(prog) or ""
+                if not prog_path:
+                    return False, f"Program not found: {prog}"
+
+                # 2. PATH restriction
+                if not is_path_allowed(prog_path):
+                    return False, f"Program not in allowed paths: {prog_path}"
+
+                # 3. Whitelist — Allow if whitelisted; deny if not
+                # Note whitelist overrides blacklist if set
+                if COMPILED_WHITELIST_REGEX is not None:
+                    if not COMPILED_WHITELIST_REGEX.fullmatch(prog):
+                        return False, f"Program not in Whitelist: {prog}"
+                    continue
+
+                # 4. Blacklist — Deny if blacklisted
+                if COMPILED_BLACKLIST_REGEX.fullmatch(prog):
+                    return False, f"Blacklisted program: {prog}"
+
+            return True, "Safe - Whitelisted"
+
+        # Start of command parser
+        if not (is_CommandsType(value, allow_empty=True) or is_RawCommandsDict(value)): #Note we Allow an empty string as a no-op
             raise ValueError(f"Invalid dictionary command format: {value!r}")
 
-        # At this point, we KNOW it's valid — now extract cleanly
-        if isinstance(value, dict):  # Command is of form {"cmds": <CommandsType>, "msg": <string>, "timeout": <int>}
-            cmds: CommandsType = value["cmds"]
-            msg: str | None = value.get("msg")
-            timeout: int | None = value.get("timeout")
-        else: # value is just a CommandsType
-            if isinstance(value, str) and value == "":
-                value = None # No-op
-            cmds = value
+        if isinstance(value, dict): # Command Dictionary
+            raw_cmds = value.get("cmds")
+            msg = value.get("msg")
+            timeout = value.get("timeout")
+
+        else: # String command # Command Type
+            raw_cmds = value
             msg = None
             timeout = None
 
-        return { "cmds": cmds, "msg": msg, "timeout": timeout }
+        if raw_cmds in ("", None, [], {}): # Null command
+            return {"cmds": value, "execs": [], "msg": msg, "timeout": None}
+
+        if not isinstance(raw_cmds, list):  # Command is just a simple string so listify
+            raw_cmds = [raw_cmds]
+
+        execs_list: list[ExecutablesType] = []
+
+        for cmd in raw_cmds:
+            if not cmd or cmd == "":
+                continue
+
+            # 1. Command = Argv-sytle list
+            if isinstance(cmd, list):
+                cmd_str = " ".join(shlex.quote(str(x)) for x in cmd)
+                allowed, reason = is_command_allowed(cmd_str)
+                if not allowed:
+                    raise ValueError(f"Command '{cmd!r}' blocked: {reason}")
+                descr = f"List Command: {cmd!r}"
+
+                def run(time_out: int | None = None, args: list[str] = cmd, descr: str = descr) -> None:
+                    _run_subprocess(args, timeout=time_out, description=descr)
+                execs_list.append(run)
+                continue
+
+            if not isinstance(cmd, str): # Should not happen since we tested validity before
+                raise TypeError(f"Command must be string or list, got {type(cmd)}: {cmd!r}")
+
+            # 2. Command = string
+            cmd_str = cmd.strip()
+            if not cmd_str:  # Blank command # Should not happen since we tested validity before
+                continue
+
+            parts = shlex.split(cmd_str)
+            cmd_name = parts[0]
+
+            # 2a: Internal Command
+            if cmd_name in FunctionRegistry:
+                function = FunctionRegistry[cmd_name]
+                arguments = parts[1:]
+                descr = f"Internal function: {cmd_str}"
+
+                def run(time_out: int | None = None,  #type: ignore[misc] #pylint: disable=function-redefined #This is a mypy and pylint bug
+                        func: Callable[..., None] = function, args: list[str] = arguments, descr: str = descr) -> None:
+                    debug(2, descr)
+                    func(*args, timeout=time_out)
+                execs_list.append(run)
+
+            # 2b: Shell Command
+            (allowed, reason) = is_command_allowed(cmd_str)
+            if not allowed:
+                raise ValueError(f"Command '{cmd_str}' : {reason}")
+            descr = f"String command: {cmd_str}"
+
+            def run(time_out: int | None = None,  #type: ignore[misc] #pylint: disable=function-redefined #This is a mypy and pylint bug
+                    cmd: str = cmd_str, descr: str = descr) -> None:
+                _run_subprocess(cmd, timeout=time_out, description=descr)  # _run_subprocess will decide whether to use shell
+            execs_list.append(run)
+
+        return {"cmds": value, "execs": execs_list, "msg": msg, "timeout": timeout}
 
     @classmethod
     def _parse_add_gesture_command(cls, key_str: str, raw_value: Any, add_overridden: bool = False) -> bool:
@@ -1477,7 +1878,7 @@ class GestureCommand:
         return False
 
     @classmethod
-    def parse_and_load_dict(cls, commands_dict: dict[str, CommandsUnion], *, source: str = "default dictionary", dropped_keys: int = 0, add_overridden: bool = False) -> None:
+    def parse_and_load_dict(cls, commands_dict: dict[str, CommandsType | CommandsDict], *, source: str = "default dictionary", dropped_keys: int = 0, add_overridden: bool = False) -> None:
         """
         Parse and append existing gesture command dictionary into GestureCommand instances
         stored in GESTURE_CMDS_LIST list. Note: newer keys have lower precedence than older keys
@@ -1495,13 +1896,13 @@ class GestureCommand:
     def parse_and_load_file(cls, file_path: str | None, *, add_overridden: bool = False) -> None:
         """
         Load external gesture command JSON-like file and append onto GESTURE_CMDS_LIST list.
-        Each entry is a key-value pair of form:  <gesture_string>: <CommandsUnion>.
+        Each entry is a key-value pair of form:  <gesture_string>: <CommandsType | CommandsDict>.
         Note: newer keys have lower precedence than older keys
         Any text on line after '#' is treated as a comment
         Any single escaped '#' is double-escaped so valid JSON and not treated as comment
 
         Note the entries can be entered in any of the following ways
-          1. JSON dictionary of <gesture string>: <CommandsUnion>  pairs, separated by commas
+          1. JSON dictionary of <gesture string>: <CommandsType | CommandsDict>  pairs, separated by commas
           2. Same as #1 but without enclosing starting and ending braces
           3. JSON dictionary with at least one key called "gestures" whose value is a dictionary or list of strings
              of key-value pairs of form #1 (Used to parse the 'options.json' file in HA add-ons)
@@ -1934,16 +2335,13 @@ class GestureSequence(RegistryMixin):
 
         gesture_command_match = gesture_command.lookup()  # Lookup gesture in command dictionary
         if gesture_command_match is not None:  #Match found
-            if (cmds := gesture_command_match.cmds) is not None:
+            if gesture_command_match.cmds is not None:
                 debug(1, f">ACTION: gesture={gesture_command_match} cmds={gesture_command_match.sprint_commands()}")
-                if (msg := gesture_command_match.msg) is not None:  # Print the associated message
-                    debug(0, f"   Message: {msg}")
 
                 # Run commands in a separate thread so as not to slow down event parsing loop
-                timeout = gesture_command_match.timeout or CMD_TIMEOUT
-                threading.Thread(target=run_bash_commands, args=(cmds, timeout,), daemon=True).start()
-            else:  # No op
-                debug(2, f">ACTION: gesture={gesture_command_match} cmds=NO-OP")
+                threading.Thread(target=execute_commands, args=(gesture_command_match.cmds_dict,), daemon=True).start()
+                return True
+            debug(2, f">ACTION: gesture={gesture_command_match} cmds=NO-OP")
         else:
             debug(3, f"Notice: GestureCommand not present in GESTURE_CMDS_LIST: {gesture_str}")
 
@@ -2129,7 +2527,7 @@ class XInputParser:
             if not line:
                 continue
 
-            if abs(LOG_LEVEL) >= 2 and (0x2380 <= ord(line[0]) <= 0x23BF):  # xinput preamble listing devices
+            if abs(DEBUG_LEVEL) >= 2 and (0x2380 <= ord(line[0]) <= 0x23BF):  # xinput preamble listing devices
                 print(line)
                 continue
 
@@ -2146,12 +2544,12 @@ class XInputParser:
                 click_event = self.event.xevent in CLICK_EVENTS
 
             # Raw debug printing
-            if abs(LOG_LEVEL) >= 8 or (abs(LOG_LEVEL) == 7 and parse_event) or (abs(LOG_LEVEL) == 6 and click_event):
+            if abs(DEBUG_LEVEL) >= 8 or (abs(DEBUG_LEVEL) == 7 and parse_event) or (abs(DEBUG_LEVEL) == 6 and click_event):
                 if new_event:  # Skip line between events
                     print()
                     event_separator = False
                 self.print_raw(line)
-            if LOG_LEVEL < 0:
+            if DEBUG_LEVEL < 0:
                 continue
 
             if not parse_event or self.event is None:  # New event not yet started
@@ -2199,54 +2597,69 @@ class XInputParser:
                 return cast(XInputEventFilled, self.event)
 
 #-------------------------------------------------------------------------------
-#### Run commands
-def run_bash_commands(cmds: CommandsType, timeout: int | None) -> None:
-    """
-    Run list of one or more shell commands safely (list[str | list[str]]) where each command is of form:
-      - Single string (e.g., "ls -a -l")
-      - Argv-style list (e.g., ["ls", "-l"])
-    """
-    if isinstance(cmds, str):
-        cmds = [cmds] # Convert to list of single command string
-    for cmd in cmds:
+#### Execute Commands
+
+class CommandError(RuntimeError):
+    """ Error class for subprocess.run"""
+
+def _run_subprocess(args: str | Sequence[str], *, shell: bool | None = None, timeout: int | None = CMD_TIMEOUT, description: str) -> None:
+    """Output and Debugging-enabled wrapper around subprocess_run"""
+
+    if isinstance(args, str): # If string, test if needs shell
+        cmd_str = args.strip()
+        args_list = shlex.split(cmd_str)
+        prog = args_list[0]
+        needs_shell = bool(re.search(r'["`\' ]|\$[^(]', cmd_str)) #Needs shell if quotes, spaces, backslashes, backquotes, environment variables
+        use_shell = shell or ALLOW_ALL_USER_COMMANDS or needs_shell
+        args = cmd_str if use_shell else args_list
+
+    else:  # List commands never use shell
+        prog = args[0]
+        use_shell = False
+
+    try:
+        result = subprocess.run(
+            args,
+            shell   = use_shell,
+            text    = True,
+            stdout  = subprocess.PIPE,
+            stderr  = subprocess.PIPE,
+            timeout = timeout,
+            check   = False,
+        )
+        if result.stdout.strip():
+            debug(2, "--- STDOUT ---\n" + result.stdout.rstrip())
+        if result.stderr.strip():
+            debug(2, "--- STDERR ---\n" + result.stderr.rstrip())
+        if result.returncode != 0:
+            raise CommandError(f"Command failed (exit={result.returncode}): {description}")
+        debug(2, f"Execution success: {description}")
+
+    except subprocess.TimeoutExpired as e:
+        raise CommandError(f"Timeout for '{prog}' after {timeout}s [{"shell" if use_shell else "exec"}]: {description}") from e
+    except FileNotFoundError as e:
+        if use_shell:  # This usually means: binary not found OR syntax error in shell string
+            raise CommandError(f"Program '{prog}' not found or shell syntax error: {description}") from e
+        raise CommandError(f"Program '{prog}' not found (direct exec, no shell): {description}") from e
+    except PermissionError as e:
+        raise CommandError(f"Permission denied for '{prog}': {description}") from e
+    except Exception as e:
+        raise CommandError(f"Failed to execute '{prog}' command [{"shell" if use_shell else "exec"}]: {description}") from e
+
+
+def execute_commands(cmds_dict: CommandsDict) -> None:
+    """ Execute one or more executable commands from the CommandsDict"""
+    timeout = cmds_dict.get("timeout") or CMD_TIMEOUT
+
+    if (msg := cmds_dict.get("msg")):
+        debug(0, f"   Message: {msg}")
+        debug(2, "----------\n")
+
+    for cmd in cmds_dict.get("execs", []):
         try:
-            if isinstance(cmd, str):  # Use shell if string-style command
-                shell = True
-            elif isinstance(cmd, list): # Argv-style command
-                shell = False
-                if not all(isinstance(arg, str) for arg in cmd):
-                    raise ValueError(f"Invalid argv-style command syntax: {cmd}")
-            else:
-                raise ValueError(f"Invalid command syntax: {cmd}")
-
-            result = subprocess.run(
-                cmd,
-                shell   = shell,
-                check   = False,
-                text    = True,
-                stdout  = subprocess.PIPE,
-                stderr  = subprocess.PIPE,
-                timeout = timeout,              # Optional, defaults to CMD_TIMEOUT
-            )
-            if result.returncode != 0:
-                debug(0, f"ERROR executing command (exit: {result.returncode}): {cmd}")
-            else:
-                debug(2, f":Execution success: {cmd}")
-
-            if result.stdout:
-                debug(2, "--- Stdout ---\n" + result.stdout)
-            if result.stderr:
-                debug(2, "--- Stderr ---\n" + result.stderr)
-
-        except ValueError as e:
-            debug(0, str(e))
-        except subprocess.TimeoutExpired:
-            debug(0, f"Command timed out: {cmd}")
-        except subprocess.CalledProcessError as e:
-            debug(0, f"Command failed (exit {e.returncode}): {cmd}")
+            cmd(timeout)
         except Exception as e:
-            debug(0, f"Failed to run command: {e} -> {cmd}")
-        debug(3, "")
+            debug(0, f"FAILED: {e}")
 
 #-------------------------------------------------------------------------------
 ### Event processing functions
@@ -2355,13 +2768,13 @@ __all__ = [
     # Key Type Aliases
     "CommandsType",
     "CommandsDict",
-    "CommandsUnion",
+    "ExecutablesType",
     "EventRecord",
     "GestureData",
 
     # Public functions
     "initialize",
-    "run_bash_commands",
+    "execute_commands",
 
     "__version__",
 ]

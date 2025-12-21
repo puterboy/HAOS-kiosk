@@ -78,13 +78,12 @@ options:
   save_onscreen_config: true
   xorg_conf: ""
   xorg_append_replace: "append"
-  allow_user_commands: false
   rest_ip: "127.0.0.1"
   rest_port: 8080
   rest_bearer_token: ""
   debug_mode: false
   gestures:
-    - '"1_ANY_1_CORNER_TOP": {"cmds": [["dbus-send", "--type=method_call", "--dest=org.onboard.Onboard", "/org/onboard/Onboard/Keyboard", "org.onboard.Onboard.Keyboard.ToggleVisible"]], "msg": "Toggling Onboard keyboard..."}'
+    - '"1_ANY_1_CORNER_TOPRIGHT": {"cmds": [["dbus-send", "--type=method_call", "--dest=org.onboard.Onboard", "/org/onboard/Onboard/Keyboard", "org.onboard.Onboard.Keyboard.ToggleVisible"]], "msg": "Toggling Onboard keyboard..."}'
     - '"[Left]_MOUSE_3_CLICK": {"cmds": [["dbus-send", "--type=method_call", "--dest=org.onboard.Onboard", "/org/onboard/Onboard/Keyboard", "org.onboard.Onboard.Keyboard.ToggleVisible"]], "msg": "Toggling Onboard keyboard..."}'
     - '"3_TOUCH_1_TAP": {"cmds": [["dbus-send", "--type=method_call", "--dest=org.onboard.Onboard", "/org/onboard/Onboard/Keyboard", "org.onboard.Onboard.Keyboard.ToggleVisible"]], "msg": "Toggling Onboard keyboard..."}'
     - '"3_TOUCH_2_TAP": {"cmds": [["xdotool", "key", "--clearmodifiers", "ctrl+r"]], "msg": "Refresh Browser"}'
@@ -92,6 +91,7 @@ options:
     - '"3+_TOUCH_1_SWIPE_LEFT": {"cmds": [["xdotool", "key", "--clearmodifiers", "ctrl+Right"]], "msg": "Go forward in the history browser"}'
     - '"3+_TOUCH_1_SWIPE_RIGHT": {"cmds": [["xdotool", "key", "--clearmodifiers", "ctrl+Left"]], "msg": "Go back in the history browser"}'
     - '"2_TOUCH_3_TAP": {"cmds": "luakit \"www.google.com\"", "msg": "Open Google search"}'
+  command_whitelist: "cat|date|dbus-send|echo|false|grep|head|ls|luakit|notify-send|ping|ping6|ps|pstree|sleep|tail|test|top|tree|xdotool|xset"
 
 schema:
   ha_username: str
@@ -116,10 +116,10 @@ schema:
   rest_ip: str
   rest_port: int(1024,49151)
   rest_bearer_token: password
-  allow_user_commands: bool
   debug_mode: bool
   gestures:
     - str
+  command_whitelist: str
 
 translations:
   - en

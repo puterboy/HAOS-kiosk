@@ -103,11 +103,6 @@ configuration:
       Optional authorization token for REST API. [Default: ""]
       If set add the line `-H "Authorization: Bearer <REST_BEARER_TOKEN>"`
       to your REST API calls.
-  allow_user_commands:
-    name: "Allow User Commands"
-    description: |
-      Allow user to run arbitrary commands in the HAOSkiosk container via the
-      service: `haoskiosk.run_command <CMD>` [Default: False]
   debug_mode:
     name: "Debug Mode"
     description: |
@@ -118,3 +113,8 @@ configuration:
     description: |
       Add JSON-like gesture string key and gesture command value pairs. See
       README for formatting Earlier keys take precedence over later keys
+  command_whitelist
+    name: "Command Whitelist Regex"
+    description: |
+      Regex of runnable user commands for the REST API and for use in
+      gesture commands. See README for details

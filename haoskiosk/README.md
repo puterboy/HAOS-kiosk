@@ -187,15 +187,6 @@ Note for security REST server only listens on localhost (127.0.0.1)
 Optional authorization token for REST API. (Default: "") If set, then add
 line `-H "Authorization: Bearer <REST_BEARER_TOKEN>"` to REST API calls.
 
-### Allow User Commands
-
-Allow user to run arbitrary one or more commands in the HAOSkiosk container
-via the respective REST APIs: `run_command` and `run_commands` (Default:
-false)
-
-Warning: Allowing this could allow the user to inject potentially dangerous
-root-level commands
-
 ### Debug
 
 For debugging purposes, launches `Xorg` and `openbox` and then sleeps
@@ -210,6 +201,21 @@ Editable list of JSON-like key-value pairs where the key represents a
 (valid) *gesture string* and the value is a structured set of one or more
 *action* commands. See section "GESTURE COMMANDS" below for more details,
 examples, and default gestures.
+
+### Command Whitelist Regex
+
+Regex (Python) of shell command that can be used in creating gesture
+commands or when running the `run_command` and `run_commands` REST APIs.
+
+If left blank, then all commands are allowed except for those blacklisted
+as dangerous (otherwise, whitelist overrides internal blacklist).
+
+Note that if you want to truly allow *all* commands, then use the wildcard
+`.*` but beware that it is DANGEROUS. If you want to disallow all commands
+set the regex to `^$`.
+
+Note that regardless of setting only commands found in `/bin`, `/usr/bin`,
+and `/usr/local/bin` of the add-on are allowed.
 
 ______________________________________________________________________
 
@@ -497,7 +503,7 @@ than or equal to `M` (e.g., `1` for single-click, `2` for double-click,
 **`<GESTURE>`** field specifies the general class or device-specific name
 of the gesture
 
-- Class (e.g., `CLICKTAP`, `DRAG`, `SWIPE`, `LONG`, `CORNER_TOP`) or the
+- Class (e.g., `CLICKTAP`, `DRAG`, `SWIPE`, `LONG`, `CORNER_<name>`) or the
   wildcard `ANY`
 - Friendly Name (e.g., `Click`, `Tap`, `Drag`, `Swipe`, `Long Click`,
   `Long Tap`). Note the names may be device-specific (e.g., Click for
@@ -506,13 +512,15 @@ of the gesture
 ##### Additional notes regarding gesture naming:
 
 - `ANY` is a wildcard matching any gesture
+- Corners are named: CORNER_TOPLEFT, CORNER_TOPRIGHT, CORNER_BOTLEFT,
+  CORNER_BOTRIGHT
 - `DRAG` and `SWIPE` differ primarily in velocity (`SWIPE` is faster)
 - Both `DRAG` and `SWIPE` may include suffixes `_LEFT`, `_RIGHT`, `_UP`, or
   `_DOWN`
 - Undirected `DRAG`/`SWIPE` act as wildcards for their directional variants
 - `LONG` can take the optional device-specific suffixes `_CLICK` or `TAP`
-- `CORNER_TOP` triggers if the Click/Tap occurs in the extreme top-right
-  corner
+- CORNER\_<name> triggers when click or tap is in within "click_dim" of the
+  named corner (default 5 pixels)
 - `DRAG`, `SWIPE`, and `LONG` (and their variants) are always single-click
   gestures
 - Matching is case-insensitive
@@ -530,7 +538,7 @@ always enter keys from particular to more general when using wildcards
 
 ```
 [Left, Right]_MOUSE_3_CLICKTAP
-[1,2,3]_MOUSE_1+_CORNER_TOP
+[1,2,3]_MOUSE_1+_CORNER_TOPRIGHT
 2_TOUCH_1_DRAG_LEFT
 2_Button_1_Long Click
 3_Finger_2_Tap
@@ -561,6 +569,11 @@ Action command values may be expressed in one of three forms:
 
 Example `["echo hello", ["ls", "-a", "-l"]]`
 
+Note that the commands themselves can either be shell commands or
+kiosk-specific internal commands that begin with the prefix 'kiosk.'
+
+Examples include:
+
 3. **Command dictionary** with required key `"cmds":` and optional keys:
    `"msg":` and `"timeout"`
 
@@ -576,10 +589,10 @@ Examples:
 The following gestures are included by default (but can be removed by
 clicking on the `X` next to them):
 
-- **Single Tap or Click in Topmost Corner**: *Toggle on-screen keyboard*
+- **Single Tap or Click in Top Right Corner**: *Toggle on-screen keyboard*
 
 ```
-"1_ANY_1_CORNER_TOP": {"cmds": [["dbus-send", "--type=method_call", "--dest=org.onboard.Onboard", "/org/onboard/Onboard/Keyboard", "org.onboard.Onboard.Keyboard.ToggleVisible"]], "msg": "Toggling Onboard keyboard..."}
+"1_ANY_1_CORNER_TOPRIGHT": {"cmds": [["dbus-send", "--type=method_call", "--dest=org.onboard.Onboard", "/org/onboard/Onboard/Keyboard", "org.onboard.Onboard.Keyboard.ToggleVisible"]], "msg": "Toggling Onboard keyboard..."}
 ```
 
 - **Left Triple Mouse Click**: *Toggle on-screen keyboard*
@@ -594,7 +607,7 @@ clicking on the `X` next to them):
 "3_TOUCH_1_TAP": {"cmds": [["dbus-send", "--type=method_call", "--dest=org.onboard.Onboard", "/org/onboard/Onboard/Keyboard", "org.onboard.Onboard.Keyboard.ToggleVisible"]], "msg": "Toggling Onboard keyboard..."}
 ```
 
-- **3-Finger Double Tap**: *Refresh screen*
+- **3-Finger Double Tap**: *Refresh Browser*
 
 ```
 "3_TOUCH_2_TAP": {"cmds": [["xdotool", "key", "--clearmodifiers ctrl+r"]], "msg": "Refresh Browser"}
@@ -607,13 +620,13 @@ clicking on the `X` next to them):
 "3_TOUCH_3_TAP": {"cmds": "luakit \"$HA_URL/$HA_DASHBOARD\"", "msg": "Restore default dashboard"}
 ```
 
-- **3-Finger Right Swipe**: *Go back one element in browser history*
+- **3-Finger Left Swipe**: *Go forward one element in browser history*
 
 ```
 "3_TOUCH_1_SWIPE_LEFT": {"cmds": [["xdotool", "key", "--clearmodifiers", "ctrl+Right"]], "msg": "Go forward in the history browser"}
 ```
 
-- **3-Finger Left Swipe**: *Go forward one element in browser history*
+- **3-Finger Right Swipe**: *Go back one element in browser history*
 
 ```
 "3_TOUCH_1_SWIPE_RIGHT": {"cmds": [["xdotool", "key", "--clearmodifiers", "ctrl+Left"]], "msg": "Go back in the history browser"}

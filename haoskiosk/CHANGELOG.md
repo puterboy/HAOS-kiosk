@@ -1,7 +1,11 @@
 # Changelog
 
-## v1.2.0 - November 2025
+## v1.2.0 - December 2025
 
+- Removed config.yaml parameter `allow_user_command` and replaced with
+  `command_whitelist` regex. Also added internal whitelist, blacklist, and
+  dangerous shell tokens list along with path restrictions (see README.md)
+  for details on how behavior has changed.
 - Wrote complete Python 'xinput2' parser to detect broad range of mouse and
   touch gestures and execute gesture-specific commands. Replaces prior very
   limited tkinter implementation. See 'mouse_touch_inputs.py' and

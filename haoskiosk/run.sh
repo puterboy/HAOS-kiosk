@@ -32,7 +32,7 @@ VERSION="1.2.0"
 #         REST_PORT
 #         REST_IP
 #         REST_BEARER_TOKEN
-#         ALLOW_USER_COMMANDS
+#         COMMAND_WHITELIST
 #         DEBUG_MODE
 #
 #     - Hack to delete (and later restore) /dev/tty0 (needed for X to start
@@ -134,8 +134,7 @@ load_config_var XORG_APPEND_REPLACE append
 load_config_var REST_PORT 8080
 load_config_var REST_IP "127.0.0.1"
 load_config_var REST_BEARER_TOKEN "" 1  # Mask token in log
-load_config_var ALLOW_USER_COMMANDS false
-[ "$ALLOW_USER_COMMANDS" = "true" ] && bashio::log.warning "WARNING: 'allow_user_commands' set to 'true'"
+load_config_var COMMAND_WHITELIST "^$"  # Default is no commands allowed
 load_config_var DEBUG_MODE false
 
 # Validate environment variables set by config.yaml
@@ -214,11 +213,21 @@ udevadm settle --timeout=10  #Wait for udev event processing to complete
 # Show discovered libinput devices
 echo "libinput list-devices found:"
 libinput list-devices 2>/dev/null | awk '
-  /^Device:/ {devname=substr($0, 9)}
+  /^Device:/ {
+    devname = substr($0, index($0, $2))
+    gsub(/^[ \t]+|[ \t]+$/, "", devname)  # Trim device name
+  }
   /^Kernel:/ {
-    split($2, a, "/");
-    printf "  %s: %s\n", a[length(a)], devname
-}' | sort -V
+    split($2, a, "/")
+    event = a[length(a)]
+    gsub(/^[ \t]+|[ \t]+$/, "", event)    # Trim event (unlikely, but safe)
+  }
+  /^Capabilities:/ {
+    type = substr($0, index($0, $2))
+    gsub(/^[ \t]+|[ \t]+$/, "", type)      # Trim capabilities (i.e., device type)
+    print event "\t" type "\t" devname
+  }
+' | sort -V | column -t -s $'\t'
 
 ## Determine main display card
 bashio::log.info "DRM video cards:"
@@ -488,7 +497,7 @@ fi
 
 ### Launch Xinput parsing...
 bashio::log.info "Starting Mouse & Touch input gesture command parsing..."
-python3 -u /mouse_touch_inputs.py -d 1 &
+python3 -u /mouse_touch_inputs.py  -d 1 -w "$COMMAND_WHITELIST" &
 
 #### Start  HAOSKiosk REST server
 bashio::log.info "Starting HAOSKiosk REST server..."
