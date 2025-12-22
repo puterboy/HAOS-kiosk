@@ -290,6 +290,37 @@ webview.add_signal("init", function(view)
             ha_settings_applied[v] = true   -- Mark in Lua session as settings applied
         end
 
+        -- Suppress known harmless unhandled promise rejections in kiosk environment
+        --   - Service worker / script load failures during reloads
+        --   - View transition errors when monitor/document is hidden (common when screen off)
+        -- Prevents page aborts/504s while keeping real errors visible
+        local js_suppress_errors = [[
+            window.addEventListener('unhandledrejection', function(e) {
+                const reason = e.reason;
+                let suppress = false;
+
+                if (reason) {
+                    const msg = typeof reason.message === 'string' ? reason.message : '';
+                    const name = reason.name || '';
+
+                    if (msg.includes('sw-modern.js') ||
+                        msg.includes('load failed') ||
+                        msg.includes('service worker') ||
+                        (name === 'InvalidStateError' && msg.includes('document visibility state is hidden')) ||
+                        (name === 'InvalidStateError' && msg.includes('View transition was skipped'))) {
+                        suppress = true;
+                    }
+                }
+
+                if (suppress) {
+                    console.warn('Suppressed known kiosk-safe unhandled rejection:', reason);
+                    e.preventDefault(); // Prevent abort / potential load failure
+                }
+            });
+        ]]
+
+       -- Inject suppress_errors script into the webview (once per load-finished)
+       v:eval_js(js_suppress_errors, { source = "suppress_kiosk_errors.js", no_return = true })
 
         -- Set up periodic page refresh (once per page load) if browser_refresh interval is positive
         if browser_refresh > 0 then
@@ -329,6 +360,7 @@ webview.add_signal("init", function(view)
             -- Inject refresh script into the webview
             v:eval_js(js_refresh, { source = "auto_refresh.js", no_return = true })  -- Execute the refresh script
         end
+
     end)
 end)
 
