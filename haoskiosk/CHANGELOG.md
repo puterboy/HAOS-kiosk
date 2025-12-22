@@ -2,6 +2,11 @@
 
 ## v1.2.0 - December 2025
 
+- Added ability to set HA theme in config.yaml
+- Improved robustness and logging of luakit refresh browser JS injection
+- Added luakit memory process logging after every page load
+- Improved robustness and debug output for associating udevadm paths with
+  libinput list devices
 - Removed config.yaml parameter `allow_user_command` and replaced with
   `command_whitelist` regex. Also added internal whitelist, blacklist, and
   dangerous shell tokens list along with path restrictions (see README.md)

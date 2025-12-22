@@ -21,6 +21,7 @@ VERSION="1.2.0"
 #         OUTPUT_NUMBER
 #         DARK_MODE
 #         HA_SIDEBAR
+#         HA_THEME
 #         ROTATE_DISPLAY
 #         MAP_TOUCH_INPUTS
 #         CURSOR_TIMEOUT
@@ -122,6 +123,7 @@ load_config_var OUTPUT_NUMBER 1  # Which *CONNECTED* Physical video output to us
 #NOTE: By only considering *CONNECTED* output, this maximizes the chance of finding an output
 #      without any need to change configs. Set to 1, unless you have multiple video outputs connected.
 load_config_var DARK_MODE true
+load_config_var HA_THEME ""
 load_config_var HA_SIDEBAR "none"
 load_config_var ROTATE_DISPLAY normal
 load_config_var MAP_TOUCH_INPUTS true
@@ -197,11 +199,18 @@ fi
 # Force tagging of event input devices (in /dev/input) to enable recognition by
 # libinput since 'udev' doesn't necessarily trigger their tagging when run from a container.
 echo "/dev/input event devices:"
-for dev in $(find /dev/input/event* | sort -V); do  # Loop through all input devices
-    devpath_output=$(udevadm info --query=path --name="$dev" 2>/dev/null; echo -n $?)
-    return_status=${devpath_output##*$'\n'}
-    [ "$return_status" -eq 0 ] || { echo "  $dev: Failed to get device path"; continue; }
-    devpath=${devpath_output%$'\n'*}
+find /dev/input/event* -type c | sort -V | while IFS= read -r dev; do # Loop through all input devices
+    devpath=""
+    for retries in {1..25}; do  # Retry and give time to settle if not successful initially
+        if devpath=$(udevadm info --query=path --name="$dev" 2>/dev/null); then
+            break
+        fi
+        sleep 0.2
+    done
+    if [ -z "$devpath" ]; then
+        echo "  $dev: Failed to get device path"
+        continue
+    fi
     echo "  $dev: $devpath"
 
     # Simulate a udev event to trigger (re)load of all properties
@@ -213,20 +222,33 @@ udevadm settle --timeout=10  #Wait for udev event processing to complete
 # Show discovered libinput devices
 echo "libinput list-devices found:"
 libinput list-devices 2>/dev/null | awk '
+  BEGIN { OFS="\t" }
+
+  function print_device() {
+    if (devname != "")
+      print  "  "(event ? event : ""), (type ? type : ""), devname
+      devname = ""
+      event = ""
+      type = ""
+  }
+
   /^Device:/ {
+    print_device()  # Print previous device (if exists)
     devname = substr($0, index($0, $2))
     gsub(/^[ \t]+|[ \t]+$/, "", devname)  # Trim device name
   }
+
   /^Kernel:/ {
     split($2, a, "/")
     event = a[length(a)]
     gsub(/^[ \t]+|[ \t]+$/, "", event)    # Trim event (unlikely, but safe)
   }
+
   /^Capabilities:/ {
     type = substr($0, index($0, $2))
     gsub(/^[ \t]+|[ \t]+$/, "", type)      # Trim capabilities (i.e., device type)
-    print event "\t" type "\t" devname
   }
+  END { print_device() }  # Print last device
 ' | sort -V | column -t -s $'\t'
 
 ## Determine main display card
@@ -284,7 +306,7 @@ echo "."
 bashio::log.info "Starting X on DISPLAY=$DISPLAY..."
 NOCURSOR=""
 [ "$CURSOR_TIMEOUT" -lt 0 ] && NOCURSOR="-nocursor"  #No cursor if <0
-Xorg $NOCURSOR </dev/null &
+Xorg $NOCURSOR </dev/null 2>&1 | grep -v "Could not resolve keysym XF86\|Errors from xkbcomp are not fatal\|XKEYBOARD keymap compiler (xkbcomp) reports" &
 
 XSTARTUP=30
 for ((i=0; i<=XSTARTUP; i++)); do

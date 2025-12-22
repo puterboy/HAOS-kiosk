@@ -39,6 +39,9 @@ configuration:
   dark_mode:
     name: Dark Mode
     description: "Prefer dark mode where supported if `True` [Default: True]"
+  ha_theme:
+    name: "HA Theme"
+    description: 'Optional HA Theme [Default: ""]'
   ha_sidebar:
     name: "HA Sidebar"
     description: "Status of left sidebar [Default: None]"
@@ -113,7 +116,7 @@ configuration:
     description: |
       Add JSON-like gesture string key and gesture command value pairs. See
       README for formatting Earlier keys take precedence over later keys
-  command_whitelist
+  command_whitelist:
     name: "Command Whitelist Regex"
     description: |
       Regex of runnable user commands for the REST API and for use in

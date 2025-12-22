@@ -69,6 +69,7 @@ options:
   screen_timeout: 0
   output_number: 1
   dark_mode: true
+  ha_theme: ""
   ha_sidebar: "none"
   rotate_display: "normal"
   map_touch_inputs: true
@@ -104,6 +105,7 @@ schema:
   screen_timeout: int(0,)
   output_number: int(1,2)
   dark_mode: bool
+  ha_theme: str?
   ha_sidebar: list(full|narrow|none)
   rotate_display: list(normal|left|right|inverted)
   map_touch_inputs: bool

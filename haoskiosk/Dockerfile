@@ -33,15 +33,14 @@ RUN apk update && apk add --no-cache \
     unclutter-xfixes \
     setxkbmap \
     openbox \
-#    xfce4-settings \
-#    xfwm4 \
-#    xfce4-session \
     onboard \
     py3-pip \
     py3-xlib \
     patch \
     bash \
-#    alsa-utilities alsa-plugins-pulse \ #NOT NEEDED
+#    alsa-utilities alsa-plugins-pulse \
+#   VNC (for debugging) - run: x11vnc -display :0 -forever & \
+    x11vnc \
     && apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/v3.21/community luakit=2.3.6-r0 \
     && rm -rf /var/cache/apk/*
 

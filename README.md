@@ -104,7 +104,23 @@ output device connected. If so, use the logs to see how they are numbered.
 
 ### Dark Mode
 
-Prefer dark mode where supported if `true` (Default: true)
+Prefer dark mode where supported if `true`, otherwise prefer light mode.
+(Default: true)
+
+NOTE: This applies to *all* url's.
+
+### HA Theme
+
+Set HA theme to given string. This setting applies only to HA dashboards
+and may override the value of DARK_MODE unless the theme support both dark
+and light variants. See HACS for downloadable themes to use. (Default:
+true)
+
+NOTE: You can force the dark or light default theme specifically for HA
+dashboards by setting the theme to `{"dark":true}` or `{"dark":false}`
+respectively. Similarly, leaving the theme blank (or setting it to `{}` or
+`Home Assistant`) is equivalent to "auto", in which case the default light
+or dark scheme is governed by the value of DARK_MODE.
 
 ### HA Sidebar
 
