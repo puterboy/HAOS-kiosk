@@ -65,9 +65,6 @@ local ha_url_base = ha_url:match("^(https?://[%w%.%-%%:]+)") or ha_url
 ha_url_base = string.gsub(ha_url_base, "/+$", "") -- Strip trailing '/'
 
 local raw_dark_mode = os.getenv("DARK_MODE")
-local dark_mode = (raw_dark_mode and raw_dark_mode:lower() == "true") or defaults.DARK_MODE
-
-local raw_dark_mode = os.getenv("DARK_MODE")
 if raw_dark_mode == nil then
     dark_mode = defaults.DARK_MODE
 else
@@ -168,6 +165,8 @@ end
 -- Per-view weak table to track last URL for refresh debugging/reset detection
 local refresh_state = setmetatable({}, { __mode = "k" }) -- Weak keys tied to view lifetime
 
+-- -----------------------------------------------------------------------
+
 -- Auto-login to homeassistant (if on HA url) and set 'sidebar settings
 
 local ha_settings_applied = setmetatable({}, { __mode = "k" }) -- Flag to track if HA settings have already been applied in this session
@@ -196,7 +195,7 @@ webview.add_signal("init", function(view)
         -- NOTE: this is needed since 'onboard' doesn't always hide keyboard unless focus explicitly lost
         if onscreen_keyboard then
             msg.info("Hiding onscreen keyboard...")
-            luakit.spawn("dbus-send --type=method_call --print-reply --dest=org.onboard.Onboard /org/onboard/Onboard/Keyboard org.onboard.Onboard.Keyboard.Hide")
+            luakit.spawn("dbus-send --dest=org.onboard.Onboard /org/onboard/Onboard/Keyboard org.onboard.Onboard.Keyboard.Hide")
         end
 
         -- Force passthrough mode on every page load so don't inadvertently type commands in kiosk
@@ -319,8 +318,8 @@ webview.add_signal("init", function(view)
             });
         ]]
 
-       -- Inject suppress_errors script into the webview (once per load-finished)
-       v:eval_js(js_suppress_errors, { source = "suppress_kiosk_errors.js", no_return = true })
+        -- Inject suppress_errors script into the webview (once per load-finished)
+        v:eval_js(js_suppress_errors, { source = "suppress_kiosk_errors.js", no_return = true })
 
         -- Set up periodic page refresh (once per page load) if browser_refresh interval is positive
         if browser_refresh > 0 then
@@ -362,6 +361,7 @@ webview.add_signal("init", function(view)
         end
 
     end)
+
 end)
 
 -- -----------------------------------------------------------------------
@@ -389,3 +389,5 @@ modes.get_modes()["passthrough"].enter = function(w)
     w.view.can_focus = true   -- Ensure the webview can receive focus
     w.view:focus()            -- Focus the webview for keyboard input
 end
+
+-- -----------------------------------------------------------------------

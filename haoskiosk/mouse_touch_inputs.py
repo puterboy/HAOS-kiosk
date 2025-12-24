@@ -388,7 +388,6 @@ def initialize() -> None:
     TOGGLE_ONBOARD_KEYBOARD: CommandsDict = {  # Toggle Onboard keyboard visibility
         'cmds': [[
             "dbus-send",
-            "--type=method_call",
             "--dest=org.onboard.Onboard",
             "/org/onboard/Onboard/Keyboard",
             "org.onboard.Onboard.Keyboard.ToggleVisible",

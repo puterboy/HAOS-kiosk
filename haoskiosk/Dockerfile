@@ -38,9 +38,12 @@ RUN apk update && apk add --no-cache \
     py3-xlib \
     patch \
     bash \
+#    gstreamer-tools \
+#    gst-libav \
 #    alsa-utilities alsa-plugins-pulse \
 #   VNC (for debugging) - run: x11vnc -display :0 -forever & \
     x11vnc \
+#    luakit \
     && apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/v3.21/community luakit=2.3.6-r0 \
     && rm -rf /var/cache/apk/*
 
