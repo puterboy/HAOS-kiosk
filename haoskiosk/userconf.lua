@@ -300,20 +300,24 @@ webview.add_signal("init", function(view)
 
                 if (reason) {
                     const msg = typeof reason.message === 'string' ? reason.message : '';
-                    const name = reason.name || '';
+                    const name = (reason.name || '').toLowerCase();
 
                     if (msg.includes('sw-modern.js') ||
                         msg.includes('load failed') ||
                         msg.includes('service worker') ||
-                        (name === 'InvalidStateError' && msg.includes('document visibility state is hidden')) ||
-                        (name === 'InvalidStateError' && msg.includes('View transition was skipped'))) {
+                        name === 'invalidstateerror' &&
+                            (msg.includes('document visibility state is hidden') ||
+                             msg.includes('view transition')) ||
+                        reason === '[object Object]' ||
+                        msg === '' ||                    // Empty message common in HA reconnect bugs
+                        typeof reason === 'object') {    // Catch generic objects
                         suppress = true;
                     }
                 }
 
                 if (suppress) {
                     console.warn('Suppressed known kiosk-safe unhandled rejection:', reason);
-                    e.preventDefault(); // Prevent abort / potential load failure
+                    e.preventDefault(); // Prevent abort, potential load failure or error cascade
                 }
             });
         ]]
@@ -321,17 +325,35 @@ webview.add_signal("init", function(view)
         -- Inject suppress_errors script into the webview (once per load-finished)
         v:eval_js(js_suppress_errors, { source = "suppress_kiosk_errors.js", no_return = true })
 
+        -- Add websocket recovery monitor
+        -- Monitor HA websocket and force reload if dead (common after reconnect failures)
+        local js_ws_recovery = [[
+
+            (function() {
+                if (window.ha_ws_recovery_interval) return;  // Only once
+                window.ha_ws_recovery_interval = setInterval(function() {
+                    if (window.APP && window.APP.connection && !window.APP.connection.connected) {
+                        console.warn('HA websocket dead >10s - forcing reload for recovery');
+                        location.reload();
+                    }
+                }, 10000);  // Check every 10 seconds
+            })();
+        ]]
+
+        -- Inject websocket recovery monitor script into the webview (once per load-finished)
+        v:eval_js(js_ws_recovery, { source = "ws_recovery.js", no_return = true })
+
         -- Set up periodic page refresh (once per page load) if browser_refresh interval is positive
         if browser_refresh > 0 then
             -- Detect URL changes/blank for debug logging of timer resets
-	    local state = refresh_state[v]
-	    if v.uri == "about:blank" then
-	        reason = "Blank URL"
-	    elseif state.last_uri == nil then
+            local state = refresh_state[v]
+            if v.uri == "about:blank" then
+                reason = "Blank URL"
+            elseif state.last_uri == nil then
                 reason = "Initial load"
             elseif state.last_uri ~= v.uri then
-	        reason = "URL changed"
-	    else
+                reason = "URL changed"
+            else
                 reason = "URL reloaded"
             end
             state.last_uri = v.uri

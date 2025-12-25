@@ -195,28 +195,33 @@ bashio::log.info "Starting 'udevd' and (re-)triggering..."
 if ! udevd --daemon || ! udevadm trigger; then
     bashio::log.warning "WARNING: Failed to start udevd or trigger udev, input devices may not work"
 fi
+udevadm settle --timeout=10  #Wait for udev event processing to complete
 
 # Force tagging of event input devices (in /dev/input) to enable recognition by
 # libinput since 'udev' doesn't necessarily trigger their tagging when run from a container.
 echo "/dev/input event devices:"
-find /dev/input/event* -type c | sort -V | while IFS= read -r dev; do # Loop through all input devices
-    devpath=""
-    for retries in {1..25}; do  # Retry and give time to settle if not successful initially
-        if devpath=$(udevadm info --query=path --name="$dev" 2>/dev/null); then
-            break
+mapfile -t devices < <(find /dev/input/event* -type c 2>/dev/null | sort -V)
+if [ ${#devices[@]} -eq 0 ]; then
+    bashio::log.warning "WARNING: No character input event devices found"
+else
+    for dev in "${devices[@]}"; do
+        devpath=""
+        for retries in {1..25}; do  # Retry and give time to settle if not successful initially
+            if devpath=$(udevadm info --query=path --name="$dev" 2>/dev/null); then
+                break
+            fi
+            sleep 0.2
+        done
+        if [ -z "$devpath" ]; then
+            echo "  $dev: Failed to get device path"
+            continue
         fi
-        sleep 0.2
+        echo "  $dev: $devpath"
+
+        # Simulate a udev event to trigger (re)load of all properties
+        udevadm test "$devpath" >/dev/null 2>&1 || echo "$dev: No valid udev rule found..."
     done
-    if [ -z "$devpath" ]; then
-        echo "  $dev: Failed to get device path"
-        continue
-    fi
-    echo "  $dev: $devpath"
-
-    # Simulate a udev event to trigger (re)load of all properties
-    udevadm test "$devpath" >/dev/null 2>&1 || echo "$dev: No valid udev rule found..."
-done
-
+fi
 udevadm settle --timeout=10  #Wait for udev event processing to complete
 
 # Show discovered libinput devices
