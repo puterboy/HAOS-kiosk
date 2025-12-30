@@ -1,4 +1,4 @@
---[[
+--[=[
 Add-on: HAOS Kiosk Display (haoskiosk)
 File: userconf.lua for HA minimal browser run on server
 Version: 1.2.0
@@ -16,6 +16,8 @@ Code does the following:
     - Adds <Control-Left> and <Control-Right> bindings, to move backwards and forwards respectively in the browser history
     - Prevent printing of '--PASS THROUGH--' status line when in 'passthrough' mode
     - Set up periodic browser refresh every $BROWSWER_REFRESH seconds (disabled if 0)
+      NOTE: Original method injected JS to refresh page, now using native luakit view:reload command for more robustness
+      	    Also, every HARD_RELOAD_FREQ refreshes, we also fully refresh the cash
       NOTE: this is important since console messages overwrite dashboards
     - Allows for configurable browser $ZOOM_LEVEL
     - Set theme based on $HA_THEME.
@@ -26,7 +28,7 @@ Code does the following:
     - Set 'browser_mod-browser-id' to fixed value 'haos_kiosk'
     - If using onscreen keyboard, hide keyboard after page (re)load
     - Prevent session restore by overloading 'session.restore
-]]
+]=]
 
 -- -----------------------------------------------------------------------
 -- Load required Luakit modules
@@ -38,6 +40,7 @@ local modes = package.loaded["modes"]
 -- -----------------------------------------------------------------------
 -- Configurable variables
 local new_escape_key = "<Control-Mod1-Escape>" -- Ctl-Alt-Esc
+local HARD_RELOAD_FREQ = 10  -- Frequency of fully reloading cache when refreshing page
 
 -- Load in environment variables to configure options
 local defaults = {
@@ -175,8 +178,8 @@ webview.add_signal("init", function(view)
     ha_settings_applied[view] = false  -- Set theme and sidebar settings once  per view
     refresh_state[view] = { last_uri = nil }
 
-    -- Listen for page load events
-    view:add_signal("load-status", function(v, status)
+    -- Listen for page load status events
+    view:add_signal("load-status", function(v, status)  -- Note do NOT used "load-finished" since has redirects
         if status ~= "finished" then return end  -- Only proceed when the page is fully loaded
 
         local mem_file = io.open("/proc/self/statm", "r") -- Get memory consumption
@@ -343,47 +346,97 @@ webview.add_signal("init", function(view)
         -- Inject websocket recovery monitor script into the webview (once per load-finished)
         v:eval_js(js_ws_recovery, { source = "ws_recovery.js", no_return = true })
 
-        -- Set up periodic page refresh (once per page load) if browser_refresh interval is positive
-        if browser_refresh > 0 then
-            -- Detect URL changes/blank for debug logging of timer resets
-            local state = refresh_state[v]
-            if v.uri == "about:blank" then
-                reason = "Blank URL"
-            elseif state.last_uri == nil then
-                reason = "Initial load"
-            elseif state.last_uri ~= v.uri then
-                reason = "URL changed"
-            else
-                reason = "URL reloaded"
-            end
-            state.last_uri = v.uri
-            msg.info("Injecting refresh JS (%ds) [%s]: %s", browser_refresh, reason, v.uri)  -- DEBUG
-
-            -- JavaScript to block HA reloads and set up periodic reloads
-            local js_refresh = string.format([[
-                (function() {
-                    try {
-                        if (window.ha_refresh_id) clearInterval(window.ha_refresh_id);
-                        window.ha_refresh_id = setInterval(function() {
-                            try {
-                                if (document.readyState === 'complete' && location.href !== 'about:blank') {
-                                    location.reload();
-                                }
-                            } catch(e) { console.warn('Refresh skipped due to error:', e); }
-                        }, %d);
-                        window.addEventListener('beforeunload', function() {
-                            clearInterval(window.ha_refresh_id);
-                        });
-                    } catch(e) { console.warn('Refresh setup failed:', e); }
-                })();
-            ]], browser_refresh * 1000)
-
-            -- Inject refresh script into the webview
-            v:eval_js(js_refresh, { source = "auto_refresh.js", no_return = true })  -- Execute the refresh script
-        end
-
     end)
 
+    -- If browser_refresh set, then refresh browser every browser_refresh seconds after page finished/loaded/reloaded
+    if browser_refresh > 0 then
+
+        --[=[ Don't worry about refreshing non-visible pages since kiosks typically have only a single visible page - SO COMMENT OUT FOR NOW
+	-- Check and set page visibility
+        local page_visible = true  -- Per-view cached visibility (optimistic default)
+
+        -- Inject JS on every load-finished
+        view:add_signal("load-status", function(v, status)
+            if status ~= "finished" then return end
+
+            -- Evaluate document.visibilityState and update page_visible
+            v:eval_js([[
+                (function() {
+                    return document.visibilityState;
+                })();
+            ]], {
+                callback = function(state)
+                    page_visible = (state == "visible")
+                    msg.info("DEBUG: page visibility set to '%s': %s", state, v.uri) -- DEBUG
+                end,
+                error_callback = function(err)
+                    msg.warn("ERROR: Couldn't determine page visibility: %s (%s)", v.uri, err)
+                end,
+            })
+        end)
+	]=]
+
+	-- Refresh browser logic
+        local refresh_timer = nil  -- Per-view refresh timer
+        local hard_reload_count = 0
+        local function reset_refresh_timer()
+            if not view.uri or view.uri == "about:blank" then  return end -- Invalid or blank URL
+
+            if refresh_timer then  -- Refresh existing timer
+                msg.info("Restarting refresh timer (%ds): %s", browser_refresh, view.uri)
+		refresh_timer:stop()   -- Stop current countdown
+		refresh_timer:start()  -- Restart from full interval
+            else  -- Initialize new timer
+                msg.info("Initializing refresh timer (%ds): %s", browser_refresh, view.uri)
+                refresh_timer = timer { interval = browser_refresh * 1000 }
+                refresh_timer:add_signal("timeout", function(t)
+                    if not view.is_alive then
+                        msg.info("DEBUG: Skipping reload - webview not alive [shouldn't happen]")
+                        return
+                    end
+
+		    if not view.uri or view.uri == "about:blank" then return end
+
+		    --[=[ Comment out if not testing visibility
+		    if not page_visible then
+		        msg.info("Skipping reload - page not visible")
+			return
+                    end
+		    ]=]
+
+  		    hard_reload_count = hard_reload_count + 1
+  		    local bypass_cache = (hard_reload_count % HARD_RELOAD_FREQ == 0)  -- Hard reload  every 10th
+                    msg.info("RELOADING%s: %s", bypass_cache and " [HARD]" or "", view.uri)
+       		    view:reload(bypass_cache)
+                end)
+                refresh_timer:start()
+            end
+        end
+
+        -- Initial check (in case already loaded)
+        reset_refresh_timer()
+
+        -- Start/restart on finished loads when URI is valid
+        view:add_signal("load-status", function(v, status)
+            if status ~= "finished" then return end
+	    reset_refresh_timer()
+        end)
+
+        -- Also on manual reloads
+        view:add_signal("reload", function()
+            reset_refresh_timer()
+        end)
+
+        -- *** CLEANUP: Stop refresh timer when this webview is destroyed ***
+        view:add_signal("destroy", function()
+            if refresh_timer then
+                msg.info("DEBUG: Webview destroyed - stopping and discarding refresh timer")
+                refresh_timer:stop()
+                refresh_timer = nil  -- Allow garbage collection
+            end
+        end)
+
+    end
 end)
 
 -- -----------------------------------------------------------------------

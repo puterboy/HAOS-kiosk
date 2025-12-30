@@ -9,6 +9,9 @@
 ARG BUILD_FROM
 FROM $BUILD_FROM
 
+ARG BUILD_VERSION
+ENV ADDON_VERSION=${BUILD_VERSION}
+
 # Install Luakit and necessary dependencies
 RUN apk update && apk add --no-cache \
     xorg-server \

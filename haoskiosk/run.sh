@@ -1,6 +1,5 @@
 #!/usr/bin/with-contenv bashio
 # shellcheck shell=bash
-VERSION="1.2.0"
 ################################################################################
 # Add-on: HAOS Kiosk Display (haoskiosk)
 # File: run.sh
@@ -56,7 +55,7 @@ VERSION="1.2.0"
 echo "."  # Almost blank line (Note totally blank or white space lines are swallowed)
 printf '%*s\n' 80 '' | tr ' ' '#'  # Separator
 bashio::log.info "######## Starting HAOSKiosk ########"
-bashio::log.info "$(date) [Version: $VERSION]"
+bashio::log.info "$(date) [Version: $ADDON_VERSION]"
 bashio::log.info "$(uname -a)"
 ha_info=$(bashio::info)
 bashio::log.info "Core=$(echo "$ha_info" | jq -r '.homeassistant')  HAOS=$(echo "$ha_info" | jq -r '.hassos')  MACHINE=$(echo "$ha_info" | jq -r '.machine')  ARCH=$(echo "$ha_info" | jq -r '.arch')"

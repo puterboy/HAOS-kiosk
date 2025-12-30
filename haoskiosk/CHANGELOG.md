@@ -3,8 +3,11 @@
 ## v1.2.0 - December 2025
 
 - Added ability to set HA theme in config.yaml
-- Improved robustness and logging of luakit refresh browser JS injection
+- Changed browser refresh from JS injection to native luakit view:reload
+  Also, do a hard reload (including cache) every HARD_RELOAD_FREQ reloads
+- Improved logging of browser refresh
 - Added luakit memory process logging after every page load
+- Added JS injections to protect against browser errors & crashes
 - Improved robustness and debug output for associating udevadm paths with
   libinput list devices
 - Removed config.yaml parameter `allow_user_command` and replaced with
