@@ -3,7 +3,7 @@ name: "HAOS Kiosk Display"
 description: |
   Start X server and browser on local HAOS server and display dashboards in
   kiosk mode (Jeff Kosowsky)
-version: "1.2.0-testing-3"
+version: "1.2.0-testing-5"
 slug: "haoskiosk"
 
 arch:
@@ -21,6 +21,11 @@ homeassistant_api: true
 auth_api: true
 audio: true
 usb: true
+
+ulimits:
+  nofile:
+    soft: 65536
+    hard: 65536
 
 devices:
   - /dev/dri/card0

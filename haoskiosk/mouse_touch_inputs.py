@@ -14,7 +14,7 @@
 # File: MouseTouchInputs
 # Version: 1.2.0
 # Copyright Jeff Kosowsky
-# Date: December 2025
+# Date: January 2026
 #
 #### DESCRIPTION:
    Full-featured X11 parser and command launcher for multi-button press and
@@ -655,7 +655,7 @@ def handle_launch_url(url: str, timeout: int | None = None, *, _cmd_name: str = 
         raise ValueError(f"{_cmd_name}: Invalid URL format")
     if not url.startswith(("http://", "https://")):
         url = "http://" + url
-    _run_subprocess(["luakit", url], timeout=timeout, description=_cmd_name)
+    _run_subprocess(["luakit", "-n",  url], timeout=timeout, description=_cmd_name)
 
 @register_function("display_on", optional=["blank_timeout"],
                    validators=

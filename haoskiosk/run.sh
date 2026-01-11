@@ -5,7 +5,7 @@
 # File: run.sh
 # Version: 1.2.0
 # Copyright Jeff Kosowsky
-# Date: December 2025
+# Date: January 2026
 #
 #  Code does the following:
 #     - Import and sanity-check the following variables from HA/config.yaml
@@ -48,7 +48,7 @@
 #     - Set keyboard layout and language
 #     - Set up onscreen keyboard per configuration
 #     - Start REST API server
-#     - Launch fresh Luakit browser for url: $HA_URL/$HA_DASHBOARD
+#     - Launch browser for url: $HA_URL/$HA_DASHBOARD
 #       [If not in DEBUG_MODE; Otherwise, just sleep]
 #
 ################################################################################
@@ -65,6 +65,7 @@ TTY0_DELETED=""  #Need to set to empty string since runs with nounset=on (like s
 ONBOARD_CONFIG_FILE="/config/onboard-settings.dconf"
 cleanup() {
     local exit_code=$?
+    bashio::log.info "Cleaning up and exiting..."
     if [ "$SAVE_ONSCREEN_CONFIG" = true ]; then
         dconf dump /org/onboard/ > "$ONBOARD_CONFIG_FILE"
     fi
@@ -73,6 +74,11 @@ cleanup() {
     exit "$exit_code"
 }
 trap cleanup HUP INT QUIT ABRT TERM EXIT
+
+################################################################################
+#### Variables
+BROWSER="luakit"
+BROWSER_FLAGS=
 
 ################################################################################
 #### Get config variables from HA add-on & set environment variables
@@ -146,13 +152,13 @@ fi
 
 ################################################################################
 #### Start Dbus
-# Avoids waiting for DBUS timeouts (e.g., luakit)
-# Allows luakit to enforce unique instance by default
-# Note do *not* use '-U' flag when calling luakit
+# Start dbus-daemon to Avoids waiting for DBUS timeouts (e.g., luakit)
+# Also needed by luakit to enforce unique instance by default
+# Note do *not* use '-U' flag when calling luakit browser
 # Subsequent calls to 'luakit' exit post launch, leaving just the original process
 # Not 'userconf.lua' includes code to turn off session restore.
-# Note if entering through a separate shell, need to export the original
-# DBUS_SESSION_BUS_ADDRESS variable so that processes can communicate.
+# Export and save DBUS_SESSION_BUS_ADDRESS variable so that processes can communicate.
+# Note if entering through a separate shell, need to retrieve and export again
 
 DBUS_SESSION_BUS_ADDRESS=$(dbus-daemon --session --fork --print-address)
 if [ -z "$DBUS_SESSION_BUS_ADDRESS" ]; then
@@ -205,7 +211,7 @@ if [ ${#devices[@]} -eq 0 ]; then
 else
     for dev in "${devices[@]}"; do
         devpath=""
-        for retries in {1..25}; do  # Retry and give time to settle if not successful initially
+        for _ in {1..25}; do  # Retry and give time to settle if not successful initially
             if devpath=$(udevadm info --query=path --name="$dev" 2>/dev/null); then
                 break
             fi
@@ -531,12 +537,22 @@ python3 -u /rest_server.py &
 
 #### Start browser (or debug mode)  and wait/sleep
 if [ "$DEBUG_MODE" != true ]; then
-    ### Run Luakit in the background and wait for process to exit
-    bashio::log.info "Launching Luakit browser: $HA_URL/$HA_DASHBOARD"
-    luakit "$HA_URL/$HA_DASHBOARD" &
-    LUAKIT_PID=$!
-    wait "$LUAKIT_PID"  #Wait for luakit to exit to allow for clean-up on termination
+    ### Run browser in the background and wait for process to exit
+    $BROWSER "$BROWSER_FLAGS" "$HA_URL/$HA_DASHBOARD" &
+    bashio::log.info "Launching $BROWSER browser(PID=$!): $HA_URL/$HA_DASHBOARD"
+
+    while true; do  # Wait for all browser processes to exit
+        if pgrep -f -- "^$BROWSER " > /dev/null 2>&1; then
+            count=0
+        else
+            count=$((count + 1))
+        fi
+        [ $count -ge 3 ] && break # Exit if no browser process for at least 2*5=10 seconds
+        sleep 5
+    done
+    bashio::log.info "No $BROWSER instances remaining... exiting 'run.sh'..."
+
 else  ### Debug mode
-    bashio::log.info "Entering debug mode (X & $WINMGR window manager but no luakit browser)..."
+    bashio::log.info "Entering debug mode (X & $WINMGR window manager but no $BROWSER browser)..."
     exec sleep infinite
 fi

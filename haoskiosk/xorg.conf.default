@@ -3,7 +3,7 @@
 # File: xorg.conf
 # Version: 1.2.0
 # Copyright Jeff Kosowsky
-# Date: December 2025
+# Date: January 2026
 #
 # Minimal xorg.conf to work with OpenGL/DRI video and libinput mice & keyboards
 #

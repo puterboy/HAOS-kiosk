@@ -3,7 +3,7 @@
 # File: toggle_keyboard.py
 # Version: 1.2.0
 # Copyright Jeff Kosowsky
-# Date: December 2025
+# Date: January 2026
 #
 # Creates a 1x1 pixel button at top right corner of screen to toggle onboard
 # keyboard on/off.

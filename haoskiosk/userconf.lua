@@ -3,7 +3,7 @@ Add-on: HAOS Kiosk Display (haoskiosk)
 File: userconf.lua for HA minimal browser run on server
 Version: 1.2.0
 Copyright Jeff Kosowsky
-Date: December 2025
+Date: January 2026
 
 Code does the following:
     - Sets browser window to fullscreen
@@ -17,8 +17,9 @@ Code does the following:
     - Prevent printing of '--PASS THROUGH--' status line when in 'passthrough' mode
     - Set up periodic browser refresh every $BROWSWER_REFRESH seconds (disabled if 0)
       NOTE: Original method injected JS to refresh page, now using native luakit view:reload command for more robustness
-      	    Also, every HARD_RELOAD_FREQ refreshes, we also fully refresh the cash
+            Also, every HARD_RELOAD_FREQ refreshes, we also fully refresh the cash
       NOTE: this is important since console messages overwrite dashboards
+    - Kill current luakit and restart if any page fails to reload MAX_LOAD_FAILURES in a row
     - Allows for configurable browser $ZOOM_LEVEL
     - Set theme based on $HA_THEME.
       If no theme is set (or if set to '{}' or 'Home Assistant') then the default theme is used with light or dark depending on the value of $DARK_MODE
@@ -41,6 +42,8 @@ local modes = package.loaded["modes"]
 -- Configurable variables
 local new_escape_key = "<Control-Mod1-Escape>" -- Ctl-Alt-Esc
 local HARD_RELOAD_FREQ = 10  -- Frequency of fully reloading cache when refreshing page
+local MAX_LOAD_FAILURES = 5  -- Maximum number of consecutive page (re)load failures per view before restarting luakit
+
 
 -- Load in environment variables to configure options
 local defaults = {
@@ -166,7 +169,7 @@ end
 
 -- -----------------------------------------------------------------------
 -- Per-view weak table to track last URL for refresh debugging/reset detection
-local refresh_state = setmetatable({}, { __mode = "k" }) -- Weak keys tied to view lifetime
+local consecutive_load_failures = setmetatable({}, { __mode = "k" })  -- Weak keys per view to count consecutive reload failures
 
 -- -----------------------------------------------------------------------
 
@@ -176,13 +179,40 @@ local ha_settings_applied = setmetatable({}, { __mode = "k" }) -- Flag to track 
 
 webview.add_signal("init", function(view)
     ha_settings_applied[view] = false  -- Set theme and sidebar settings once  per view
-    refresh_state[view] = { last_uri = nil }
 
     -- Listen for page load status events
-    view:add_signal("load-status", function(v, status)  -- Note do NOT used "load-finished" since has redirects
-        if status ~= "finished" then return end  -- Only proceed when the page is fully loaded
+    view:add_signal("load-status", function(v, status)  -- Note do NOT used "load-finished" since doesn't handle redirects properly
 
-        local mem_file = io.open("/proc/self/statm", "r") -- Get memory consumption
+        -- Restart luakit if consecutive_load_failures > MAX_LOAD_FAILURES
+        if status == "failed" then
+            consecutive_load_failures[v] = (consecutive_load_failures[v] or 0) + 1
+
+            if consecutive_load_failures[v] < MAX_LOAD_FAILURES then
+                msg.warn("Page load failed (%d/%d): %s", consecutive_load_failures[v], MAX_LOAD_FAILURES, v.uri or "unknown")
+             else
+		local ffi = require("ffi")
+		ffi.cdef("int getpid(void);")
+		local luakit_pid = ffi.C.getpid()
+
+		local url = v.uri or ha_url
+                msg.error("RESTARTING Luakit (PID=%d) after %d page load failures: %s", luakit_pid, MAX_LOAD_FAILURES, url)
+		-- Send kill signal to current luakit pid, wait to complete kill, wait for dbus to fully disconnect, remove /tmp ipc file, launch new luakit, echo PID
+		local cmd = string.format([[
+		  (kill %d;
+                   while kill -0 %d 2>/dev/null; do sleep 0.1; done;
+                   sleep 2;
+		   rm -f /tmp/luakit-%d-* 2>/dev/null;
+                   luakit '%s' &
+                   echo "New Luakit PID=$!") &
+		]], luakit_pid, luakit_pid, luakit_pid, url)
+		os.execute(cmd)
+            end
+
+        elseif status ~= "finished" then return end  -- Only proceed when the page is fully loaded
+	    consecutive_load_failures[v] = 0  -- Reset consecutive load failures counter
+
+	 -- Print RSS  memory consumption
+        local mem_file = io.open("/proc/self/statm", "r")
         local rss_mb = "NA"
         if mem_file then
             local rss_pages = tonumber(mem_file:read("*a"):match("%S+%s+(%S+)"))
@@ -191,7 +221,6 @@ webview.add_signal("init", function(view)
                 rss_mb = math.floor(rss_pages * 4 / 1024)  -- Approximate MB (page size ~4kB on most systems)
             end
         end
-
         msg.info("URL: %s (RSS: %s MB)", v.uri, rss_mb) -- DEBUG
 
         -- Hide onscreen keyboard (if enabled) after page (re)load
@@ -245,8 +274,7 @@ webview.add_signal("init", function(view)
         end
 
         -- Set Home Assistant theme and sidebar visibility after dashboard load
-        -- Check if current URL starts with ha_url but not an auth page
-        if not ha_settings_applied[v]
+        if not ha_settings_applied[v] -- Check if not set yet and current URL starts with ha_url but not an auth page
            and (v.uri .. "/"):match("^" .. ha_url_base .. "/") -- Note ha_url was stripped of trailing slashes
            and not v.uri:match("^" .. ha_url_base .. "/auth/") then
 
@@ -328,10 +356,8 @@ webview.add_signal("init", function(view)
         -- Inject suppress_errors script into the webview (once per load-finished)
         v:eval_js(js_suppress_errors, { source = "suppress_kiosk_errors.js", no_return = true })
 
-        -- Add websocket recovery monitor
-        -- Monitor HA websocket and force reload if dead (common after reconnect failures)
+        -- Add HA websocket recovery monitor and force reload if dead (common after reconnect failures)
         local js_ws_recovery = [[
-
             (function() {
                 if (window.ha_ws_recovery_interval) return;  // Only once
                 window.ha_ws_recovery_interval = setInterval(function() {
@@ -351,9 +377,9 @@ webview.add_signal("init", function(view)
     -- If browser_refresh set, then refresh browser every browser_refresh seconds after page finished/loaded/reloaded
     if browser_refresh > 0 then
 
-        --[=[ Don't worry about refreshing non-visible pages since kiosks typically have only a single visible page - SO COMMENT OUT FOR NOW
-	-- Check and set page visibility
-        local page_visible = true  -- Per-view cached visibility (optimistic default)
+       -- Check page visibility and set per-view flag so can skip refreshing non-visible pages
+        --[=[  COMMENT-OUT FOR NOW since kiosks typically have only a single visible page
+        local page_visible = true  -- Per-view visibility (optimistic default to 'true')
 
         -- Inject JS on every load-finished
         view:add_signal("load-status", function(v, status)
@@ -380,7 +406,7 @@ webview.add_signal("init", function(view)
         local refresh_timer = nil  -- Per-view refresh timer
         local hard_reload_count = 0
         local function reset_refresh_timer()
-            if not view.uri or view.uri == "about:blank" then  return end -- Invalid or blank URL
+            if not view.uri or view.uri == "about:blank" then return end -- Invalid or blank URL
 
             if refresh_timer then  -- Refresh existing timer
                 msg.info("Restarting refresh timer (%ds): %s", browser_refresh, view.uri)
@@ -397,7 +423,7 @@ webview.add_signal("init", function(view)
 
 		    if not view.uri or view.uri == "about:blank" then return end
 
-		    --[=[ Comment out if not testing visibility
+		    --[=[ COMMENT-OUT if not testing visibility
 		    if not page_visible then
 		        msg.info("Skipping reload - page not visible")
 			return
@@ -413,7 +439,7 @@ webview.add_signal("init", function(view)
             end
         end
 
-        -- Initial check (in case already loaded)
+        -- Initial set refresh timer (in case already loaded)
         reset_refresh_timer()
 
         -- Start/restart on finished loads when URI is valid
@@ -427,7 +453,7 @@ webview.add_signal("init", function(view)
             reset_refresh_timer()
         end)
 
-        -- *** CLEANUP: Stop refresh timer when this webview is destroyed ***
+        -- *** CLEANUP: Stop and delete refresh timer when this webview is destroyed ***
         view:add_signal("destroy", function()
             if refresh_timer then
                 msg.info("DEBUG: Webview destroyed - stopping and discarding refresh timer")

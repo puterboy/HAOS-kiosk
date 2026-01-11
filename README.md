@@ -2,7 +2,7 @@
 
 Display HA dashboards in kiosk mode directly on your HAOS server.
 
-## Author: Jeff Kosowsky (version: 1.2.0, December 2025)
+## Author: Jeff Kosowsky (version: 1.2.0, January 2026)
 
 ## Description
 

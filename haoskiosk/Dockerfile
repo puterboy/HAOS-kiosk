@@ -3,7 +3,7 @@
 # File: Dockerfile
 # Version: 1.2.0
 # Copyright Jeff Kosowsky
-# Date: December 2025
+# Date: January 2026
 ################################################################################
 
 ARG BUILD_FROM

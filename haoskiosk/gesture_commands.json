@@ -3,7 +3,7 @@
 # File: gesture_commands.json
 # Version: 1.2.0
 # Copyright Jeff Kosowsky
-# Date: December 2025
+# Date: January 2026
 # ------------------------------------------------------------------------------
 # USER CUSTOMIZABLE  GESTURES — loaded BEFORE built-in
 # defaults in CMD_DICTand thus have higher precedence since
@@ -28,17 +28,18 @@
 #                  (e.g., 1 for single-click, 2 for double-click, 2+ for 2 or more clicks)
 #
 #      <GESTURE> = Either:
-#           - GestureType (e.g., CLICKTAP, DRAG, SWIPE, LONG, CORNER_TOP) or the wildcard "ANY"
+#           - GestureType (e.g., CLICKTAP, DRAG, SWIPE, LONG, CORNER_<name>) or the wildcard "ANY"
 #           - Gesture Name (e.g., Click, Tap, Drag, Swipte, Long Click, Long Tap)
 #               Note that gesture names are device specific (e.g. Click for Mouse, Tap for Touch)
 #
 #         where:
 #           - ANY is a wildcard match for any gesture
+#           - Corners are named: CORNER_TOPLEFT, CORNER_TOPRIGHT, CORNER_BOTLEFT, CORNER_BOTRIGHT
 #           - DRAG and SWIPE differ in velocity -- i.e., SWIPE is *faster*
 #           - The gestures DRAG and SWIPE can also have the optional suffixes: _LEFT, _RIGHT, _UP, or _DOWN
 #           - Conversely, DRAG and SWIPE serve as wildcard matches relative to their directional counterparts
 #           - LONG can take the optional suffix _CLICK or _TAP
-#           - CORNER_TOP activates when click or tap is in the extreme top-right corner of the scree
+#           - CORNER_<name> activates when click or tap is in within "click_dim" of the named corner (default 5 pixels)
 #           - DRAG, SWIPE, and LONG gestures (and their variants) are by definition only single-click
 #           - Matching is case insensitive
 #
@@ -49,7 +50,7 @@
 #
 # Example gesture strings include:
 #    [Left, Right]_MOUSE_3_CLICKTAP
-#    [1,2,3]_MOUSE_1+_CORNER_TOP
+#    [1,2,3]_MOUSE_1+_CORNER_TOPLEFT
 #    2_TOUCH_1_DRAG_LEFT
 #    2_Button_1_Long Click
 #    3_Finger_2_Tap
@@ -70,6 +71,10 @@
 #        - String form - e.g., ["echo hello"]
 #        - List of argv-style component string - e.g., ["ls", "-a", "-l"]
 #       Example: ["echo hello", ["ls", "-a", "-l"]]
+#       Note that the commands themselves can either be shell commands or kiosk-specific
+#       internal commands that begin with the prefix 'kiosk.'
+#       Examples include:
+#
 #
 #    3. Dictionary with required key "cmds" and optional keys: "msg", "timeout"
 #        where the value of "cmds" is of form 1 or 2

@@ -3,7 +3,7 @@
 # File: services.py
 # Version: 1.2.0
 # Copyright Jeff Kosowsky
-# Date: December 2025
+# Date: January 2026
 
  Launch REST API server with following commands:
    POST /launch_url        {"url": "<url>"}
@@ -446,7 +446,7 @@ async def handle_launch_url(data: Payload) -> dict[str, Any]:
     url = str(data["url"])
     if not url.startswith(("http://", "https://")):
         url = "http://" + url
-    result = await execute_command(f"luakit '{url}' &", log_prefix="launch_url", allow_command=True)
+    result = await execute_command(f"luakit -n '{url}' &", log_prefix="launch_url", allow_command=True)
     return {"success": result["success"], "result": result}
 
 @register_function("refresh_browser")
