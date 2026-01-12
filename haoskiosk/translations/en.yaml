@@ -74,7 +74,7 @@ configuration:
     description: "Set the keyboard layout and language [Default: us]"
   onscreen_keyboard:
     name: "Onscreen Keyboard"
-    description: "Display an Onscreen Keyboard for text input [Default: False]"
+    description: "Display an Onscreen Keyboard for text input [Default: True]"
   save_onscreen_config:
     name: "Save Onscreen Config"
     description: |

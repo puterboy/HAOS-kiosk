@@ -104,8 +104,8 @@ output device connected. If so, use the logs to see how they are numbered.
 
 ### Dark Mode
 
-Prefer dark mode where supported if `true`, otherwise prefer light mode.
-(Default: true)
+Prefer dark mode where supported if `True`, otherwise prefer light mode.
+(Default: True)
 
 NOTE: This applies to *all* url's.
 
@@ -114,7 +114,7 @@ NOTE: This applies to *all* url's.
 Set HA theme to given string. This setting applies only to HA dashboards
 and may override the value of DARK_MODE unless the theme support both dark
 and light variants. See HACS for downloadable themes to use. (Default:
-true)
+True)
 
 NOTE: You can force the dark or light default theme specifically for HA
 dashboards by setting the theme to `{"dark":true}` or `{"dark":false}`
@@ -160,7 +160,7 @@ Set the keyboard layout and language. (Default: us)
 ### Onscreen Keyboard
 
 Display an on-screen keyboard when keyboard input expected if set to
-`true`. (Default: false)
+`true`. (Default: True)
 
 To move, resize, or configure keyboard options, long press on the `...`
 within the `Return` key. You can also resize the keyboard by pressing and
@@ -174,7 +174,7 @@ See https://github.com/dr-ni/onboard for more details
 ### Save Onscreen Config
 
 Save and restore changes to onscreen keyboard settings made during each
-session if set to `true`. Overwrites default settings. (Default: true)
+session if set to `True`. Overwrites default settings. (Default: True)
 
 ### Xorg.conf
 
