@@ -41,9 +41,10 @@ RUN apk update && apk add --no-cache \
     py3-xlib \
     patch \
     bash \
+    pulseaudio-utils \
+#    alsa-utils alsa-plugins-pulse \
 #    gstreamer-tools \
 #    gst-libav \
-#    alsa-utilities alsa-plugins-pulse \
 #   VNC (for debugging) - run: x11vnc -display :0 -forever & \
     x11vnc \
 #    luakit \

@@ -247,7 +247,7 @@ def is_command_allowed(command_str: str) -> tuple[bool, str]:  #pylint: disable=
 CommandKey = Literal["url", "timeout", "args", "cmd", "cmds", "cmd_timeout"]
 
 async def execute_command(command: str|list[str], *, timeout: int | None = None, allow_command: bool = False,
-                          ignore_stdout: bool = False, ignore_stderr: bool = False, log_prefix: str = "execute_command") -> dict[str, Any]:
+                          print_stdout: bool = True, print_stderr: bool = True, log_prefix: str = "execute_command") -> dict[str, Any]:
     """
     Execute a shell command safely with concurrency limiting and optional timeout.
     Returns dict containing: success, stdout, stderr, returncode, and possibly error.
@@ -305,10 +305,10 @@ async def execute_command(command: str|list[str], *, timeout: int | None = None,
         stdout_str = stdout.decode(errors="replace").strip() if stdout else ""
         stderr_str = stderr.decode(errors="replace").strip() if stderr else ""
 
-        if logger.getEffectiveLevel() <= logging.INFO and not ignore_stdout:  # Print stdout
+        if logger.getEffectiveLevel() <= logging.INFO and print_stdout:  # Print stdout
             for line in stdout_str.splitlines():  # Pretty-print output (HA style)
                 print(" " + line)
-        if logger.getEffectiveLevel() <= logging.ERROR and not ignore_stderr:  # Print stderr
+        if logger.getEffectiveLevel() <= logging.ERROR and print_stderr:  # Print stderr
             for line in stderr_str.splitlines():  # Pretty-print output (HA style)
                 print(" " + line)
 
@@ -459,7 +459,7 @@ async def handle_refresh_browser(data: Payload) -> dict[str, Any]:  # pylint: di
 @register_function("is_display_on")  # GET endpoint – we register manually below
 async def handle_is_display_on(data: Payload) -> dict[str, Any]:  # pylint: disable=unused-argument
     """Return boolean whether monitor is currently on."""
-    result = await execute_command(["xset", "-q"], ignore_stdout=True,
+    result = await execute_command(["xset", "-q"], print_stdout=False,
                                    timeout=SHORT_TIMEOUT, log_prefix="is_display_on", allow_command=True)
     if not result["success"]:
         return {"success": False, "error": "Failed to query display state"}

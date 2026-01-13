@@ -29,6 +29,7 @@
 #         SAVE_ONSCREEN_CONFIG
 #         XORG_CONF
 #         XORG_APPEND_REPLACE
+#         AUDIO_SINK
 #         REST_PORT
 #         REST_IP
 #         REST_BEARER_TOKEN
@@ -47,6 +48,8 @@
 #     - Map touch inputs per configuration
 #     - Set keyboard layout and language
 #     - Set up onscreen keyboard per configuration
+#     - Set audio sink
+#     - Start Xinput parsing...
 #     - Start REST API server
 #     - Launch browser for url: $HA_URL/$HA_DASHBOARD
 #       [If not in DEBUG_MODE; Otherwise, just sleep]
@@ -138,6 +141,7 @@ load_config_var ONSCREEN_KEYBOARD false
 load_config_var SAVE_ONSCREEN_CONFIG true
 load_config_var XORG_CONF ""
 load_config_var XORG_APPEND_REPLACE append
+load_config_var AUDIO_SINK auto
 load_config_var REST_PORT 8080
 load_config_var REST_IP "127.0.0.1"
 load_config_var REST_BEARER_TOKEN "" 1  # Mask token in log
@@ -525,6 +529,30 @@ if [[ "$ONSCREEN_KEYBOARD" = true && -n "$SCREEN_WIDTH" && -n "$SCREEN_HEIGHT" ]
     ### Launch 'Onboard' keyboard
     bashio::log.info "Starting Onboard onscreen keyboard"
     onboard &
+fi
+
+### Set Audio sink
+case "$AUDIO_SINK" in
+    hdmi)  # Pick first HDMI sink
+        sink=$(pactl list short sinks | awk '/hdmi/ {print $2; exit}')
+        ;;
+    usb)  # Pick first USB or analog sink
+        sink=$(pactl list short sinks | awk '/usb|analog/ {print $2; exit}')
+        ;;
+    *)  # Pick default or the first available sink if not set
+        sink=$(pactl info | awk -F': ' '/Default Sink/ {print $2}')
+        if [ -z "$sink" ]; then
+            sink=$(pactl list short sinks | awk '{print $2; exit}')
+        fi
+esac
+if [ -n "$sink" ]; then
+    if pactl set-default-sink "$sink" >& /dev/null; then
+        bashio::log.info "Setting default audio sink to: $sink"
+    else
+        bashio::log.warning "Failed to set audio sink to: $sink"
+    fi
+else
+    bashio::log.warning "No audio sink available"
 fi
 
 ### Launch Xinput parsing...

@@ -182,6 +182,12 @@ Append to or replace existing, default xorg.conf file.\
 Select 'Append' or 'Replace options.\
 To restore default, set to empty and select 'Append' option.
 
+### AUDIO SINK
+
+Set the audio output sink. (Default: Auto)\
+Options include: 'Auto', 'HDMI', 'USB', picking the first respective audio
+output, HDMI audio output, and USB/Aux audio output.
+
 ### REST IP address
 
 IP address where the REST Server listens. (Default: 127.0.0.1) By default,

@@ -91,6 +91,13 @@ configuration:
     items:
       append: "Append"
       replace: "Replace"
+  audio_sink:
+    name: "Audio Sink"
+    description: "Audio output sink [Default: Auto]"
+    items:
+      auto: "Auto"
+      hdmi: "HDMI"
+      usb: "USB"
   rest_ip:
     name: "REST IP address"
     description: |
