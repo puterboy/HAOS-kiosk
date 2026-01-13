@@ -158,7 +158,7 @@ def is_valid_url(url: str) -> bool:
 logging.basicConfig(
     stream  = sys.stdout,
     level   =  logging.INFO,
-#   level   = loggingDEBUG
+#    level   = logging.DEBUG,
     format  = "[%(asctime)s] %(levelname)s: [%(filename)s:%(lineno)d] %(message)s",
     datefmt = "%H:%M:%S",
 )
@@ -302,13 +302,13 @@ async def execute_command(command: str|list[str], *, timeout: int | None = None,
         finally:
             _active_processes.discard(proc)
 
-        stdout_str = stdout.decode(errors="replace").strip() if stdout and not ignore_stdout else ""
-        stderr_str = stderr.decode(errors="replace").strip() if stderr and not ignore_stderr else ""
+        stdout_str = stdout.decode(errors="replace").strip() if stdout else ""
+        stderr_str = stderr.decode(errors="replace").strip() if stderr else ""
 
-        if logger.getEffectiveLevel() <= logging.INFO:  # Print stdout
+        if logger.getEffectiveLevel() <= logging.INFO and not ignore_stdout:  # Print stdout
             for line in stdout_str.splitlines():  # Pretty-print output (HA style)
                 print(" " + line)
-        if logger.getEffectiveLevel() <= logging.ERROR:  # Print stderr
+        if logger.getEffectiveLevel() <= logging.ERROR and not ignore_stderr:  # Print stderr
             for line in stderr_str.splitlines():  # Pretty-print output (HA style)
                 print(" " + line)
 

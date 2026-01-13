@@ -227,7 +227,7 @@ webview.add_signal("init", function(view)
         -- NOTE: this is needed since 'onboard' doesn't always hide keyboard unless focus explicitly lost
         if onscreen_keyboard then
             msg.info("Hiding onscreen keyboard...")
-            luakit.spawn("dbus-send --dest=org.onboard.Onboard /org/onboard/Onboard/Keyboard org.onboard.Onboard.Keyboard.Hide")
+            luakit.spawn("dbus-send --type=method_call --dest=org.onboard.Onboard /org/onboard/Onboard/Keyboard org.onboard.Onboard.Keyboard.Hide")
         end
 
         -- Force passthrough mode on every page load so don't inadvertently type commands in kiosk

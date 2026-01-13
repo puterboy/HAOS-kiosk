@@ -538,7 +538,7 @@ python3 -u /rest_server.py &
 #### Start browser (or debug mode)  and wait/sleep
 if [ "$DEBUG_MODE" != true ]; then
     ### Run browser in the background and wait for process to exit
-    $BROWSER "$BROWSER_FLAGS" "$HA_URL/$HA_DASHBOARD" &
+    $BROWSER ${BROWSER_FLAGS:+$BROWSER_FLAGS} "$HA_URL/$HA_DASHBOARD" &
     bashio::log.info "Launching $BROWSER browser(PID=$!): $HA_URL/$HA_DASHBOARD"
 
     while true; do  # Wait for all browser processes to exit
