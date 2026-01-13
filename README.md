@@ -182,7 +182,7 @@ Append to or replace existing, default xorg.conf file.\
 Select 'Append' or 'Replace options.\
 To restore default, set to empty and select 'Append' option.
 
-### AUDIO SINK
+### Audio Sink
 
 Set the audio output sink. (Default: Auto)\
 Options include: 'Auto', 'HDMI', 'USB', picking the first respective audio
