@@ -185,8 +185,8 @@ To restore default, set to empty and select 'Append' option.
 ### Audio Sink
 
 Set the audio output sink. (Default: Auto)\
-Options include: 'Auto', 'HDMI', 'USB', picking the first respective audio
-output, HDMI audio output, and USB/Aux audio output.
+Options include: 'Auto', 'HDMI', 'USB', 'NONE', picking the first
+respective audio output, HDMI audio output, and USB/Aux audio output.
 
 ### REST IP address
 

@@ -539,7 +539,13 @@ case "$AUDIO_SINK" in
     usb)  # Pick first USB or analog sink
         sink=$(pactl list short sinks | awk '/usb|analog/ {print $2; exit}')
         ;;
-    *)  # Pick default or the first available sink if not set
+    none) # Set to null sink (creating one if none exists yet
+        if ! pactl list short sinks | awk '{print $2}' | grep -qx "null"; then
+            pactl load-module module-null-sink sink_name=null sink_properties=device.description=Null >/dev/null
+        fi
+        sink=null
+        ;;
+    *)  # Pick existing default or the first available sink if not set
         sink=$(pactl info | awk -F': ' '/Default Sink/ {print $2}')
         if [ -z "$sink" ]; then
             sink=$(pactl list short sinks | awk '{print $2; exit}')
@@ -554,6 +560,8 @@ if [ -n "$sink" ]; then
 else
     bashio::log.warning "No audio sink available"
 fi
+echo "Audio Sinks (* = default)"
+pactl list short sinks | awk -v def="$sink" '{prefix = ($2 == def) ? "*" : " "; printf "  %s%s\n", prefix, $0}'
 
 ### Launch Xinput parsing...
 bashio::log.info "Starting Mouse & Touch input gesture command parsing..."

@@ -3,7 +3,7 @@ name: "HAOS Kiosk Display"
 description: |
   Start X server and browser on local HAOS server and display dashboards in
   kiosk mode (Jeff Kosowsky)
-version: "1.2.0-testing-7"
+version: "1.2.0-testing-8"
 slug: "haoskiosk"
 
 arch:
@@ -121,7 +121,7 @@ schema:
   save_onscreen_config: bool
   xorg_conf: str?
   xorg_append_replace: list(append|replace)
-  audio_sink: list(auto|hdmi|usb)
+  audio_sink: list(auto|hdmi|usb|none)
   rest_ip: str
   rest_port: int(1024,49151)
   rest_bearer_token: password

@@ -4,7 +4,8 @@
 
 - Added ability to set HA theme in config.yaml
 - Added USB audio (`audio: true` and `usb: true` in config.yaml) Added
-  corresponding config option `audio_sink` which can be: auto, hdmi, or usb
+  corresponding config option `audio_sink` which can be: auto, hdmi, usb,
+  or none.
 - Increased ulimit (in config.yaml) to reduce crashes from heavy usage
 - Improved browser refresh logic and stability by:
   - Changing browser refresh from JS injection to native luakit view:reload

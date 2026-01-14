@@ -98,6 +98,7 @@ configuration:
       auto: "Auto"
       hdmi: "HDMI"
       usb: "USB"
+      none: "None"
   rest_ip:
     name: "REST IP address"
     description: |
