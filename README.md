@@ -18,14 +18,6 @@ Alternatively, you can right click (or long press touchscreen) to access
 browser menu that includes options for page `Back`, `Forward`, `Stop`, and
 `Reload`.
 
-**NOTE:** You must enter your HA username and password in the
-*Configuration* tab for add-on to start.
-
-**NOTE:** The add-on requires a valid, connected display in order to start.
-\
-If display does not show up, try rebooting and restarting the addon with
-the display attached
-
 **Note:** Luakit browser is launched in kiosk-like (*passthrough*) mode.\
 To enter *normal* mode (similar to command mode in `vi`), press
 `ctl-alt-esc`.\
@@ -49,6 +41,22 @@ full details of your setup and what you did along with a complete log.
 [![Buy Me a Coffee](https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png)](https://www.buymeacoffee.com/puterboy)
 
 ______________________________________________________________________
+
+## Installation
+
+1. Click the **Add repository** button below, click **Add → Close** (You might need to enter the **internal IP address** of your Home Assistant instance first) *or* go to the **Add-on store**, click **⋮ → Repositories**, fill in</br> `https://github.com/puterboy/HAOS-kiosk` and click **Add → Close**
+
+[![Open your Home Assistant instance and show the add add-on repository dialog with a specific repository URL pre-filled.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fputerboy%2FHAOS-kiosk)
+
+2. Click on the add-on and press **Install** and wait until the add-on is installed.
+3. You must enter your HA username and password in the
+**Configuration** tab.
+4. Press **Start** to run the add-on.
+
+**NOTE:** The add-on requires a valid, connected display in order to start.
+\
+If display does not show up, try rebooting and restarting the addon with
+the display attached
 
 ## Configuration Options
 
