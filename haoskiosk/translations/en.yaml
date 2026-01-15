@@ -39,6 +39,9 @@ configuration:
   dark_mode:
     name: Dark Mode
     description: "Prefer dark mode where supported if `True` [Default: True]"
+  ha_theme:
+    name: "HA Theme"
+    description: 'Optional HA Theme [Default: ""]'
   ha_sidebar:
     name: "HA Sidebar"
     description: "Status of left sidebar [Default: None]"
@@ -71,7 +74,7 @@ configuration:
     description: "Set the keyboard layout and language [Default: us]"
   onscreen_keyboard:
     name: "Onscreen Keyboard"
-    description: "Display an Onscreen Keyboard for text input [Default: False]"
+    description: "Display an Onscreen Keyboard for text input [Default: True]"
   save_onscreen_config:
     name: "Save Onscreen Config"
     description: |
@@ -88,6 +91,19 @@ configuration:
     items:
       append: "Append"
       replace: "Replace"
+  audio_sink:
+    name: "Audio Sink"
+    description: "Audio output sink [Default: Auto]"
+    items:
+      auto: "Auto"
+      hdmi: "HDMI"
+      usb: "USB"
+      none: "None"
+  rest_ip:
+    name: "REST IP address"
+    description: |
+      Listening IP address for REST API server [Default: `127.0.0.1`]
+      CAUTION: Set to `0.0.0.0` to listen from anywhere BUT SECURITY RISK.
   rest_port:
     name: "REST Port"
     description: |
@@ -96,13 +112,20 @@ configuration:
     name: "REST Authorization Token"
     description: |
       Optional authorization token for REST API. [Default: ""]
-  allow_user_commands:
-    name: "Allow User Commands"
-    description: |
-      Allow user to run arbitrary commands in the HAOSkiosk container via the
-      service: `haoskiosk.run_command <CMD>` [Default: False]
+      If set add the line `-H "Authorization: Bearer <REST_BEARER_TOKEN>"`
+      to your REST API calls.
   debug_mode:
     name: "Debug Mode"
     description: |
       Launch X and Openbox but not Luakit browser. [Default: False]
       Manually access using: sudo docker -exec -it addon_haoskiosk bash
+  gestures:
+    name: Gesture Command List
+    description: |
+      Add JSON-like gesture string key and gesture command value pairs. See
+      README for formatting Earlier keys take precedence over later keys
+  command_whitelist:
+    name: "Command Whitelist Regex"
+    description: |
+      Regex of runnable user commands for the REST API and for use in
+      gesture commands. See README for details

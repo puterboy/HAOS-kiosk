@@ -1,0 +1,89 @@
+# ==============================================================================
+# HAOS Kiosk Display — Mouse & Touch Input Engine
+# File: gesture_commands.json
+# Version: 1.2.0
+# Copyright Jeff Kosowsky
+# Date: January 2026
+# ------------------------------------------------------------------------------
+# USER CUSTOMIZABLE  GESTURES — loaded BEFORE built-in
+# defaults in CMD_DICTand thus have higher precedence since
+# commandsare matched in the order they have been added.
+# ------------------------------------------------------------------------------
+# Contents is a series of json key-value pairs separated by commas, where
+#  - Each Key is a Gesture String of form:
+#       <CONTACTS>_<DEVICE>_<CLICKS>_<GESTURE>
+#    where:
+#       <CONTACTS> = The maximal contact set during the gesture. Either:
+#         - Number (N, N+, N-) representing (maximum) number of contacts (buttons or fingers)
+#           where N+ and N- are respectively greater than and less than or equal to N
+#         - List of button numbers and/or corresponding button names if a mouse
+#           (e.g., [Left, Right] or [1, 3] or [Left, 3])
+#
+#       <DEVICE> =  Either:
+#           - Device Type (e.g., MOUSE, TOUCH) or the wildcard "ANY"
+#           - Device Name (e.g., Button, Finger)
+#
+#       <CLICKS> = Number (M, M+, M-) of clicks/taps in the gesture where M+ and M-
+#                  are respectively greater than or less than or equal to M
+#                  (e.g., 1 for single-click, 2 for double-click, 2+ for 2 or more clicks)
+#
+#      <GESTURE> = Either:
+#           - GestureType (e.g., CLICKTAP, DRAG, SWIPE, LONG, CORNER_<name>) or the wildcard "ANY"
+#           - Gesture Name (e.g., Click, Tap, Drag, Swipte, Long Click, Long Tap)
+#               Note that gesture names are device specific (e.g. Click for Mouse, Tap for Touch)
+#
+#         where:
+#           - ANY is a wildcard match for any gesture
+#           - Corners are named: CORNER_TOPLEFT, CORNER_TOPRIGHT, CORNER_BOTLEFT, CORNER_BOTRIGHT
+#           - DRAG and SWIPE differ in velocity -- i.e., SWIPE is *faster*
+#           - The gestures DRAG and SWIPE can also have the optional suffixes: _LEFT, _RIGHT, _UP, or _DOWN
+#           - Conversely, DRAG and SWIPE serve as wildcard matches relative to their directional counterparts
+#           - LONG can take the optional suffix _CLICK or _TAP
+#           - CORNER_<name> activates when click or tap is in within "click_dim" of the named corner (default 5 pixels)
+#           - DRAG, SWIPE, and LONG gestures (and their variants) are by definition only single-click
+#           - Matching is case insensitive
+#
+#    NOTE: Keys are matched in order, so that you should always go from particular to more general when using wildcards
+#    NOTE: Validity checks are imposed including:
+#            - Cannot have more than 1 click for single click gestures
+#            - Click and Tap gesture woreds  correspond only to Mouse and Touch devices
+#
+# Example gesture strings include:
+#    [Left, Right]_MOUSE_3_CLICKTAP
+#    [1,2,3]_MOUSE_1+_CORNER_TOPLEFT
+#    2_TOUCH_1_DRAG_LEFT
+#    2_Button_1_Long Click
+#    3_Finger_2_Tap
+#    2+_Finger_1_Swipe_down
+#    1_ANY_2-_CLICKTAP
+#    1+_ANY_1+_ANY
+#
+# Invalid examples include:
+#    1-Mouse_3-Tap  (Tap is for Touch)
+#    1-Touch_2-Long (Long gestures can only be single contact)
+#
+#  - Each Value is an Action Command which can be expressed in one of the following 3 forms:
+#    1. Single command string - e.g., "ls -a -l"
+#       Note that an empty string acts as a No-Op -- i.e., it will be ignored and can be
+#       used with wildcard gestures to block actions of lower priority.
+#
+#    2. List of one or more commands each of which is can be one of the following forms:
+#        - String form - e.g., ["echo hello"]
+#        - List of argv-style component string - e.g., ["ls", "-a", "-l"]
+#       Example: ["echo hello", ["ls", "-a", "-l"]]
+#       Note that the commands themselves can either be shell commands or kiosk-specific
+#       internal commands that begin with the prefix 'kiosk.'
+#       Examples include:
+#
+#
+#    3. Dictionary with required key "cmds" and optional keys: "msg", "timeout"
+#        where the value of "cmds" is of form 1 or 2
+#        e.g., {"cmds": "ls -al", "msg": "list all files", "timeout": 1}
+#        e.g., {"cmds": ["echo hello", ["ls" "-al"]], "msg": "echo hello and list all files", "timeout": 5}
+#
+# Note enclosing top-level braces are optional and final entry can optionally
+# end with a comma.
+#
+# Note content following '#' is skipped.
+# If you want to include a '#' in a string, escape it with '\' (i.e. '\#')
+# ==============================================================================

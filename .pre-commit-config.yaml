@@ -1,7 +1,5 @@
 ---
-exclude:
-  (?x)^(
-  __NONE__)$
+exclude: ^$
 repos:
   - repo: https://github.com/executablebooks/mdformat
     # Do this before other tools "fixing" the line endings
@@ -27,8 +25,9 @@ repos:
       - id: debug-statements
       - id: end-of-file-fixer
       - id: trailing-whitespace
-        exclude: .*\.md$
+#JJK        exclude: .*\.md$
       - id: check-json
+        exclude: ^haoskiosk/gesture_commands\.json$ #JJK
       - id: mixed-line-ending
       - id: check-builtin-literals
         args: [--ignore=dict]
@@ -36,7 +35,8 @@ repos:
       - id: check-merge-conflict
       - id: check-executables-have-shebangs
       - id: check-shebang-scripts-are-executable
-        exclude: ^(test/.*)$
+#JJK        exclude: ^(test/.*)$
+        exclude: ^examples/.*$
       - id: fix-byte-order-marker
       - id: check-case-conflict
   - repo: https://github.com/lovesegfault/beautysh.git
@@ -54,3 +54,14 @@ repos:
     rev: v0.10.0.1
     hooks:
       - id: shellcheck
+
+#JJK: Added below:
+  - repo: local
+    hooks:
+      - id: sync-readme-jjk
+        name: Sync README files (JJK)
+        entry: /usr/bin//gh workflow run "Sync README Files (JJK)"
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push, commit]          # or [pre-commit] if you prefer it earlier

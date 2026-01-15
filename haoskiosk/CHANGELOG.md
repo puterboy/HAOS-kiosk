@@ -1,5 +1,43 @@
 # Changelog
 
+## v1.2.0 - January 2026
+
+- Added ability to set HA theme in config.yaml
+- Added USB audio (`audio: true` and `usb: true` in config.yaml) Added
+  corresponding config option `audio_sink` which can be: auto, hdmi, usb,
+  or none.
+- Increased ulimit (in config.yaml) to reduce crashes from heavy usage
+- Improved browser refresh logic and stability by:
+  - Changing browser refresh from JS injection to native luakit view:reload
+  - Forcing hard reload (including cache) every HARD_RELOAD_FREQ reloads
+    (refreshes)
+  - Killing and restarting luakit if ang page fails to reload more than
+    MAX_LOAD_FAILURES in a row
+- Improved logging of browser refresh
+- Added luakit memory process logging after every page load
+- Added JS injections to protect against browser errors & crashes
+- Improved robustness and debug output for associating udevadm paths with
+  libinput list devices
+- Changed run.sh exit logic so that quits if no luakit process for at least
+  10 seconds (even if original luakit process has exited)
+- Removed config.yaml parameter `allow_user_command` and replaced with
+  `command_whitelist` regex. Also added internal whitelist, blacklist, and
+  dangerous shell tokens list along with path restrictions (see README.md)
+  for details on how behavior has changed.
+- Wrote complete Python 'xinput2' parser to detect broad range of mouse and
+  touch gestures and execute gesture-specific commands. Replaces prior very
+  limited tkinter implementation. See 'mouse_touch_inputs.py' and
+  'gesture_commmands.json'
+- Added corresponding 'gestures' list option to config.yaml
+- Added 'Option "GrabDevice" "true"' to keyboard InputClass section in
+  xorg.conf
+- Added mouse buttons (left/right/middle/drag) to default Onboard keyboard
+  layout
+- Refactored and rewrote `rest_server.py`
+- Added `REST_IP` to options to allow users to set the listening IP address
+- Changed onscreen_keyboard option default to `true`
+- README edits
+
 ## v1.1.1 - September 2025
 
 - Auto-detect drm video card used and set 'kmsdev' accordingly in xorg.conf

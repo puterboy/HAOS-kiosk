@@ -3,7 +3,7 @@ name: "HAOS Kiosk Display"
 description: |
   Start X server and browser on local HAOS server and display dashboards in
   kiosk mode (Jeff Kosowsky)
-version: "1.1.1"
+version: "1.2.0"
 slug: "haoskiosk"
 
 arch:
@@ -19,6 +19,13 @@ init: false
 ingress: true
 homeassistant_api: true
 auth_api: true
+audio: true
+usb: true
+
+ulimits:
+  nofile:
+    soft: 65536
+    hard: 65536
 
 devices:
   - /dev/dri/card0
@@ -67,19 +74,31 @@ options:
   screen_timeout: 0
   output_number: 1
   dark_mode: true
+  ha_theme: ""
   ha_sidebar: "none"
   rotate_display: "normal"
   map_touch_inputs: true
   keyboard_layout: us
   cursor_timeout: 5
-  onscreen_keyboard: false
+  onscreen_keyboard: true
   save_onscreen_config: true
   xorg_conf: ""
   xorg_append_replace: "append"
-  allow_user_commands: false
+  audio_sink: "auto"
+  rest_ip: "127.0.0.1"
   rest_port: 8080
   rest_bearer_token: ""
   debug_mode: false
+  gestures:
+    - '"1_ANY_1_CORNER_TOPRIGHT": {"cmds": [["dbus-send", "--type=method_call", "--dest=org.onboard.Onboard", "/org/onboard/Onboard/Keyboard", "org.onboard.Onboard.Keyboard.ToggleVisible"]], "msg": "Toggling Onboard keyboard..."}'
+    - '"[Left]_MOUSE_3_CLICK": {"cmds": [["dbus-send", "--type=method_call", "--dest=org.onboard.Onboard", "/org/onboard/Onboard/Keyboard", "org.onboard.Onboard.Keyboard.ToggleVisible"]], "msg": "Toggling Onboard keyboard..."}'
+    - '"3_TOUCH_1_TAP": {"cmds": [["dbus-send", "--type=method_call", "--dest=org.onboard.Onboard", "/org/onboard/Onboard/Keyboard", "org.onboard.Onboard.Keyboard.ToggleVisible"]], "msg": "Toggling Onboard keyboard..."}'
+    - '"3_TOUCH_2_TAP": {"cmds": [["xdotool", "key", "--clearmodifiers", "ctrl+r"]], "msg": "Refresh Browser"}'
+    - '"3_TOUCH_3_TAP": {"cmds": "luakit \"$HA_URL/$HA_DASHBOARD\"", "msg": "Restore default dashboard"}'
+    - '"3+_TOUCH_1_SWIPE_LEFT": {"cmds": [["xdotool", "key", "--clearmodifiers", "ctrl+Right"]], "msg": "Go forward in the history browser"}'
+    - '"3+_TOUCH_1_SWIPE_RIGHT": {"cmds": [["xdotool", "key", "--clearmodifiers", "ctrl+Left"]], "msg": "Go back in the history browser"}'
+    - '"2_TOUCH_3_TAP": {"cmds": "luakit \"www.google.com\"", "msg": "Open Google search"}'
+  command_whitelist: "cat|date|dbus-send|echo|false|grep|head|ls|luakit|notify-send|ping|ping6|ps|pstree|sleep|tail|test|top|tree|true|xdotool|xset"
 
 schema:
   ha_username: str
@@ -92,6 +111,7 @@ schema:
   screen_timeout: int(0,)
   output_number: int(1,2)
   dark_mode: bool
+  ha_theme: str?
   ha_sidebar: list(full|narrow|none)
   rotate_display: list(normal|left|right|inverted)
   map_touch_inputs: bool
@@ -101,10 +121,14 @@ schema:
   save_onscreen_config: bool
   xorg_conf: str?
   xorg_append_replace: list(append|replace)
+  audio_sink: list(auto|hdmi|usb|none)
+  rest_ip: str
   rest_port: int(1024,49151)
   rest_bearer_token: password
-  allow_user_commands: bool
   debug_mode: bool
+  gestures:
+    - str
+  command_whitelist: str
 
 translations:
   - en

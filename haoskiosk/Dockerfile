@@ -1,13 +1,16 @@
 ################################################################################
 # Add-on: HAOS Kiosk Display (haoskiosk)
 # File: Dockerfile
-# Version: 1.1.1
+# Version: 1.2.0
 # Copyright Jeff Kosowsky
-# Date: September 2025
+# Date: January 2026
 ################################################################################
 
 ARG BUILD_FROM
 FROM $BUILD_FROM
+
+ARG BUILD_VERSION
+ENV ADDON_VERSION=${BUILD_VERSION}
 
 # Install Luakit and necessary dependencies
 RUN apk update && apk add --no-cache \
@@ -33,14 +36,18 @@ RUN apk update && apk add --no-cache \
     unclutter-xfixes \
     setxkbmap \
     openbox \
-#    xfce4-settings \
-#    xfwm4 \
-#    xfce4-session \
     onboard \
     py3-pip \
-    python3-tkinter \
+    py3-xlib \
     patch \
     bash \
+    pulseaudio-utils \
+#    alsa-utils alsa-plugins-pulse \
+#    gstreamer-tools \
+#    gst-libav \
+#   VNC (for debugging) - run: x11vnc -display :0 -forever & \
+    x11vnc \
+#    luakit \
     && apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/v3.21/community luakit=2.3.6-r0 \
     && rm -rf /var/cache/apk/*
 
@@ -55,7 +62,8 @@ COPY translations/*.yaml /translations/
 COPY run.sh /
 RUN chmod a+x /run.sh
 
-COPY toggle_keyboard.py rest_server.py /
+COPY mouse_touch_inputs.py gesture_commands.json /
+COPY rest_server.py /
 RUN pip install --no-cache-dir  --break-system-packages aiohttp #Required for rest_server.py
 
 # Need to patch 'unique_instance.lua' so that new instance urls overwrite active url rather than add new tab

@@ -1,9 +1,9 @@
---[[
+--[=[
 Add-on: HAOS Kiosk Display (haoskiosk)
 File: userconf.lua for HA minimal browser run on server
-Version: 1.1.1
+Version: 1.2.0
 Copyright Jeff Kosowsky
-Date: September 2025
+Date: January 2026
 
 Code does the following:
     - Sets browser window to fullscreen
@@ -13,16 +13,23 @@ Code does the following:
     - Redefines key to return to normal mode (used for commands) from 'passthrough' mode to: 'Ctl-Alt-Esc'
       (rather than just 'Esc') to prevent unintended  returns to normal mode and activation of unwanted commands
     - Adds <Control-r> binding to reload browser screen (all modes)
+    - Adds <Control-Left> and <Control-Right> bindings, to move backwards and forwards respectively in the browser history
     - Prevent printing of '--PASS THROUGH--' status line when in 'passthrough' mode
     - Set up periodic browser refresh every $BROWSWER_REFRESH seconds (disabled if 0)
+      NOTE: Original method injected JS to refresh page, now using native luakit view:reload command for more robustness
+            Also, every HARD_RELOAD_FREQ refreshes, we also fully refresh the cash
       NOTE: this is important since console messages overwrite dashboards
+    - Kill current luakit and restart if any page fails to reload MAX_LOAD_FAILURES in a row
     - Allows for configurable browser $ZOOM_LEVEL
-    - Prefer dark color scheme for websites that support it if $DARK_MODE environment variable true (default to true)
+    - Set theme based on $HA_THEME.
+      If no theme is set (or if set to '{}' or 'Home Assistant') then the default theme is used with light or dark depending on the value of $DARK_MODE
+      Similarly, if the theme has both light and dark modes, then the value of $DARK_MODE determines the underlying mode.
+      If theme is set to '{"dark":true} or {"dark":false} then the default theme is dark or light respectively, regardless of the value of $DARK_MODE
     - Set Home Assistant sidebar visibility using $HA_SIDEBAR environment variables
     - Set 'browser_mod-browser-id' to fixed value 'haos_kiosk'
     - If using onscreen keyboard, hide keyboard after page (re)load
     - Prevent session restore by overloading 'session.restore
-]]
+]=]
 
 -- -----------------------------------------------------------------------
 -- Load required Luakit modules
@@ -34,6 +41,9 @@ local modes = package.loaded["modes"]
 -- -----------------------------------------------------------------------
 -- Configurable variables
 local new_escape_key = "<Control-Mod1-Escape>" -- Ctl-Alt-Esc
+local HARD_RELOAD_FREQ = 10  -- Frequency of fully reloading cache when refreshing page
+local MAX_LOAD_FAILURES = 5  -- Maximum number of consecutive page (re)load failures per view before restarting luakit
+
 
 -- Load in environment variables to configure options
 local defaults = {
@@ -42,6 +52,7 @@ local defaults = {
     HA_URL = "http://localhost:8123",
     DARK_MODE = true,
     HA_SIDEBAR = "",
+    HA_THEME = "",
 
     LOGIN_DELAY = 1,
     ZOOM_LEVEL = 100,
@@ -60,26 +71,39 @@ local ha_url_base = ha_url:match("^(https?://[%w%.%-%%:]+)") or ha_url
 ha_url_base = string.gsub(ha_url_base, "/+$", "") -- Strip trailing '/'
 
 local raw_dark_mode = os.getenv("DARK_MODE")
-local dark_mode = ({
-    ["true"] = true,
-    ["false"] = false
-})[raw_dark_mode]
-if dark_mode == nil then
+if raw_dark_mode == nil then
     dark_mode = defaults.DARK_MODE
+else
+    dark_mode = raw_dark_mode:lower()
+    if dark_mode == "true" then
+        dark_mode = true
+    elseif dark_mode == "false" then
+        dark_mode = false
+    else
+       dark_mode = defaults.DARK_MODE
+    end
 end
 
 local raw_sidebar = os.getenv("HA_SIDEBAR") or defaults.HA_SIDEBAR -- Valid entries: full (or ""), narrow, none,
 local valid_sidebars = {
     full = '',
     none = '"always_hidden"',
-    narrow =
-    '"auto"',
+    narrow = '"auto"',
     [""] = ''
 }
-local sidebar = valid_sidebars[raw_sidebar]
-if sidebar == nil then
+local sidebar = valid_sidebars[(raw_sidebar or ""):lower()] or ''
+if sidebar == '' and raw_sidebar ~= "" and raw_sidebar ~= defaults.HA_SIDEBAR then
     msg.warn("Invalid HA_SIDEBAR value: '%s'; defaulting to unset", raw_sidebar)
     sidebar = ''
+end
+
+local theme = os.getenv("HA_THEME") or "" -- Any installed theme name (e.g., "midnight", "google", "minimal"), or empty to not override
+if theme ~= "" then
+   local firstchar = theme:sub(1,1)
+   if firstchar ~= '"' and firstchar ~= "'" and firstchar ~= '{' then
+       theme = '"' .. theme .. '"' -- Wrap in quotes
+   end
+    msg.info("Forcing HA_THEME to: %s", theme)
 end
 
 local login_delay = tonumber(os.getenv("LOGIN_DELAY")) or defaults.LOGIN_DELAY -- Delay in seconds before auto-login
@@ -102,8 +126,8 @@ end
 
 local onscreen_keyboard = os.getenv("ONSCREEN_KEYBOARD") == "true"
 
-msg.info("USERNAME=%s; URL=%s; DARK_MODE=%s; SIDEBAR=%s; LOGIN_DELAY=%.1f, ZOOM_LEVEL=%d, BROWSER_REFRESH=%d,  ONSCREEN_KEYBOARD=%s",
-    username, ha_url, tostring(dark_mode), sidebar, login_delay, zoom_level, browser_refresh, tostring(onscreen_keyboard))
+msg.info("USERNAME=%s; URL=%s; DARK_MODE=%s; SIDEBAR=%s; THEME=%s; LOGIN_DELAY=%.1f, ZOOM_LEVEL=%d, BROWSER_REFRESH=%d,  ONSCREEN_KEYBOARD=%s",
+    username, ha_url, tostring(dark_mode), sidebar, theme, login_delay, zoom_level, browser_refresh, tostring(onscreen_keyboard))
 
 -- -----------------------------------------------------------------------
 -- Forward console messages to stdout
@@ -144,80 +168,123 @@ local function single_quote_escape(str) -- Single quote strings before injection
 end
 
 -- -----------------------------------------------------------------------
+-- Per-view weak table to track last URL for refresh debugging/reset detection
+local consecutive_load_failures = setmetatable({}, { __mode = "k" })  -- Weak keys per view to count consecutive reload failures
+
+-- -----------------------------------------------------------------------
+
 -- Auto-login to homeassistant (if on HA url) and set 'sidebar settings
 
 local ha_settings_applied = setmetatable({}, { __mode = "k" }) -- Flag to track if HA settings have already been applied in this session
 
 webview.add_signal("init", function(view)
-    ha_settings_applied[view] = false  -- Set sidebar settings once  per view
+    ha_settings_applied[view] = false  -- Set theme and sidebar settings once  per view
 
-    -- Listen for page load events
-    view:add_signal("load-status", function(v, status)
-        if status ~= "finished" then return end  -- Only proceed when the page is fully loaded
-        msg.info("URI: %s", v.uri) -- DEBUG
+    -- Listen for page load status events
+    view:add_signal("load-status", function(v, status)  -- Note do NOT used "load-finished" since doesn't handle redirects properly
+
+        -- Restart luakit if consecutive_load_failures > MAX_LOAD_FAILURES
+        if status == "failed" then
+            consecutive_load_failures[v] = (consecutive_load_failures[v] or 0) + 1
+
+            if consecutive_load_failures[v] < MAX_LOAD_FAILURES then
+                msg.warn("Page load failed (%d/%d): %s", consecutive_load_failures[v], MAX_LOAD_FAILURES, v.uri or "unknown")
+             else
+		local ffi = require("ffi")
+		ffi.cdef("int getpid(void);")
+		local luakit_pid = ffi.C.getpid()
+
+		local url = v.uri or ha_url
+                msg.error("RESTARTING Luakit (PID=%d) after %d page load failures: %s", luakit_pid, MAX_LOAD_FAILURES, url)
+		-- Send kill signal to current luakit pid, wait to complete kill, wait for dbus to fully disconnect, remove /tmp ipc file, launch new luakit, echo PID
+		local cmd = string.format([[
+		  (kill %d;
+                   while kill -0 %d 2>/dev/null; do sleep 0.1; done;
+                   sleep 2;
+		   rm -f /tmp/luakit-%d-* 2>/dev/null;
+                   luakit '%s' &
+                   echo "New Luakit PID=$!") &
+		]], luakit_pid, luakit_pid, luakit_pid, url)
+		os.execute(cmd)
+            end
+
+        elseif status ~= "finished" then return end  -- Only proceed when the page is fully loaded
+	    consecutive_load_failures[v] = 0  -- Reset consecutive load failures counter
+
+	 -- Print RSS  memory consumption
+        local mem_file = io.open("/proc/self/statm", "r")
+        local rss_mb = "NA"
+        if mem_file then
+            local rss_pages = tonumber(mem_file:read("*a"):match("%S+%s+(%S+)"))
+            mem_file:close()
+            if rss_pages then
+                rss_mb = math.floor(rss_pages * 4 / 1024)  -- Approximate MB (page size ~4kB on most systems)
+            end
+        end
+        msg.info("URL: %s (RSS: %s MB)", v.uri, rss_mb) -- DEBUG
 
         -- Hide onscreen keyboard (if enabled) after page (re)load
         -- NOTE: this is needed since 'onboard' doesn't always hide keyboard unless focus explicitly lost
-	if onscreen_keyboard then
-	    msg.info("Hiding onscreen keyboard...")
-	    luakit.spawn("dbus-send --type=method_call --print-reply --dest=org.onboard.Onboard /org/onboard/Onboard/Keyboard org.onboard.Onboard.Keyboard.Hide")
-	end
+        if onscreen_keyboard then
+            msg.info("Hiding onscreen keyboard...")
+            luakit.spawn("dbus-send --type=method_call --dest=org.onboard.Onboard /org/onboard/Onboard/Keyboard org.onboard.Onboard.Keyboard.Hide")
+        end
 
-	-- Force passthrough mode on every page load so don't inadvertently type commands in kiosk
-	webview.window(v):set_mode("passthrough")
+        -- Force passthrough mode on every page load so don't inadvertently type commands in kiosk
+        webview.window(v):set_mode("passthrough")
 
-        -- Set up auto-login for Home Assistapnt
+        -- Set up auto-login for Home Assistant
         -- Check if current URL matches the Home Assistant auth page
         if v.uri:match("^" .. ha_url_base .. "/auth/authorize%?response_type=code") then
-	    msg.info("Authorizing: %s", v.uri) -- DEBUG
+            msg.info("Authorizing: %s", v.uri) -- DEBUG
             -- JavaScript to auto-fill and submit the login form
             local js_auto_login = string.format([[
                 setTimeout(function() {
-		    const usernameField = document.querySelector('input[autocomplete="username"]');
-		    const passwordField = document.querySelector('input[autocomplete="current-password"]');
-		    const haCheckbox = document.querySelector('ha-checkbox');
-		    const submitButton = document.querySelector('ha-button, mwc-button');
+                    try {
+                        const usernameField = document.querySelector('input[autocomplete="username"]');
+                        const passwordField = document.querySelector('input[autocomplete="current-password"]');
+                        const haCheckbox = document.querySelector('ha-checkbox');
+                        const submitButton = document.querySelector('ha-button, mwc-button');
 
-                    if (usernameField && passwordField && submitButton) {
-                        usernameField.value = '%s';
-                        usernameField.dispatchEvent(new Event('input', { bubbles: true }));
-                        passwordField.value = '%s';
-                        passwordField.dispatchEvent(new Event('input', { bubbles: true }));
-                    } else {
-                        console.log('Auto-login failed: missing elements', {
-                            username: !!usernameField,
-                            password: !!passwordField,
-                            submit: !!submitButton
-			});
-		    }
+                        if (usernameField && passwordField && submitButton) {
+                            usernameField.value = '%s';
+                            usernameField.dispatchEvent(new Event('input', { bubbles: true }));
+                            passwordField.value = '%s';
+                            passwordField.dispatchEvent(new Event('input', { bubbles: true }));
+                        } else {
+                            console.log('Auto-login failed: missing elements', {
+                                username: !!usernameField,
+                                password: !!passwordField,
+                                submit: !!submitButton
+                            });
+                        }
 
-		    if (haCheckbox) {
-		        haCheckbox.setAttribute('checked', '');
-			haCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
-		    }
+                        if (haCheckbox) {
+                            haCheckbox.setAttribute('checked', '');
+                            haCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
+                        }
 
-                    submitButton.click();
-
+                        submitButton.click();
+                    } catch(e) { console.warn('Auto-login JS error:', e); }
                 }, %d);
             ]], single_quote_escape(username), single_quote_escape(password), login_delay * 1000)
 
-	    msg.info("Logging in: (username: %s): %s", username, v.uri) -- DEBUG
+            msg.info("Logging in: (username: %s): %s", username, v.uri) -- DEBUG
             v:eval_js(js_auto_login, { source = "auto_login.js", no_return = true })  -- Execute the login script
         end
 
-        -- Set Home Assistant sidebar visibility after dashboard load
-        -- Check if current URL starts with ha_url but not an auth page
-        if not ha_settings_applied[v]
+        -- Set Home Assistant theme and sidebar visibility after dashboard load
+        if not ha_settings_applied[v] -- Check if not set yet and current URL starts with ha_url but not an auth page
            and (v.uri .. "/"):match("^" .. ha_url_base .. "/") -- Note ha_url was stripped of trailing slashes
            and not v.uri:match("^" .. ha_url_base .. "/auth/") then
 
             local js_settings = string.format([[
                 try {
-	            // Set browser_mod browser ID to "haos_kiosk"
+                    // Set browser_mod browser ID to "haos_kiosk"
                     localStorage.setItem('browser_mod-browser-id', 'haos_kiosk');
 
                     // Set sidebar visibility
-		    const sidebar = '%s';
+                    const sidebar = '%s';
                     const currentSidebar = localStorage.getItem('dockedSidebar') || '';
 
                     if (sidebar !== currentSidebar) {
@@ -228,41 +295,174 @@ webview.add_signal("init", function(view)
                         }
                     }
 
-//                  localStorage.setItem('DebugLog', "Setting: : " + currentSidebar + " -> " + sidebar); // DEBUG
+                    // Set theme if specified
+                    const theme = '%s';
+                    const currentTheme = localStorage.getItem('selectedTheme') || '';
+                    if (theme !== currentTheme) {
+                        if (theme !== "") {
+                            localStorage.setItem('selectedTheme', theme);
+                        } else {
+                            localStorage.removeItem('selectedTheme');
+                        }
+                    }
 
+//                  localStorage.setItem('DebugLog', "Setting sidebar: " + currentSidebar + " -> " + sidebar + "; theme: " + currentTheme + " -> " + theme); // DEBUG
                 } catch (err) {
-		    console.error(err);
-		    console.log("FAILED to set: Sidebar: " + sidebar + "[" + err + "]"); // DEBUG
-                    localStorage.setItem('DebugLog', "FAILED to set: Sidebar: " + sidebar); // DEBUG
+                    console.error(err);
+                    console.log("FAILED to set: Sidebar: " + sidebar + "  Theme: " + theme + " [" + err + "]"); // DEBUG
+                    localStorage.setItem('DebugLog', "FAILED to set: Sidebar: " + sidebar + "  Theme: " + theme); // DEBUG
                 }
-            ]], single_quote_escape(sidebar))
+            ]], single_quote_escape(sidebar), single_quote_escape(theme))
 
             v:eval_js(js_settings, { source = "ha_settings.js", no_return = true })
-            msg.info("Applying HA settings on dashboard %s: sidebar=%s", v.uri, theme, sidebar) -- DEBUG
+            msg.info("Applying HA settings on dashboard %s: theme=%s sidebar=%s", v.uri, theme, sidebar) -- DEBUG
 
             ha_settings_applied[v] = true   -- Mark in Lua session as settings applied
         end
 
+        -- Suppress known harmless unhandled promise rejections in kiosk environment
+        --   - Service worker / script load failures during reloads
+        --   - View transition errors when monitor/document is hidden (common when screen off)
+        -- Prevents page aborts/504s while keeping real errors visible
+        local js_suppress_errors = [[
+            window.addEventListener('unhandledrejection', function(e) {
+                const reason = e.reason;
+                let suppress = false;
 
-        -- Set up periodic page refresh (once per page load) if browser_refresh interval is positive
-        if browser_refresh > 0 then
-            -- JavaScript to block HA reloads and set up periodic reloads
-            local js_refresh = string.format([[
-                if (window.ha_refresh_id) clearInterval(window.ha_refresh_id);
-                window.ha_refresh_id = setInterval(function() {
-                    location.reload();
-                }, %d);
-                window.addEventListener('beforeunload', function() {
-                    clearInterval(window.ha_refresh_id);
-                });
-            ]], browser_refresh * 1000)
+                if (reason) {
+                    const msg = typeof reason.message === 'string' ? reason.message : '';
+                    const name = (reason.name || '').toLowerCase();
 
-            -- Inject refresh script into the webview
-            v:eval_js(js_refresh, { source = "auto_refresh.js", no_return = true })  -- Execute the refresh script
-            msg.info("Injecting refresh interval: %s", v.uri)  -- DEBUG
-        end
+                    if (msg.includes('sw-modern.js') ||
+                        msg.includes('load failed') ||
+                        msg.includes('service worker') ||
+                        name === 'invalidstateerror' &&
+                            (msg.includes('document visibility state is hidden') ||
+                             msg.includes('view transition')) ||
+                        reason === '[object Object]' ||
+                        msg === '' ||                    // Empty message common in HA reconnect bugs
+                        typeof reason === 'object') {    // Catch generic objects
+                        suppress = true;
+                    }
+                }
+
+                if (suppress) {
+                    console.warn('Suppressed known kiosk-safe unhandled rejection:', reason);
+                    e.preventDefault(); // Prevent abort, potential load failure or error cascade
+                }
+            });
+        ]]
+
+        -- Inject suppress_errors script into the webview (once per load-finished)
+        v:eval_js(js_suppress_errors, { source = "suppress_kiosk_errors.js", no_return = true })
+
+        -- Add HA websocket recovery monitor and force reload if dead (common after reconnect failures)
+        local js_ws_recovery = [[
+            (function() {
+                if (window.ha_ws_recovery_interval) return;  // Only once
+                window.ha_ws_recovery_interval = setInterval(function() {
+                    if (window.APP && window.APP.connection && !window.APP.connection.connected) {
+                        console.warn('HA websocket dead >10s - forcing reload for recovery');
+                        location.reload();
+                    }
+                }, 10000);  // Check every 10 seconds
+            })();
+        ]]
+
+        -- Inject websocket recovery monitor script into the webview (once per load-finished)
+        v:eval_js(js_ws_recovery, { source = "ws_recovery.js", no_return = true })
 
     end)
+
+    -- If browser_refresh set, then refresh browser every browser_refresh seconds after page finished/loaded/reloaded
+    if browser_refresh > 0 then
+
+       -- Check page visibility and set per-view flag so can skip refreshing non-visible pages
+        --[=[  COMMENT-OUT FOR NOW since kiosks typically have only a single visible page
+        local page_visible = true  -- Per-view visibility (optimistic default to 'true')
+
+        -- Inject JS on every load-finished
+        view:add_signal("load-status", function(v, status)
+            if status ~= "finished" then return end
+
+            -- Evaluate document.visibilityState and update page_visible
+            v:eval_js([[
+                (function() {
+                    return document.visibilityState;
+                })();
+            ]], {
+                callback = function(state)
+                    page_visible = (state == "visible")
+                    msg.info("DEBUG: page visibility set to '%s': %s", state, v.uri) -- DEBUG
+                end,
+                error_callback = function(err)
+                    msg.warn("ERROR: Couldn't determine page visibility: %s (%s)", v.uri, err)
+                end,
+            })
+        end)
+	]=]
+
+	-- Refresh browser logic
+        local refresh_timer = nil  -- Per-view refresh timer
+        local hard_reload_count = 0
+        local function reset_refresh_timer()
+            if not view.uri or view.uri == "about:blank" then return end -- Invalid or blank URL
+
+            if refresh_timer then  -- Refresh existing timer
+                msg.info("Restarting refresh timer (%ds): %s", browser_refresh, view.uri)
+		refresh_timer:stop()   -- Stop current countdown
+		refresh_timer:start()  -- Restart from full interval
+            else  -- Initialize new timer
+                msg.info("Initializing refresh timer (%ds): %s", browser_refresh, view.uri)
+                refresh_timer = timer { interval = browser_refresh * 1000 }
+                refresh_timer:add_signal("timeout", function(t)
+                    if not view.is_alive then
+                        msg.info("DEBUG: Skipping reload - webview not alive [shouldn't happen]")
+                        return
+                    end
+
+		    if not view.uri or view.uri == "about:blank" then return end
+
+		    --[=[ COMMENT-OUT if not testing visibility
+		    if not page_visible then
+		        msg.info("Skipping reload - page not visible")
+			return
+                    end
+		    ]=]
+
+  		    hard_reload_count = hard_reload_count + 1
+  		    local bypass_cache = (hard_reload_count % HARD_RELOAD_FREQ == 0)  -- Hard reload  every 10th
+                    msg.info("RELOADING%s: %s", bypass_cache and " [HARD]" or "", view.uri)
+       		    view:reload(bypass_cache)
+                end)
+                refresh_timer:start()
+            end
+        end
+
+        -- Initial set refresh timer (in case already loaded)
+        reset_refresh_timer()
+
+        -- Start/restart on finished loads when URI is valid
+        view:add_signal("load-status", function(v, status)
+            if status ~= "finished" then return end
+	    reset_refresh_timer()
+        end)
+
+        -- Also on manual reloads
+        view:add_signal("reload", function()
+            reset_refresh_timer()
+        end)
+
+        -- *** CLEANUP: Stop and delete refresh timer when this webview is destroyed ***
+        view:add_signal("destroy", function()
+            if refresh_timer then
+                msg.info("DEBUG: Webview destroyed - stopping and discarding refresh timer")
+                refresh_timer:stop()
+                refresh_timer = nil  -- Allow garbage collection
+            end
+        end)
+
+    end
 end)
 
 -- -----------------------------------------------------------------------
@@ -278,7 +478,9 @@ modes.add_binds("passthrough", {
 )
 -- Add <Control-r> binding in all modes to reload page
 modes.add_binds("all", {
-    { "<Control-r>", "reload page", function (w) w:reload() end },
+    { "<Control-r>", "Reload page", function(w) w:reload() end },
+    { "<Control-Left>", "Go back in the browser history", function(w, m) w:back(m.count) end },
+    { "<Control-Right>", "Go forward in the browser history", function(w, m) w:forward(m.count) end },
     })
 
 -- Clear the command line when entering passthrough instead of typing '-- PASS THROUGH --'
@@ -288,3 +490,5 @@ modes.get_modes()["passthrough"].enter = function(w)
     w.view.can_focus = true   -- Ensure the webview can receive focus
     w.view:focus()            -- Focus the webview for keyboard input
 end
+
+-- -----------------------------------------------------------------------

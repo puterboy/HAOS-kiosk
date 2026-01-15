@@ -2,7 +2,7 @@
 
 Display HA dashboards in kiosk mode directly on your HAOS server.
 
-## Author: Jeff Kosowsky
+## Author: Jeff Kosowsky (version: 1.2.0, January 2026)
 
 ## Description
 
@@ -13,7 +13,10 @@ Supports touchscreens (including onscreen keyboard) and screen rotation.
 Includes REST API that can be used to control the display state and to send
 new URLs (e.g., dashboards) to the kiosk browser.
 
-You can press `ctl-R` at any time to refresh the browser.
+You can press `ctl-R` at any time to refresh ( reload) the browser./
+Alternatively, you can right click (or long press touchscreen) to access
+browser menu that includes options for page `Back`, `Forward`, `Stop`, and
+`Reload`.
 
 **NOTE:** You must enter your HA username and password in the
 *Configuration* tab for add-on to start.
@@ -44,6 +47,8 @@ full details of your setup and what you did along with a complete log.
 ### If you appreciate my efforts:
 
 [![Buy Me a Coffee](https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png)](https://www.buymeacoffee.com/puterboy)
+
+______________________________________________________________________
 
 ## Configuration Options
 
@@ -99,7 +104,23 @@ output device connected. If so, use the logs to see how they are numbered.
 
 ### Dark Mode
 
-Prefer dark mode where supported if `true` (Default: true)
+Prefer dark mode where supported if `True`, otherwise prefer light mode.
+(Default: True)
+
+NOTE: This applies to *all* url's.
+
+### HA Theme
+
+Set HA theme to given string. This setting applies only to HA dashboards
+and may override the value of DARK_MODE unless the theme support both dark
+and light variants. See HACS for downloadable themes to use. (Default:
+True)
+
+NOTE: You can force the dark or light default theme specifically for HA
+dashboards by setting the theme to `{"dark":true}` or `{"dark":false}`
+respectively. Similarly, leaving the theme blank (or setting it to `{}` or
+`Home Assistant`) is equivalent to "auto", in which case the default light
+or dark scheme is governed by the value of DARK_MODE.
 
 ### HA Sidebar
 
@@ -139,27 +160,43 @@ Set the keyboard layout and language. (Default: us)
 ### Onscreen Keyboard
 
 Display an on-screen keyboard when keyboard input expected if set to
-`true`. (Default: false)
+`true`. (Default: True)
 
 To move, resize, or configure keyboard options, long press on the `...`
 within the `Return` key. You can also resize the keyboard by pressing and
 dragging along the keyboard edges.
 
 You can manually toggle keyboard visibility on/off by tapping extreme top
-right of screen.
+right of screen or triple-clicing.
 
 See https://github.com/dr-ni/onboard for more details
 
 ### Save Onscreen Config
 
 Save and restore changes to onscreen keyboard settings made during each
-session if set to `true`. Overwrites default settings. (Default: true)
+session if set to `True`. Overwrites default settings. (Default: True)
 
 ### Xorg.conf
 
 Append to or replace existing, default xorg.conf file.\
 Select 'Append' or 'Replace options.\
 To restore default, set to empty and select 'Append' option.
+
+### Audio Sink
+
+Set the audio output sink. (Default: Auto)\
+Options include: 'Auto', 'HDMI', 'USB', 'NONE', picking the first
+respective audio output, HDMI audio output, and USB/Aux audio output.
+
+### REST IP address
+
+IP address where the REST Server listens. (Default: 127.0.0.1) By default,
+for security it only accepts request from localhost -- meaning that REST
+commands must originate from the homeassistant localhost.
+
+If you want to accept requests from anywhere, then set to \`\`0.0.0.0\` BUT
+BE FOREWARNED that unless you set up and use a REST Bearker Token, this is
+a security vulnerability.
 
 ### REST Port
 
@@ -170,16 +207,7 @@ Note for security REST server only listens on localhost (127.0.0.1)
 ### REST Bearer Token
 
 Optional authorization token for REST API. (Default: "") If set, then add
-line `Authorization: Bearer <REST_BEARER_TOKEN>` to REST API calls.
-
-### Allow User Commands
-
-Allow user to run arbitrary one or more commands in the HAOSkiosk container
-via the respective REST APIs: `run_command` and `run_commands` (Default:
-false)
-
-Warning: Allowing this could allow the user to inject potentially dangerous
-root-level commands
+line `-H "Authorization: Bearer <REST_BEARER_TOKEN>"` to REST API calls.
 
 ### Debug
 
@@ -188,6 +216,30 @@ without launching `luakit`.\
 Manually, launch `luakit` (e.g.,
 `luakit -U localhost:8123/<your-dashboard>`) from Docker container.\
 E.g., `sudo docker exec -it addon_haoskiosk bash`
+
+### Gestures
+
+Editable list of JSON-like key-value pairs where the key represents a
+(valid) *gesture string* and the value is a structured set of one or more
+*action* commands. See section "GESTURE COMMANDS" below for more details,
+examples, and default gestures.
+
+### Command Whitelist Regex
+
+Regex (Python) of shell command that can be used in creating gesture
+commands or when running the `run_command` and `run_commands` REST APIs.
+
+If left blank, then all commands are allowed except for those blacklisted
+as dangerous (otherwise, whitelist overrides internal blacklist).
+
+Note that if you want to truly allow *all* commands, then use the wildcard
+`.*` but beware that it is DANGEROUS. If you want to disallow all commands
+set the regex to `^$`.
+
+Note that regardless of setting only commands found in `/bin`, `/usr/bin`,
+and `/usr/local/bin` of the HAOSKiosk add-on container are allowed.
+
+______________________________________________________________________
 
 ## REST APIs
 
@@ -298,6 +350,8 @@ In the case of `run_commands`, pipe the output to:
 
 ______________________________________________________________________
 
+#### HA REST Command Syntax
+
 You can also configure all the above REST commands in your
 `configuration.yaml` as follows (assuming REST_PORT=8080)
 
@@ -367,7 +421,7 @@ authentication lines to each of the above stanzas:
 The rest commands can then be referenced from automation actions as:
 `rest_command.haoskiosk_<command-name>`
 
-For example:
+#### Examples
 
 ```
 actions:
@@ -400,7 +454,8 @@ actions:
   - action: rest_command.haoskiosk_run_commands
     data:
       cmds:
-        - "<command1>"
+
+- "<command1>"
         - "<command2>"
         ...
       cmd_timeout: <seconds>
@@ -427,3 +482,191 @@ actions:
 
 2. Use custom command(s) to change internal parameters of HAOSKiosk and the
    luakit browser configuration.
+
+______________________________________________________________________
+
+### GESTURE COMMANDS
+
+Each Gesture Command is a JSON-like key-value pair where the key is a valid
+*Gesture String* corresponding to a specific sequence of button clicks or
+finger taps and the value is an *Action Command* containing a structured
+set of one or more commands to execute when the gesture is recognized.
+
+The formats of the Gesture Strings and Action Commands are precisely
+defined, so if they fail to load check your log for error messages.
+
+#### Gesture String Keys
+
+Each Gesture String key is of form:
+
+**`<CONTACTS>_<DEVICE>_<CLICKS>_<GESTURE>`**
+
+where:
+
+**`<CONTACTS>`** field captures he maximal contact set during the gesture.
+Either:
+
+- A number (`N`, `N+`, `N-`) representing the (maximum) number of contacts
+  (buttons or fingers), where `N+` and `N-` respectively indicate greater
+  than and less than or equal to `N`
+  - List of button numbers and/or corresponding button names (for
+    mouse-type devices only) e.g., `[Left, Right]`, `[1, 3]`, `[Left, 3]`
+
+**`<DEVICE>`** field identifies the type of input contact either by:
+
+- Device Type (e.g., `MOUSE`, `TOUCH`) or the wildcard `ANY`
+- Mechanism (e.g., `Button`, `Finger`)
+
+**`<CLICKS>`** field captures the number (`M`, `M+`, `M-`) of clicks/taps
+in the gesture where `M+` and `M-` are respectively greater than or less
+than or equal to `M` (e.g., `1` for single-click, `2` for double-click,
+`2+` for 2 or more clicks)
+
+**`<GESTURE>`** field specifies the general class or device-specific name
+of the gesture
+
+- Class (e.g., `CLICKTAP`, `DRAG`, `SWIPE`, `LONG`, `CORNER_<name>`) or the
+  wildcard `ANY`
+- Friendly Name (e.g., `Click`, `Tap`, `Drag`, `Swipe`, `Long Click`,
+  `Long Tap`). Note the names may be device-specific (e.g., Click for
+  Mouse, Tap for Touch)
+
+##### Additional notes regarding gesture naming:
+
+- `ANY` is a wildcard matching any gesture
+- Corners are named: CORNER_TOPLEFT, CORNER_TOPRIGHT, CORNER_BOTLEFT,
+  CORNER_BOTRIGHT
+- `DRAG` and `SWIPE` differ primarily in velocity (`SWIPE` is faster)
+- Both `DRAG` and `SWIPE` may include suffixes `_LEFT`, `_RIGHT`, `_UP`, or
+  `_DOWN`
+- Undirected `DRAG`/`SWIPE` act as wildcards for their directional variants
+- `LONG` can take the optional device-specific suffixes `_CLICK` or `TAP`
+- CORNER\_<name> triggers when click or tap is in within "click_dim" of the
+  named corner (default 5 pixels)
+- `DRAG`, `SWIPE`, and `LONG` (and their variants) are always single-click
+  gestures
+- Matching is case-insensitive
+
+Note that Gesture String Keys are matched in order, so that you should
+always enter keys from particular to more general when using wildcards
+
+#### Validity Checks
+
+- Single-click gestures cannot be used if more than 1 Click/Tap
+- `Click` applies only to mouse devices; `Tap` applies only to touch
+  devices
+
+#### Valid Examples
+
+```
+[Left, Right]_MOUSE_3_CLICKTAP
+[1,2,3]_MOUSE_1+_CORNER_TOPRIGHT
+2_TOUCH_1_DRAG_LEFT
+2_Button_1_Long Click
+3_Finger_2_Tap
+2+_Finger_1_Swipe_down
+1_ANY_2-_CLICKTAP
+1+_ANY_1+_ANY
+```
+
+#### Invalid Examples
+
+```
+1_Mouse_3-Tap     (Tap is for Touch)
+1-Touch_2-Long    (Long gestures must be single contact)
+```
+
+#### Action Command Values
+
+Action command values may be expressed in one of three forms:
+
+1. **Single command string** e.g., `"ls -a -l"` Note that an empty string
+   acts as a No-Op -- i.e., it will be ignored and can be used with
+   wildcard gestures to block actions of lower priority.
+
+2. **List of commands** - Each command may be either:
+
+   - A string: `"echo hello"`
+     - An argv-style list: `["ls", "-a", "-l"]`
+
+Example `["echo hello", ["ls", "-a", "-l"]]`
+
+Note that the commands themselves can either be shell commands or
+kiosk-specific internal commands that begin with the prefix 'kiosk.'
+
+Examples include:
+
+3. **Command dictionary** with required key `"cmds":` and optional keys:
+   `"msg":` and `"timeout"`
+
+Examples:
+
+```
+{"cmds": "ls -al", "msg": "list all files", "timeout": 1}
+{"cmds": ["echo hello", ["ls", "-al"]], "msg": "echo hello and list all files", "timeout": 5}
+```
+
+#### Defaults & Examples
+
+The following gestures are included by default (but can be removed by
+clicking on the `X` next to them):
+
+- **Single Tap or Click in Top Right Corner**: *Toggle on-screen keyboard*
+
+```
+"1_ANY_1_CORNER_TOPRIGHT": {"cmds": [["dbus-send", "--type=method_call", "--dest=org.onboard.Onboard", "/org/onboard/Onboard/Keyboard", "org.onboard.Onboard.Keyboard.ToggleVisible"]], "msg": "Toggling Onboard keyboard..."}
+```
+
+- **Left Triple Mouse Click**: *Toggle on-screen keyboard*
+
+```
+"[Left]_MOUSE_3_CLICK": {"cmds": [["dbus-send", "--type=method_call", "--dest=org.onboard.Onboard", "/org/onboard/Onboard/Keyboard", "org.onboard.Onboard.Keyboard.ToggleVisible"]], "msg": "Toggling Onboard keyboard..."}
+```
+
+- **3-Finger Single Tap**: *Toggle on-screen keyboard*
+
+```
+"3_TOUCH_1_TAP": {"cmds": [["dbus-send", "--type=method_call", "--dest=org.onboard.Onboard", "/org/onboard/Onboard/Keyboard", "org.onboard.Onboard.Keyboard.ToggleVisible"]], "msg": "Toggling Onboard keyboard..."}
+```
+
+- **3-Finger Double Tap**: *Refresh Browser*
+
+```
+"3_TOUCH_2_TAP": {"cmds": [["xdotool", "key", "--clearmodifiers ctrl+r"]], "msg": "Refresh Browser"}
+```
+
+- **3-Finger Triple Tap**: *Restore Default HA dashboard
+  (HA_URL/HA_Dashboard)*
+
+```
+"3_TOUCH_3_TAP": {"cmds": "luakit \"$HA_URL/$HA_DASHBOARD\"", "msg": "Restore default dashboard"}
+```
+
+- **3-Finger Left Swipe**: *Go forward one element in browser history*
+
+```
+"3_TOUCH_1_SWIPE_LEFT": {"cmds": [["xdotool", "key", "--clearmodifiers", "ctrl+Right"]], "msg": "Go forward in the history browser"}
+```
+
+- **3-Finger Right Swipe**: *Go back one element in browser history*
+
+```
+"3_TOUCH_1_SWIPE_RIGHT": {"cmds": [["xdotool", "key", "--clearmodifiers", "ctrl+Left"]], "msg": "Go back in the history browser"}
+```
+
+- **2-Finger Triple Tap**: *Open Google search*
+
+```
+"2_TOUCH_3_TAP": {"cmds": "luakit \"www.google.com\"", "msg": "Open Google search"}'
+```
+
+______________________________________________________________________
+
+## MISCELLANEOUS NOTES
+
+- If screen is not working on an RPi3, try adding the following lines to
+  the `[pi3]` section of your `config.txt` on the boot partition:
+  ```
+  dtoverlay=vc4-fkms-v3d
+  max_framebuffers=2
+  ```

@@ -1,9 +1,9 @@
 ################################################################################
 # Add-on: HAOS Kiosk Display (haoskiosk)
 # File: xorg.conf
-# Version: 1.1.1
+# Version: 1.2.0
 # Copyright Jeff Kosowsky
-# Date: September 2025
+# Date: January 2026
 #
 # Minimal xorg.conf to work with OpenGL/DRI video and libinput mice & keyboards
 #
@@ -35,6 +35,7 @@ Section "InputClass"
     Identifier		"libinput keyboard"
     MatchIsKeyboard 	"on"
     Driver 		"libinput"
+    Option              "GrabDevice" "true"
 EndSection
 
 # General libinput catchall for mice and touchpads
