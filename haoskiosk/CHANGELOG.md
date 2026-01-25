@@ -1,6 +1,6 @@
 # Changelog
 
-## v1.2.0 - January 2026
+## v1.3.0 - January 2026
 
 - Added ability to set HA theme in config.yaml
 - Added USB audio (`audio: true` and `usb: true` in config.yaml) Added

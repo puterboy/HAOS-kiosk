@@ -1,7 +1,7 @@
 """-------------------------------------------------------------------------------
 # Add-on: HAOS Kiosk Display (haoskiosk)
 # File: services.py
-# Version: 1.2.0
+# Version: 1.3.0
 # Copyright Jeff Kosowsky
 # Date: January 2026
 
@@ -59,7 +59,7 @@ from typing import Any, Awaitable, cast, Callable, Final, Literal, TypedDict, Ty
 from aiohttp import web  #type: ignore[import-not-found] #pylint: disable=import-error
 
 #-------------------------------------------------------------------------------
-__version__ = "1.2.0"
+__version__ = "1.3.0"
 __author__ = "Jeff Kosowsky"
 __copyright__ = "Copyright 2025 Jeff Kosowsky"
 
@@ -159,7 +159,7 @@ logging.basicConfig(
     stream  = sys.stdout,
     level   =  logging.INFO,
 #    level   = logging.DEBUG,
-    format  = "[%(asctime)s] %(levelname)s: [%(filename)s:%(lineno)d] %(message)s",
+    format  = "[%(asctime)s] %(levelname)s: [%(filename)s:%(funcName)s] %(message)s",
     datefmt = "%H:%M:%S",
 )
 logger = logging.getLogger(__name__)

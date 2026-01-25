@@ -12,7 +12,7 @@
 """-------------------------------------------------------------------------------
 # HAOS Kiosk Display — Mouse & Touch Input Engine
 # File: MouseTouchInputs
-# Version: 1.2.0
+# Version: 1.3.0
 # Copyright Jeff Kosowsky
 # Date: January 2026
 #
@@ -369,7 +369,7 @@ from typing import Any, cast, Callable, ClassVar, Final, Iterator, NotRequired, 
 from Xlib import display                  #type: ignore[import-untyped] #pylint: disable=import-error
 from Xlib.xobject.drawable import Window  #type: ignore[import-untyped] #pylint: disable=import-error
 #-------------------------------------------------------------------------------
-__version__ = "1.2.0"
+__version__ = "1.3.0"
 __author__ = "Jeff Kosowsky"
 __copyright__ = "Copyright 2025 Jeff Kosowsky"
 #-------------------------------------------------------------------------------
