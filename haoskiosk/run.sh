@@ -577,6 +577,7 @@ if [ "$DEBUG_MODE" != true ]; then
     $BROWSER ${BROWSER_FLAGS:+$BROWSER_FLAGS} "$HA_URL/$HA_DASHBOARD" &
     bashio::log.info "Launching $BROWSER browser(PID=$!): $HA_URL/$HA_DASHBOARD"
 
+    count=0
     while true; do  # Wait for all browser processes to exit
         if pgrep -f -- "^$BROWSER " > /dev/null 2>&1; then
             count=0
