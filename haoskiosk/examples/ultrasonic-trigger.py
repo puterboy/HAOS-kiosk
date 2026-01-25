@@ -50,10 +50,13 @@
 # pylint: disable=too-many-lines
 ################################################################################
 
+
 import logging
 import os
+import signal
 import sys
 import time
+import types
 from datetime import datetime, timedelta
 import requests
 from pyftdi.gpio import GpioController  # type: ignore[import-untyped]
@@ -75,6 +78,7 @@ logging.basicConfig(
     format='%(asctime)s [%(funcName)s] %(levelname)s: %(message)s',
     datefmt="%H:%M:%S"
 )
+logger = logging.getLogger(__name__)
 
 ################################################################################
 ### Configurable variables
@@ -123,9 +127,16 @@ gpio = GpioController()
 try:
     gpio.configure('ftdi://ftdi:232h/1', direction=TRIG_MASK)  # TRIG = output, ECHO = input
 except Exception as e:
-    logging.error("Error: Ultrasonic trigger GPIO init failed")
-    print("Exiting due to Ultrasonic GPIO initialization failure")
+    logger.error("Ultrasonic trigger GPIO initialization failed...exiting (%s)", e)
     sys.exit(1)
+
+def handle_exit(_signum: int, _frame: types.FrameType | None) -> None:
+    """Exit handler"""
+    sys.exit(0)
+
+# Register signals
+for sig in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
+    signal.signal(sig, handle_exit)
 
 def send_trigger_pulse()-> bool:
     """Send ultrasonic trigger pulse"""
@@ -137,7 +148,7 @@ def send_trigger_pulse()-> bool:
         gpio.write(0)
         return True
     except Exception as e:
-        logging.debug("GPIO write failed (%s)", e)
+        logger.debug("GPIO write FAILED (%s)", e)
         return False
 
 def wait_for_pin(echo_mask: int, echo_level: bool, timeout: float=WAIT_TIMEOUT) -> int | None:
@@ -150,7 +161,7 @@ def wait_for_pin(echo_mask: int, echo_level: bool, timeout: float=WAIT_TIMEOUT) 
                 return time_ns
         return None
     except Exception as e:
-        logging.debug("Error: GPIO read failed (%s)", e)
+        logger.debug("GPIO read FAILED (%s)", e)
         return None
 
 invalid_count = 0  # Number of consecutive invalid measurements
@@ -165,13 +176,13 @@ def measure_distance() -> float | None:
 
         start_time = wait_for_pin(ECHO_MASK, True)
         if start_time is None:
-            logging.debug("Timeout waiting for ECHO to go HIGH")
+            logger.debug("Timeout waiting for ECHO to go HIGH")
             errors += 1
             continue
 
         end_time = wait_for_pin(ECHO_MASK, False)
         if end_time is None:
-            logging.debug("Timeout waiting for ECHO to go LOW")
+            logger.debug("Timeout waiting for ECHO to go LOW")
             errors += 1
             continue
 
@@ -187,7 +198,7 @@ def measure_distance() -> float | None:
     if errors >= (GPIO_READINGS_TO_AVERAGE / 2):
         invalid_count +=1
         if invalid_count > INVALID_COUNT_THRESHOLD:
-            logging.error("Error: Too many invalid measurements (%d), restarting...", INVALID_COUNT_THRESHOLD)
+            logger.error("Too many invalid measurements (%d), restarting...", INVALID_COUNT_THRESHOLD)
             try:
                 gpio.close()
             except Exception:
@@ -217,11 +228,11 @@ def display_state() -> bool:
         response.raise_for_status()
         data = response.json()
         if not data.get("success", False):
-            logging.error("Error: Failed to get display state")
+            logger.error("Failed to get display state")
             return False
-        return data["display_on"]
-    except (requests.RequestException, ValueError):
-        logging.debug("Error: Request failed")
+        return data["display_on"] is True
+    except (requests.RequestException, ValueError) as e:
+        logger.error("HTTPRequest failed (%s)", e)
         return False
 
 def display_state_print() -> None:
@@ -233,8 +244,8 @@ def display_state_print() -> None:
             print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M')}] Display is ON")
         else:
             print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M')}] Display is OFF")
-    except (requests.RequestException, ValueError):
-        print('Display is INVALID')
+    except (requests.RequestException, ValueError) as e:
+        logger.error("Display is INVALID (%s)", e)
 
 def display_on() -> bool:
     """Turn display on"""
@@ -248,9 +259,11 @@ def display_on() -> bool:
         response.raise_for_status()
         data = response.json()
         if not data.get("success", False):
+            logger.error("Failed to get display state")
             return False
         return True
-    except (requests.RequestException, ValueError):
+    except (requests.RequestException, ValueError) as e:
+        logger.error("HTTPRequest failed (%s)", e)
         return False
 
 def display_off() -> bool:
@@ -267,7 +280,8 @@ def display_off() -> bool:
         if not data.get("success", False):
             return False
         return True
-    except (requests.RequestException, ValueError):
+    except (requests.RequestException, ValueError) as e:
+        logger.error("HTTPRequest failed (%s)", e)
         return False
 
 last_display_time = datetime.now()
@@ -284,7 +298,7 @@ def display_on_print() -> None:
         global display
         display = True
     else:
-        logging.error("Error: FAILED to turn display ON")
+        logger.error("FAILED to turn display ON")
 
 def display_off_print() ->None:
     """Turn off display and show duration since last off"""
@@ -299,7 +313,7 @@ def display_off_print() ->None:
         global display
         display = False
     else:
-        logging.error("Error: FAILED to turn display OFF")
+        logger.error("FAILED to turn display OFF")
 
 def ha_binary_sensor_state(sensor: str) -> bool | None:
     """Show state of binary sensor used to turn/off ultrasonic-governed display mechanism"""
@@ -313,16 +327,16 @@ def ha_binary_sensor_state(sensor: str) -> bool | None:
             timeout = HTTP_TIMEOUT,
         )
         response.raise_for_status()
-        data = response.json()
 
+        data: dict[str, str] = response.json()
         state = data.get("state")
         if state not in ("on", "off"):
-            logging.debug("Unexpected state value: %s", state)
+            logger.debug("Unexpected state value: %s", state)
             return None
         return state == "on"
 
-    except (requests.RequestException, ValueError):
-        logging.error("Error: Request failed")
+    except (requests.RequestException, ValueError) as e:
+        logger.error("HTTP Request failed (%s)", e)
         return None
 
 ################################################################################
@@ -373,16 +387,18 @@ try:
 
         loop_duration = time.monotonic() - loop_start
         sleep_time = max(0, LOOP_TIME - loop_duration)
-        logging.debug("Sleeping for %.3f seconds", sleep_time)
+        logger.debug("Sleeping for %.3f seconds", sleep_time)
         if sleep_time > 0:
             time.sleep(sleep_time)
 
-except KeyboardInterrupt:
+finally:
     try:
+        if display is False:
+            display_on_print()  # Turn display back on...
         gpio.close()
     except Exception as e:
-        logging.error("Error: GPIO close failed")
-    print("\nExiting.")
+        logger.error("Error: GPIO close failed (%s)", e)
+    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M')}] Exiting...")
 
 # vim: set filetype=python :
 # Local Variables:
