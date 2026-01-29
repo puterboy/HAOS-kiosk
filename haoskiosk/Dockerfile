@@ -3,7 +3,7 @@
 # File: Dockerfile
 # Version: 1.3.0
 # Copyright Jeff Kosowsky
-# Date: January 2026
+# Date: February 2026
 ################################################################################
 
 ARG BUILD_FROM
@@ -33,6 +33,7 @@ RUN apk update && apk add --no-cache \
     xinput \
     xrandr \
     xset \
+    evtest \
     unclutter-xfixes \
     setxkbmap \
     openbox \

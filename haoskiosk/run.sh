@@ -5,7 +5,7 @@
 # File: run.sh
 # Version: 1.3.0
 # Copyright Jeff Kosowsky
-# Date: January 2026
+# Date: February 2026
 #
 #  Code does the following:
 #     - Import and sanity-check the following variables from HA/config.yaml
@@ -154,6 +154,14 @@ if [ -z "$HA_USERNAME" ] || [ -z "$HA_PASSWORD" ]; then
     exit 1
 fi
 
+################################################################################
+### GTK and DBUS-related environment variables to improve stability
+
+export NO_AT_BRIDGE=1                 # Stop GTK from touching at-spi bus
+export GTK_USE_PORTAL=0               # Disable portals
+export GIO_USE_VFS=local              # Local-only GIO
+export DBUS_SESSION_BUS_TIMEOUT=5000  # Shorten DBUS timeouts
+export GTK_CSD=0                      # Disable client side decorations (???)
 ################################################################################
 #### Start Dbus
 # Start dbus-daemon to Avoids waiting for DBUS timeouts (e.g., luakit)

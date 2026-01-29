@@ -2,14 +2,25 @@
 "exec" "sudo" "$(dirname $(readlink -f $0))/venv/bin/python3" "$0" "$@"
 #"exec" "$(dirname $0)/venv/bin/python3" "$0" "$@"
 #Above lines used to invoke venv relative to current directory
-#See: https://stackoverflow.com/questions/20095351/shebang-use-interpreter-relative-to-the-script-path
+#See: https://stackoverflow.com/questions/20095351/shebang-use-interpreter-relative-to-the-script-path # pylint: disable=line-too-long
 
 #Below shebang line only works if call strict from the script directory
 #!$(dirname $0)/venv/bin/python3
 #Below shebang line only works if already activated virtual environment
 #!/usr/bin/env python3
-
-################################################################################
+#===============================================================================
+# pylint: disable=line-too-long
+# pylint: disable=invalid-name
+# pylint: disable=too-many-instance-attributes
+# pylint: disable=broad-except
+# pylint: disable=too-many-arguments
+# pylint: disable=too-many-positional-arguments
+# pylint: disable=too-many-branches
+# pylint: disable=too-many-statements
+# pylint: disable=too-many-locals
+# pylint: disable=too-many-lines
+# pylint: disable=global-statement
+#===============================================================================
 # Add-on: HAOS Kiosk Display (haoskiosk)
 # File: ultrasonic-trigger.py
 # Version: 1.1.0
@@ -21,35 +32,32 @@
 #   - Print out distance every LOOPTIME seconds
 #   - Turn on monitor if distance < NEAR_ON_DIST for COUNT_ON_THRESH seconds
 #   - Turn off monitor if distance > FAR_OFF_DIST for COUNT_OFF_THRESH seconds
+#   - Also turn on/off audio if ULTRASONIC_AUDIO is True
 #
 # When measuring distance:
 #   - Take GPIO_READINGS_TO_AVERAGE and average the valid ones
 #   - Mark as invalid measurement if more than half of the readings are errors
 #   - Restart if more than INVALID_COUNT_THRESHOLD invalid measurements in a row
 #
-# Also, optionally, if the HA sensor HA_BINARY_SENSOR is set and evaluates to true,
-# then don't measure distance and leave display in DEFAULT_DISPLAY_STATE
-# This can be used to make the auto on/off  depend on the state of a sensor in HA.
-#
+# Optionally, if HA_BINARY SENSOR is set, then:
+#   - If HA_DISPLAY_TOGGLE is True/False, then keep display always on when HA_BINARY_SENSOR is on/off;
+#     Ignore if None
+#   - If HA_AUDIO_TOGGLE is True/False then mute audio when HA_BINARY_SENSOR is on/off;
+#     Ignore if None
+#   - If HA_INPUTS_TOGGLE is True/False then disable inputs when HA_BINARY_SENSOR is on/off;
+#     Ignore if None
+#   - If HA_ROTATE_URLS is True/False then rotate urls when HA_BINARY_SENSOR is on/off
+#     Ignore if None
+# This can be used to make the display, input, and audio states depend on the
+# on/off state of the HA_BINARY_SENSOR sensor
 #
 # NOTES:
 #   - Requires adding the following Python libraries: pyftdi, requests
 #     Probably best to install in venv so it persists reboots
 #   - Should run as root (e.g., 'sudo')
 #
-################################################################################
-# pylint: disable=line-too-long
-# pylint: disable=invalid-name
-# pylint: disable=too-many-instance-attributes
-# pylint: disable=broad-except
-# pylint: disable=too-many-arguments
-# pylint: disable=too-many-positional-arguments
-# pylint: disable=too-many-branches
-# pylint: disable=too-many-statements
-# pylint: disable=too-many-locals
-# pylint: disable=too-many-lines
-################################################################################
-
+#===============================================================================
+### Imports
 
 import logging
 import os
@@ -62,6 +70,55 @@ import requests
 from pyftdi.gpio import GpioController  # type: ignore[import-untyped]
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+
+#-------------------------------------------------------------------------------
+### Configuration Variables
+
+# Configure ultrasonic sensor readings
+TRIG_PIN: int = 0                  # AD0 - Output
+ECHO_PIN: int = 1                  # AD1 - Input
+GPIO_READINGS_TO_AVERAGE: int = 5  # Number of distance readings to average
+WAIT_TIMEOUT:float = 0.05          # Timeout for wait_for_pin (seconds) (this is conservative)
+                                   # Note HC-SR04 pulls pin low after 38ms (which with speed of sound 343m/s is equivalent to ~6.5m each way)
+# HA general variables
+HA_PORT = 8123
+HA_BEARER_TOKEN: str| None = None  # Needed if using HA_BINARY_SENSOR
+
+ULTRASONIC_AUDIO: bool = True      # Use ultrasonic to mute/unmute audio also if True
+
+HA_BINARY_SENSOR: str | None = None       # Optional binary sensor to determine whether to measure distance and turn on/off display
+HA_BINARY_SENSOR_FRIENDLY_NAME: str| None = None #Optional Friendly Name for binary sensor
+
+HA_DISPLAY_TOGGLE: bool | None = True  # If True/False then keep display always on (and ignore distance) when HAS_BINARY_SENSOR is on/off; Ignore if None
+HA_AUDIO_TOGGLE: bool | None   = True  # If True/False then mute audio when HA_BINARY_SENSOR is on/off; Ignore if None
+HA_INPUTS_TOGGLE: bool | None  = True  # If True/False then disable inputs when HA_BINARY_SENSOR is on/off; Ignore if None
+HA_ROTATE_TOGGLE: bool | None  = True  # If True/False then rotate urls in ROTATE_URL_LIST when HA_BINARY_SENSOR is on/off; Ignore if None
+ROTATE_URL_LIST: list[str] = []        # Rotate URL is None or non-empty list of URL strings
+ROTATE_FREQ: int = 30                  # Number of loops between  URL rotations (nominally equal to seconds if LOOP_TIME = 1)
+
+# Configure REST API
+REST_PORT: int = 8080
+REST_BEARER_TOKEN: str = ""
+
+# Other parameters
+LOOP_TIME: int = 1                 # Target loop time (seconds) - i.e., target time between distance measurements
+NEAR_ON_DIST: int = 150            # Near distance threshold (in cm) before turning display on
+FAR_OFF_DIST: int = 200            # Far distance threshold (in cm) before turning display off
+COUNT_ON_THRESH: int = 2           # Number of 'near' distance measurements before turning on
+COUNT_OFF_THRESH: int = 4          # Number of 'far' distance measurements before turning off
+
+INVALID_COUNT_THRESHOLD: int = 10   # Number of consecutive invalid measurements before restarting
+
+HTTP_TIMEOUT: int = 3              # Timeout for HTTP get and posts (in seconds)
+
+#===============================================================================
+### Setup
+if HA_BINARY_SENSOR_FRIENDLY_NAME is None and HA_BINARY_SENSOR is not None:
+    #Get string after last '.', replace '_' with space, capitalize words
+    HA_BINARY_SENSOR_FRIENDLY_NAME = HA_BINARY_SENSOR.rsplit('.', 1)[-1].replace('_', ' ').title()
+
+if not ROTATE_URL_LIST:
+    HA_ROTATE_TOGGLE = None
 
 #Relaunch 'unbuffered' if not already unbuffered so that you can pipe output real-time if desired
 if os.environ.get('PYTHONUNBUFFERED') != '1':
@@ -80,55 +137,13 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-################################################################################
-### Configurable variables
-
-# Configure ultrasonic sensor readings
-TRIG_PIN = 0                  # AD0 - Output
-ECHO_PIN = 1                  # AD1 - Input
-GPIO_READINGS_TO_AVERAGE = 5  # Number of distance readings to average
-WAIT_TIMEOUT = 0.05           # Timeout for wait_for_pin (seconds) (this is conservative)
-                              # Note HC-SR04 pulls pin low after 38ms (which with speed of sound 343m/s is equivalent to ~6.5m each way)
-# HA general variables
-HA_PORT = 8123
-HA_BEARER_TOKEN = None       # Needed if using HA_BINARY_SENSOR
-
-HA_BINARY_SENSOR=None        # Optional binary sensor to determine whether to measure distance and turn on/off display
-HA_BINARY_SENSOR_FRIENDLY_NAME=None #Optional Friendly Name for binary sensor
-if HA_BINARY_SENSOR_FRIENDLY_NAME is None and HA_BINARY_SENSOR is not None:
-    #Get string after last '.', replace '_' with space, capitalize words
-    HA_BINARY_SENSOR_FRIENDLY_NAME = HA_BINARY_SENSOR.rsplit('.', 1)[-1].replace('_', ' ').title()
-
-DEFAULT_DISPLAY_STATE=True  # Default display state if HA_BINARY_SENSOR is 'True' (False=off; True=on)
-
-# Configure REST API
-REST_PORT = 8080
-REST_BEARER_TOKEN=""
-
-# Other parameters
-LOOP_TIME = 1                 # Target loop time (seconds) - i.e., target time between distance measurements
-NEAR_ON_DIST = 150            # Near distance threshold (in cm) before turning display on
-FAR_OFF_DIST = 200            # Far distance threshold (in cm) before turning display off
-COUNT_ON_THRESH = 2           # Number of 'near' distance measurements before turning on
-COUNT_OFF_THRESH = 4          # Number of 'far' distance measurements before turning off
-
-
-INVALID_COUNT_THRESHOLD= 10   # Number of consecutive invalid measurements before restarting
-HTTP_TIMEOUT = 3              # Timeout for HTTP get and posts
-
-################################################################################
 ### Ultrasonic distance sensing
-
 TRIG_MASK = 1 << TRIG_PIN
 ECHO_MASK = 1 << ECHO_PIN
-
-# Setup ultrasonic sensor
 gpio = GpioController()
-try:
-    gpio.configure('ftdi://ftdi:232h/1', direction=TRIG_MASK)  # TRIG = output, ECHO = input
-except Exception as e:
-    logger.error("Ultrasonic trigger GPIO initialization failed...exiting (%s)", e)
-    sys.exit(1)
+
+#===============================================================================
+### Subroutines
 
 def handle_exit(_signum: int, _frame: types.FrameType | None) -> None:
     """Exit handler"""
@@ -137,6 +152,24 @@ def handle_exit(_signum: int, _frame: types.FrameType | None) -> None:
 # Register signals
 for sig in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
     signal.signal(sig, handle_exit)
+
+def cleanup() -> None:
+    """Cleanup before exiting..."""
+    date_time = datetime.now().strftime('%Y-%m-%d %H:%M')
+    print()
+    try:
+        if display is False:
+            display_on_print()  # Turn display and audio back on...
+        if HA_INPUTS_TOGGLE is not None:
+            ha_disable_inputs(False) # Restore inputs
+            print(f"[{date_time}] Restoring inputs...")
+        if ULTRASONIC_AUDIO is True or HA_AUDIO_TOGGLE is not None:
+            ha_mute_audio(False)  # Unmute audio
+            print(f"[{date_time}] Restoring audio...")
+        gpio.close()
+    except Exception as e:
+        logger.error("Error: GPIO close failed (%s)", e)
+    print(f"[{date_time}] Exiting...")
 
 def send_trigger_pulse()-> bool:
     """Send ultrasonic trigger pulse"""
@@ -208,8 +241,8 @@ def measure_distance() -> float | None:
     invalid_count = 0  # Reset invalid counter
     return sum(distances) / len(distances) if distances else None
 
-################################################################################
-### HAOKiosk monitor control
+#===============================================================================
+### HAOKiosk Api calls
 
 # Setup HTTP retry
 session = requests.Session()
@@ -285,7 +318,7 @@ def display_off() -> bool:
         return False
 
 last_display_time = datetime.now()
-def display_on_print() -> None:
+def display_on_print(audio_too: bool=False) -> None:
     """Turn on display and show duration since last on"""
     global last_display_time
     old_display_time = last_display_time
@@ -294,13 +327,17 @@ def display_on_print() -> None:
     display_time_diff = display_time_diff - timedelta(microseconds=display_time_diff.microseconds)
 
     if display_on():
-        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M')}] ***Turning display ON*** (Duration: {display_time_diff})")
+        msg = ""
+        if audio_too:
+            ha_mute_audio(False)  # Also umute audio
+            msg = " and restoring audio"
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M')}] ***Turning display ON{msg}*** (Duration: {display_time_diff})")
         global display
         display = True
     else:
         logger.error("FAILED to turn display ON")
 
-def display_off_print() ->None:
+def display_off_print(audio_too: bool=False) ->None:
     """Turn off display and show duration since last off"""
     global last_display_time
     old_display_time = last_display_time
@@ -309,13 +346,17 @@ def display_off_print() ->None:
     display_time_diff = display_time_diff - timedelta(microseconds=display_time_diff.microseconds)
 
     if display_off():
-        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M')}] ***Turning display OFF*** (Duration: {display_time_diff})")
+        msg = ""
+        if audio_too:
+            ha_mute_audio(True)  # Also mute audio
+            msg = " and muting audio"
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M')}] ***Turning display OFF{msg}*** (Duration: {display_time_diff})")
         global display
         display = False
     else:
         logger.error("FAILED to turn display OFF")
 
-def ha_binary_sensor_state(sensor: str) -> bool | None:
+def ha_binary_sensor_state(sensor: str | None) -> bool | None:
     """Show state of binary sensor used to turn/off ultrasonic-governed display mechanism"""
     if sensor is None:
         return None
@@ -339,14 +380,85 @@ def ha_binary_sensor_state(sensor: str) -> bool | None:
         logger.error("HTTP Request failed (%s)", e)
         return None
 
-################################################################################
+def ha_disable_inputs(state: bool) -> bool:
+    """Disable/enable inputs"""
+    if state:
+        url = f"http://localhost:{REST_PORT}/disable_inputs"
+    else:
+        url = f"http://localhost:{REST_PORT}/enable_inputs"
+
+    try:
+        response = session.post(
+            url,
+            headers={"Authorization": f"Bearer {REST_BEARER_TOKEN}"}
+        )
+        response.raise_for_status()
+        data = response.json()
+        if not data.get("success", False):
+            return False
+        return True
+    except (requests.RequestException, ValueError):
+        return False
+
+def ha_mute_audio(state: bool) -> bool:
+    """Mute/unmute audio"""
+    if state:
+        url = f"http://localhost:{REST_PORT}/mute_audio"
+    else:
+        url = f"http://localhost:{REST_PORT}/unmute_audio"
+
+    try:
+        response = session.post(
+            url,
+            headers={"Authorization": f"Bearer {REST_BEARER_TOKEN}"}
+        )
+        response.raise_for_status()
+        data = response.json()
+        if not data.get("success", False):
+            return False
+        return True
+    except (requests.RequestException, ValueError):
+        return False
+
+def ha_launch_url(site: str) -> bool:
+    """Launch url"""
+    url = f"http://localhost:{REST_PORT}/launch_url"
+    try:
+        response = session.post(
+            url,
+            headers={"Authorization": f"Bearer {REST_BEARER_TOKEN}"},
+            json={"url": site}
+        )
+        response.raise_for_status()
+        data = response.json()
+        if not data.get("success", False) or not data.get("result", {}).get("success", False):
+            logging.debug("Failed to launch_url: %s", url)
+            return False
+        stdout_text = data["result"].get("stdout", "")
+        return "Monitor is On" in stdout_text
+    except (requests.RequestException, ValueError) as e:
+        logger.error("HTTPRequest failed (%s)", e)
+        return False
+
+#===============================================================================
 ### Main loop
 
 display = False
-loop_num = -1
-count = 0
-binary_sensor_state = None
-try:
+def main()-> None:
+    """Main event loop"""
+
+    # Setup ultrasonic sensor
+    try:
+        gpio.configure('ftdi://ftdi:232h/1', direction=TRIG_MASK)  # TRIG = output, ECHO = input
+    except Exception as e:
+        logger.error("Ultrasonic trigger GPIO initialization failed...exiting (%s)", e)
+        sys.exit(1)
+
+    loop_num = -1
+    count = 0
+    binary_sensor_state = None
+
+    # Main event loop
     while True:
         loop_start = time.monotonic()
         loop_num += 1
@@ -355,16 +467,36 @@ try:
             old_binary_sensor_state = binary_sensor_state
             binary_sensor_state = ha_binary_sensor_state(HA_BINARY_SENSOR)
             if binary_sensor_state is not None and binary_sensor_state != old_binary_sensor_state:  # Status of binary_sensor_state changed
-                print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M')}] '{HA_BINARY_SENSOR_FRIENDLY_NAME}' = {binary_sensor_state}")
-                if binary_sensor_state:  # Binary sensor turned on so set to default state
-                    if DEFAULT_DISPLAY_STATE:
-                        display_on_print()  # Default true
-                    else:
-                        display_off_print()  # Default false
+                date_time = datetime.now().strftime('%Y-%m-%d %H:%M')
+                print(f"[{date_time}] '{HA_BINARY_SENSOR_FRIENDLY_NAME}' = {binary_sensor_state}")
+                if HA_DISPLAY_TOGGLE is not None:
+                    if binary_sensor_state == HA_DISPLAY_TOGGLE:
+                        display_on_print(audio_too=ULTRASONIC_AUDIO and HA_AUDIO_TOGGLE is None)  # Turn on display (because need to keep it always on)
+                date_time = datetime.now().strftime('%Y-%m-%d %H:%M')
+                if HA_INPUTS_TOGGLE is not None:
+                    state = binary_sensor_state == HA_INPUTS_TOGGLE
+                    ha_disable_inputs(state)
+                    print(f"[{date_time}] ***{"Disabling" if state else "Enabling"} inputs***")
+                if HA_AUDIO_TOGGLE is not None:
+                    state = binary_sensor_state == HA_AUDIO_TOGGLE
+                    ha_mute_audio(state)
+                    print(f"[{date_time}] ***{"Muting" if state else "Unmuting"} audio***")
+                if HA_ROTATE_TOGGLE is not None and binary_sensor_state != HA_ROTATE_TOGGLE:  # Reset to first url
+                    new_url = ROTATE_URL_LIST[0]
+                    ha_launch_url(new_url) # Restore default (first) url
+                    date_time = datetime.now().strftime('%Y-%m-%d %H:%M')
+                    print(f"[{date_time}] Restoring: {new_url}")
+
             if not binary_sensor_state:
                 display_state_print()  # Set and show display state every 60 seconds
 
-        if binary_sensor_state:  # Avoid calculating distance & turning on/off display
+        if display is True and HA_ROTATE_TOGGLE is not None and binary_sensor_state == HA_ROTATE_TOGGLE and not loop_num % ROTATE_FREQ: # Rotate url
+            new_url = ROTATE_URL_LIST[(loop_num // ROTATE_FREQ) % len(ROTATE_URL_LIST)]
+            ha_launch_url(new_url)
+            date_time = datetime.now().strftime('%Y-%m-%d %H:%M')
+            print(f"[{date_time}] Rotating url: {new_url}")
+
+        if HA_DISPLAY_TOGGLE is not None and binary_sensor_state == HA_DISPLAY_TOGGLE:  # Avoid calculating distance & turning on/off display
             time.sleep(LOOP_TIME)
             continue
 
@@ -376,12 +508,12 @@ try:
                 count = max(count, 0)
                 count += 1
                 if display is False and count >= COUNT_ON_THRESH:
-                    display_on_print()  # Turn ON display
+                    display_on_print(audio_too=ULTRASONIC_AUDIO)  # Turn ON display
             elif distance > FAR_OFF_DIST:
                 count = min(count, 0)
                 count -= 1
                 if display is True and count <= -COUNT_OFF_THRESH:
-                    display_off_print()  # Turn OFF display
+                    display_off_print(audio_too=ULTRASONIC_AUDIO)  # Turn OFF display
         else:
             print("Distance: Invalid")
 
@@ -391,15 +523,15 @@ try:
         if sleep_time > 0:
             time.sleep(sleep_time)
 
-finally:
-    try:
-        if display is False:
-            display_on_print()  # Turn display back on...
-        gpio.close()
-    except Exception as e:
-        logger.error("Error: GPIO close failed (%s)", e)
-    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M')}] Exiting...")
+#===============================================================================
 
+if __name__ == "__main__":
+    try:
+        main()
+    finally:
+        cleanup()
+
+#===============================================================================
 # vim: set filetype=python :
 # Local Variables:
 # mode: python

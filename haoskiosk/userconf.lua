@@ -3,14 +3,14 @@ Add-on: HAOS Kiosk Display (haoskiosk)
 File: userconf.lua for HA minimal browser run on server
 Version: 1.3.0
 Copyright Jeff Kosowsky
-Date: January 2026
+Date: February 2026
 
 Code does the following:
     - Sets browser window to fullscreen
     - Sets zooms level to value of $ZOOM_LEVEL (default 100%)
     - Loads every URL in 'passthrough' mode so that you can type text as needed without triggering browser commands
-    - Auto-logs in to Home Assistant using $HA_USERNAME and $HA_PASSWORD
-    - Redefines key to return to normal mode (used for commands) from 'passthrough' mode to: 'Ctl-Alt-Esc'
+    - Auto login to Home Assistant using $HA_USERNAME and $HA_PASSWORD
+    - Redefines key to return to normal mode (used for commands) from 'passthrough' mode to: 'Ctl+Alt+Esc'
       (rather than just 'Esc') to prevent unintended  returns to normal mode and activation of unwanted commands
     - Adds <Control-r> binding to reload browser screen (all modes)
     - Adds <Control-Left> and <Control-Right> bindings, to move backwards and forwards respectively in the browser history
@@ -40,7 +40,7 @@ local modes = package.loaded["modes"]
 
 -- -----------------------------------------------------------------------
 -- Configurable variables
-local new_escape_key = "<Control-Mod1-Escape>" -- Ctl-Alt-Esc
+local new_escape_key = "<Control-Mod1-Escape>" -- Ctl+Alt+Esc
 local HARD_RELOAD_FREQ = 10  -- Frequency of fully reloading cache when refreshing page
 local MAX_LOAD_FAILURES = 5  -- Maximum number of consecutive page (re)load failures per view before restarting luakit
 
@@ -154,7 +154,6 @@ end
 -- Note requires patch to /usr/share/luakit/lib/unique_instance.lua
 local unique_instance = require "unique_instance"
 unique_instance.open_link_in_current_tab  = true
-
 
 -- -----------------------------------------------------------------------
 -- Helper functions
@@ -466,22 +465,16 @@ webview.add_signal("init", function(view)
 end)
 
 -- -----------------------------------------------------------------------
--- Redefine <Esc> to 'new_escape_key' (e.g., <Ctl-Alt-Esc>) to exit current mode and enter normal mode
+-- Redefine <Esc> to 'new_escape_key' (e.g., Ctl+Alt+Esc>) to exit current mode and enter normal mode
+--
 modes.remove_binds({"passthrough"}, {"<Escape>"})
-modes.add_binds("passthrough", {
+
+modes.add_binds("all", {   -- Add to all modes (note  modes other than 'passhtrough' still accept Escape too)
     {new_escape_key, "Switch to normal mode", function(w)
         w:set_prompt()
         w:set_mode() -- Use this if not redefining 'default_mode' since defaults to "normal"
---        w:set_mode("normal") -- Use this if redefining 'default_mode' [Option#3]
-     end}
-}
-)
--- Add <Control-r> binding in all modes to reload page
-modes.add_binds("all", {
-    { "<Control-r>", "Reload page", function(w) w:reload() end },
-    { "<Control-Left>", "Go back in the browser history", function(w, m) w:back(m.count) end },
-    { "<Control-Right>", "Go forward in the browser history", function(w, m) w:forward(m.count) end },
-    })
+     end },
+})
 
 -- Clear the command line when entering passthrough instead of typing '-- PASS THROUGH --'
 modes.get_modes()["passthrough"].enter = function(w)
@@ -490,5 +483,27 @@ modes.get_modes()["passthrough"].enter = function(w)
     w.view.can_focus = true   -- Ensure the webview can receive focus
     w.view:focus()            -- Focus the webview for keyboard input
 end
+
+-- -----------------------------------------------------------------------
+modes.add_binds("all", {
+    -- Browser history and reload
+    { "<Control-r>",                    "Reload page",                          function(w) w:reload() end },
+    { "<Control-Left>",                 "Go back in the browser history",       function(w, m) w:back(m.count) end },
+    { "<Control-Right>",                "Go forward in the browser history",    function(w, m) w:forward(m.count) end },
+
+    -- New/Close tab and window
+    { "<Control-Mod1-t>",               "Open new tab",                         function(w) w:new_tab("about:blank") end },
+    { "<Control-Mod1-Shift-t>",         "Close current tab",                    function(w) w:close_tab() end },
+    { "<Control-Mod1-w>",               "Open new window",                      function() window.new() end },
+--    { "<Control-Mod1-Shift-w>",         "Close current window",                 function(w) w:close_window() end },  -- DOESN'T WORK
+
+    -- Tab navigation
+--    { "<Control-Mod1-Left>",            "Go to  previous tab",                  function(w) w:prev_tab() end },  -- DOESN'T WORK
+--    { "<Control-Mod1-Right>",           "Go tonext tab",                        function(w) w:next_tab() end },  -- DOESN'T WORK
+
+    -- Window navigation
+--    { "<Control-Mod1-Shift-Left>",      "Focus previous window",                function() window.focus_prev() end },   -- DOESN'T WORK
+--    { "<Control-Mod1-Shift-Right>",     "Focus next window",                    function() window.focus_next() end },  -- DOESN'T WORK
+})
 
 -- -----------------------------------------------------------------------

@@ -1,6 +1,23 @@
 # Changelog
 
-## v1.3.0 - January 2026
+## v1.3.0 - February 2026
+
+- Added `enable_inputs` and `disable_inputs` functions to REST_API to allow
+  locking down (and unlocking) inputs by disabling keyboard, mouse and
+  touch functions
+- Added `mute_audio`, `unmute_audio` and `toggle_audio` functions to
+  REST_API to change audio state (`toggle_audio` can also be used in
+  gesture action commands)
+- Converted default gestures in `config.yaml` to use internal
+  `kiosk.<function>` handlers rather than calling shell functions
+- Added short list of built-in keyboard shortcuts
+- Revamped `ultrasonic-trigger.py` example and added new functionality to
+  enable/disable inputs, mute/unmute audio, and rotate through a list of
+  URLs
+- Added INSTRUCTIONS section to README.md (thanks: @cvroque)
+- Added more details to README.
+
+## v1.2.0 - January 2026
 
 - Added ability to set HA theme in config.yaml
 - Added USB audio (`audio: true` and `usb: true` in config.yaml) Added

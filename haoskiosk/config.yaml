@@ -3,7 +3,7 @@ name: "HAOS Kiosk Display"
 description: |
   Start X server and browser on local HAOS server and display dashboards in
   kiosk mode (Jeff Kosowsky)
-version: "1.3.0-test1"
+version: "1.3.0-test3"
 slug: "haoskiosk"
 
 arch:
@@ -90,14 +90,15 @@ options:
   rest_bearer_token: ""
   debug_mode: false
   gestures:
-    - '"1_ANY_1_CORNER_TOPRIGHT": {"cmds": [["dbus-send", "--type=method_call", "--dest=org.onboard.Onboard", "/org/onboard/Onboard/Keyboard", "org.onboard.Onboard.Keyboard.ToggleVisible"]], "msg": "Toggling Onboard keyboard..."}'
-    - '"[Left]_MOUSE_3_CLICK": {"cmds": [["dbus-send", "--type=method_call", "--dest=org.onboard.Onboard", "/org/onboard/Onboard/Keyboard", "org.onboard.Onboard.Keyboard.ToggleVisible"]], "msg": "Toggling Onboard keyboard..."}'
-    - '"3_TOUCH_1_TAP": {"cmds": [["dbus-send", "--type=method_call", "--dest=org.onboard.Onboard", "/org/onboard/Onboard/Keyboard", "org.onboard.Onboard.Keyboard.ToggleVisible"]], "msg": "Toggling Onboard keyboard..."}'
-    - '"3_TOUCH_2_TAP": {"cmds": [["xdotool", "key", "--clearmodifiers", "ctrl+r"]], "msg": "Refresh Browser"}'
-    - '"3_TOUCH_3_TAP": {"cmds": "luakit \"$HA_URL/$HA_DASHBOARD\"", "msg": "Restore default dashboard"}'
-    - '"3+_TOUCH_1_SWIPE_LEFT": {"cmds": [["xdotool", "key", "--clearmodifiers", "ctrl+Right"]], "msg": "Go forward in the history browser"}'
-    - '"3+_TOUCH_1_SWIPE_RIGHT": {"cmds": [["xdotool", "key", "--clearmodifiers", "ctrl+Left"]], "msg": "Go back in the history browser"}'
-    - '"2_TOUCH_3_TAP": {"cmds": "luakit \"www.google.com\"", "msg": "Open Google search"}'
+    - '"1_ANY_1_CORNER_TOPRIGHT": {"cmds": "kiosk.toggle_keyboard", "msg": "Toggling Onboard keyboard..."}'
+    - '"[Left]_MOUSE_3_CLICK": {"cmds": "kiosk.toggle_keyboard", "msg": "Toggling Onboard keyboard..."}'
+    - '"3_TOUCH_1_TAP": {"cmds": "kiosk.toggle_keyboard", "msg": "Toggling Onboard keyboard..."}'
+    - '"3_TOUCH_2_TAP": {"cmds": "kiosk.refresh_browser", "msg": "Refresh Browser"}'
+    - '"3_TOUCH_3_TAP": {"cmds": "kiosk.toggle_audio", "msg": "Toggle audio mute"}'
+    - '"3+_TOUCH_1_SWIPE_LEFT": {"cmds": "kiosk.forward", "msg": "Go forward in the history browser"}'
+    - '"3+_TOUCH_1_SWIPE_RIGHT": {"cmds": "kiosk.back", "msg": "Go back in the history browser"}'
+    - '"2_TOUCH_3_TAP": {"cmds": "kiosk.launch_url", "msg": "Restore default dashboard: HA_URL/HA_DASHBOARD"}'
+    - '"2_TOUCH_4_TAP": {"cmds": [["kiosk.launch_url", "www.google.com"]], "msg": "Open Google search"}'
   command_whitelist: "cat|date|dbus-send|echo|false|grep|head|ls|luakit|notify-send|ping|ping6|ps|pstree|sleep|tail|test|top|tree|true|xdotool|xset"
 
 schema:
