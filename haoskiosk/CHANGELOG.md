@@ -2,8 +2,9 @@
 
 ## v1.3.0 - February 2026
 
+- Added more key bindings
 - Add x11vnc server to facilitate remote viewing or debugging of kiosk
-- Added 'screenshot' functoin to REST_API and gestue action commands
+- Added 'screenshot' function to REST_API and gesture action commands
 - Added `enable_inputs` and `disable_inputs` functions to REST_API to allow
   locking down (and unlocking) inputs by disabling keyboard, mouse and
   touch functions
