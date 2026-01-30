@@ -43,7 +43,7 @@ please file an
 display type details)and what you did along with a complete log.
 
 You can also use the `screenshot` REST API or keybinding (`Ctl+Alt+k`) or
-touch gesture (Quadruple 3 finger tap) to save a snapshot to
+touch gesture (Quadruple 3 finger tap) to save a screenshot to
 `/media/screenshots`
 
 ### If you appreciate my efforts:
