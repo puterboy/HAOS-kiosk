@@ -17,7 +17,7 @@ Code does the following:
     - Adds <Ctrl-Alt-Left> and <Ctrl-Alt-Right> bindings to move to previous and next tabs respectively
     - Note <Ctrl-Alt-Shift-Left> and <Ctrl-Alt-Shift-Right> bindings move to previous and next windows (but defined in Openbox window manager bindings, not here
     - Adds <Ctrl-Alt-t> and <Ctrl-Alt-Shift-t> for new and close tab respectively
-    - Adds <Ctrl-Alt-w> for new window (note can't figure out yet how to kill window)
+    - Adds <Ctrl-Alt-w> for new and close window
     - Prevent printing of '--PASS THROUGH--' status line when in 'passthrough' mode
     - Set up periodic browser refresh every $BROWSWER_REFRESH seconds (disabled if 0)
       NOTE: Original method injected JS to refresh page, now using native luakit view:reload command for more robustness
@@ -468,20 +468,16 @@ webview.add_signal("init", function(view)
     end
 end)
 -- -----------------------------------------------------------------------
--- Define "circular" prev_tab_circ and next_tab_circ since prev_tab and next_tab are linear
+-- Tab and Window functions
 
--- Focus next tab (circular)
-local function next_tab_circ(w)
-    local idx = w.tabs:current()
-    local count = w.tabs:count()
-    w.tabs:switch((idx % count) + 1)
-end
 
--- Focus previous tab (circular)
-local function prev_tab_circ(w)
-    local idx = w.tabs:current()
-    local count = w.tabs:count()
-    w.tabs:switch(((idx - 2) % count) + 1)
+-- Close window unless last window (to avoid quitting luakit)
+local function close_win_not_last(w)
+    if #luakit.windows > 1 then
+        w:close_win()
+    else
+        msg.warn("WARNING: This is the last window — not closing.")
+    end
 end
 
 -- -----------------------------------------------------------------------
@@ -515,7 +511,8 @@ modes.add_binds("all", {
     { "<Control-Mod1-t>",               "Open new tab",                         function(w) w:new_tab("about:blank") end },
     { "<Control-Mod1-Shift-t>",         "Close current tab",                    function(w) w:close_tab() end },
     { "<Control-Mod1-w>",               "Open new window",                      function() window.new() end },
---    { "<Control-Mod1-Shift-w>",         "Close current window",                 function(w) w:close_window() end },  -- DOESN'T WORK
+--    { "<Control-Mod1-Shift-w>",         "Close current window",                 function(w) w:close_win() end },
+    { "<Control-Mod1-Shift-w>",         "Close current window",                 function(w) close_win_not_last(w) end },
 
     -- Tab navigation
     { "<Control-Mod1-Left>",            "Go to previous tab",                  function(w) w:prev_tab() end },

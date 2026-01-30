@@ -868,6 +868,12 @@ clicking on the `X` next to them):
 "3_TOUCH_3_TAP": {"cmds": "kiosk.toggle_audio", "msg": "Toggle audio mute"}'
 ```
 
+- **3-Finger Quadruple Tap**: *Save screenshot*
+
+```
+"3_TOUCH_4_TAP": {"cmds": "kiosk.screenshot", "msg": "Save screenshot"}'
+```
+
 - **3-Finger Left Swipe**: *Go forward one element in browser history*
 
 ```
@@ -936,6 +942,8 @@ change).
 - **Ctrl+Alt+Shift+t:** *Close current tab*
 
 - **Ctrl+Alt+w:** *Open new window*
+
+- **Ctrl+Alt+Shift+w:** *Close current window* (except for last window)
 
 - **Ctl+Alt+Left:** *Previous tab*
 

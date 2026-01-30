@@ -2,7 +2,7 @@
 
 ## v1.3.0 - February 2026
 
-- Added more key bindings
+- Added more key bindings for opening/closing/rotating tabs and windows
 - Add x11vnc server to facilitate remote viewing or debugging of kiosk
 - Added 'screenshot' function to REST_API and gesture action commands
 - Added `enable_inputs` and `disable_inputs` functions to REST_API to allow
