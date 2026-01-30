@@ -389,7 +389,7 @@ cat <<'EOF' > /tmp/new_keybinds.xml
   <!-- Take screenshot: Ctrl+Alt+k -->
   <keybind key="C-A-k">
     <action name="Execute">
-      <command>sh -c 'scrot /media/screenshots/haoskiosk-$(date +"%y%m%d_%H%M%S") -q 90'</command>
+      <command>sh -c 'scrot /media/screenshots/haoskiosk-$(date +"%Y%m%d_%H%M%S").jpg -q 90'</command>
     </action>
   </keybind>
 

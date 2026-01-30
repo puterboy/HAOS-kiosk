@@ -714,6 +714,7 @@ def handle_screenshot(filename: str | None = None, quality: int | None = None, d
     os.makedirs(SCREENSHOT_DIR, exist_ok=True)
     full_filename = os.path.join(SCREENSHOT_DIR, filename)
 
+
     if quality is None:
         quality = 90
 

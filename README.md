@@ -42,6 +42,10 @@ please file an
 \*\*include full details of your setup (including computer hardware and
 display type details)and what you did along with a complete log.
 
+You can also use the `screenshot` REST API or keybinding (`Ctl+Alt+k`) or
+touch gesture (Quadruple 3 finger tap) to save a snapshot to
+`/media/screenshots`
+
 ### If you appreciate my efforts:
 
 [![Buy Me a Coffee](https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png)](https://www.buymeacoffee.com/puterboy)
@@ -417,6 +421,8 @@ screenshot. Quality only affects jpeg images
 
 Output format is jpeg unless optional filename ends in .bmp, .png, .pnm, or
 .tiff
+
+Screenshots are saved to `/media/screenshots`.
 
 Usage:
 
