@@ -158,14 +158,21 @@ def cleanup() -> None:
     date_time = datetime.now().strftime('%Y-%m-%d %H:%M')
     print()
     try:
-        if display is False:
+        if display_state() is False:
             display_on_print()  # Turn display and audio back on...
-        if HA_INPUTS_TOGGLE is not None:
+
+        binary_sensor_state = ha_binary_sensor_state(HA_BINARY_SENSOR)
+        if HA_INPUTS_TOGGLE is not None and binary_sensor_state == HA_INPUTS_TOGGLE:
             ha_disable_inputs(False) # Restore inputs
             print(f"[{date_time}] Restoring inputs...")
-        if ULTRASONIC_AUDIO is True or HA_AUDIO_TOGGLE is not None:
+        if (ULTRASONIC_AUDIO is True and display is False) or (HA_AUDIO_TOGGLE is not None and binary_sensor_state == HA_AUDIO_TOGGLE):
             ha_mute_audio(False)  # Unmute audio
             print(f"[{date_time}] Restoring audio...")
+        if HA_ROTATE_TOGGLE is not None and binary_sensor_state == HA_ROTATE_TOGGLE:
+            new_url = ROTATE_URL_LIST[0]  # Reset to first url
+            ha_launch_url(new_url) # Restore default (first) url
+            print(f"[{date_time}] Restoring: {new_url}")
+
         gpio.close()
     except Exception as e:
         logger.error("Error: GPIO close failed (%s)", e)

@@ -11,10 +11,18 @@
    GET  /is_display_on
    POST /display_on        (optional) {"timeout": <non-negative integer>}
    POST /display_off
-   GET  /current_processes
    POST /xset              {"args": "..."}
+   POST /screenshot        (optional) {"filename: <file name>,
+                                       "quality": <integer between 1 and 100>,
+                                       "delay": <non-negative integer>}
+   GET  /current_processes
    POST /run_command       {"cmd": "<command>", "cmd_timeout": <seconds>}
    POST /run_commands      {"cmds": ["cmd1", "cmd2", ...], "cmd_timeout": <seconds>}
+   POST /disable_inputs
+   POST /enable_inputs
+   POST /mute_audio
+   POST /unmute_audio      (optional) {"timeout": <integer between 0 and 150>}
+   POST /toggle_audio
 
  For security:
    - Defaults to listening only on 127.0.0.1 (localhost)
@@ -47,6 +55,7 @@ from __future__ import annotations
 import asyncio
 import inspect
 import ipaddress
+import json
 import logging
 import os
 import re
@@ -56,6 +65,7 @@ import signal
 import subprocess
 import sys
 from contextlib import suppress
+from datetime import datetime
 from functools import wraps
 from typing import Any, Awaitable, cast, Callable, Final, Literal, TypedDict, TypeVar
 from aiohttp import web  #type: ignore[import-not-found] #pylint: disable=import-error
@@ -518,6 +528,44 @@ async def handle_xset(data: Payload) -> dict[str, Any]:
     result = await execute_command(["xset"] + args_list, timeout=SHORT_TIMEOUT, log_prefix="xset", allow_command=True)
     return {"success": result["success"], "result": result}
 
+SCREENSHOT_DIR: str = "/media/screenshots"  # Directory to store screenshots
+@register_function("screenshot", optional=["filename", "quality", "delay"],
+                   validators={
+                       "filename": lambda x: x is None or (x != "" and "\0" not in x and "/" not in x),
+                       "quality": lambda x: x is None or (isinstance(x, int) and 1 <= x <= 100),
+                       "delay": lambda x: x is None or (isinstance(x, int) and x >= 0),
+                   })
+async def handle_screenshot(data: Payload) -> dict[str, Any]:
+    """
+    Take screen screenshot with optional filename, quality, and delay before screenshot
+    Output format is jpeg unless optional filename ends in .bmp, .png, .pnm, or .tiff
+    Quality only affects jpeg images
+    """
+    filename = data.get("filename")
+    delay = data.get("delay")
+    quality = data.get("quality")
+
+    if filename is None:
+        filename = f'haoskiosk-{datetime.now().strftime("%Y%m%d_%H%M%S")}'
+    if not filename.lower().endswith((".jpg", ".jpeg", ".bmp", ".png", ".pnm", ".tiff")):
+        filename += ".jpg"
+
+    os.makedirs(SCREENSHOT_DIR, exist_ok=True)
+    full_filename = os.path.join(SCREENSHOT_DIR, filename)
+
+    if quality is None:
+        quality = 90
+
+    cmd = [ "scrot", full_filename, "-q", str(quality) ]
+    if delay is None:
+        delay = 0
+    else:
+        cmd += [ "-d", str(delay), "-c" ]
+
+    logging.info("[screenshot] Saving screenshot to %s (quality=%d)%s", full_filename, quality, f" in {delay} seconds..." if delay else "")
+    result = await execute_command(cmd, timeout=delay + 10, log_prefix="screenshot", allow_command=True)
+    return {"success": result["success"], "result": result}
+
 ### Commands and processes
 @register_function("current_processes")  # GET endpoint
 async def handle_current_processes(data: Payload) -> dict[str, Any]:  # pylint: disable=unused-argument
@@ -559,7 +607,6 @@ async def handle_run_commands(data: Payload) -> dict[str, Any]:
         results.append(res)
 
     return {"success": all(r["success"] for r in results), "results": results}
-
 
 ### Turn on/off inputs
 # List of inputs to skip when enabling/disabling inputs
@@ -799,19 +846,21 @@ async def security_middleware(
     If the token is missing or invalid → returns HTTP 401 immediately.
     Otherwise passes the request to the next handler.
     """
+    remote_ip = request.remote or request.headers.get("X-Forwarded-For", "unknown").split(",")[0].strip()
+    logging.debug("[request] %s %s from %s", request.method, request.path, remote_ip)  # Log every request for debug
+
     if REST_BEARER_TOKEN:
         auth_header = request.headers.get("Authorization", "")
         if auth_header != f"Bearer {REST_BEARER_TOKEN}":
-            logging.warning("[auth] Invalid REST_BEARER_TOKEN from %s", request.remote or "unknown")
+            logging.warning("[auth] Invalid REST_BEARER_TOKEN from %s", remote_ip)
             return web.json_response(
                 {"success": False, "error": "Invalid or missing REST_BEARER_TOKEN Authorization token"},
                 status=401,)
 
     cmd_name = getattr(handler, "cmd_name")
     if cmd_name in PROTECTED_COMMANDS:
-        remote_ip = request.remote or "unknown"
         if  remote_ip not in ("127.0.0.1", "::1", "localhost") and REST_BEARER_TOKEN is None:
-            logging.warning("[security] Blocked protected REST command from %s: %s", remote_ip, cmd_name)
+            logging.warning("[security] Blocked protected REST command '%s' from non-localhost IP: %s", cmd_name, remote_ip)
             return web.json_response({
                 "success": False,
                 "error": "Protected REST commands require localhost or bearer token"
@@ -832,13 +881,22 @@ async def create_app() -> web.Application:
         route = f"/{fullname}"
 
         async def make_handler(request: web.Request, function: Callable[..., Any] = func, name: str = fullname) -> web.Response:
-            payload = await request.json() if request.can_read_body else {}
+            try:
+                payload = await request.json() if request.can_read_body else {}
+            except (json.JSONDecodeError, ValueError):  # Malformed JSON from client
+                return web.json_response({"success": False, "error": "Invalid JSON payload"}, status=400)
+
             try:
                 result = await function(payload)
+                logging.debug("Handler success for %s from %s", name, request.remote)  # Debug to avoid noise
                 return web.json_response(result)
+            except (web.HTTPBadRequest, json.JSONDecodeError, ValueError) as e:
+                # Expected validation / input errors from registered functions
+                logging.debug("Handler error: validation error in %s: %s", name, str(e))  # Debug to avoid noise
+                return web.json_response({"success": False, "error": "Invalid JSON payload"}, status=400)
             except Exception as e:
-                logging.exception("Handler error: %s", name)
-                return web.json_response({"success": False, "error": str(e)}, status=500)
+                logging.exception("Handler error for %s: %s", name, str(e))
+                return web.json_response({"success": False, "Internal server error": str(e)}, status=500)
 
         make_handler.cmd_name = fullname  # type: ignore[attr-defined]
 

@@ -12,8 +12,12 @@ Code does the following:
     - Auto login to Home Assistant using $HA_USERNAME and $HA_PASSWORD
     - Redefines key to return to normal mode (used for commands) from 'passthrough' mode to: 'Ctl+Alt+Esc'
       (rather than just 'Esc') to prevent unintended  returns to normal mode and activation of unwanted commands
-    - Adds <Control-r> binding to reload browser screen (all modes)
-    - Adds <Control-Left> and <Control-Right> bindings, to move backwards and forwards respectively in the browser history
+    - Adds <Ctrl-r> binding to reload browser screen (all modes)
+    - Adds <Ctrl-Left> and <Ctrl-Right> bindings, to move backwards and forwards respectively in the browser history
+    - Adds <Ctrl-Alt-Left> and <Ctrl-Alt-Right> bindings to move to previous and next tabs respectively
+    - Note <Ctrl-Alt-Shift-Left> and <Ctrl-Alt-Shift-Right> bindings move to previous and next windows (but defined in Openbox window manager bindings, not here
+    - Adds <Ctrl-Alt-t> and <Ctrl-Alt-Shift-t> for new and close tab respectively
+    - Adds <Ctrl-Alt-w> for new window (note can't figure out yet how to kill window)
     - Prevent printing of '--PASS THROUGH--' status line when in 'passthrough' mode
     - Set up periodic browser refresh every $BROWSWER_REFRESH seconds (disabled if 0)
       NOTE: Original method injected JS to refresh page, now using native luakit view:reload command for more robustness
@@ -463,6 +467,22 @@ webview.add_signal("init", function(view)
 
     end
 end)
+-- -----------------------------------------------------------------------
+-- Define "circular" prev_tab_circ and next_tab_circ since prev_tab and next_tab are linear
+
+-- Focus next tab (circular)
+local function next_tab_circ(w)
+    local idx = w.tabs:current()
+    local count = w.tabs:count()
+    w.tabs:switch((idx % count) + 1)
+end
+
+-- Focus previous tab (circular)
+local function prev_tab_circ(w)
+    local idx = w.tabs:current()
+    local count = w.tabs:count()
+    w.tabs:switch(((idx - 2) % count) + 1)
+end
 
 -- -----------------------------------------------------------------------
 -- Redefine <Esc> to 'new_escape_key' (e.g., Ctl+Alt+Esc>) to exit current mode and enter normal mode
@@ -498,12 +518,12 @@ modes.add_binds("all", {
 --    { "<Control-Mod1-Shift-w>",         "Close current window",                 function(w) w:close_window() end },  -- DOESN'T WORK
 
     -- Tab navigation
---    { "<Control-Mod1-Left>",            "Go to  previous tab",                  function(w) w:prev_tab() end },  -- DOESN'T WORK
---    { "<Control-Mod1-Right>",           "Go tonext tab",                        function(w) w:next_tab() end },  -- DOESN'T WORK
+    { "<Control-Mod1-Left>",            "Go to previous tab",                  function(w) w:prev_tab() end },
+    { "<Control-Mod1-Right>",           "Go to next tab",                      function(w) w:next_tab() end },
 
-    -- Window navigation
---    { "<Control-Mod1-Shift-Left>",      "Focus previous window",                function() window.focus_prev() end },   -- DOESN'T WORK
---    { "<Control-Mod1-Shift-Right>",     "Focus next window",                    function() window.focus_next() end },  -- DOESN'T WORK
+    -- Window navigation (Use Window manager bindings)
+    -- Ctrl+Alt+Shift+Left (or Shift+Alt+Tab) for "Go to previous window"
+    -- Ctrl+Alt+Sift+Right (or Alt+Tab) for "Go to next window"
 })
 
 -- -----------------------------------------------------------------------

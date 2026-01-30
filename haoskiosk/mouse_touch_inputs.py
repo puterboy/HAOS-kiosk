@@ -364,6 +364,7 @@ import threading
 import traceback
 import uuid
 from collections.abc import Hashable
+from datetime import datetime
 from functools import wraps
 from typing import Any, cast, Callable, ClassVar, Final, Iterator, NotRequired, Protocol, Self, Sequence, Type, TypeAlias, TypedDict, TypeVar
 from Xlib import display                  #type: ignore[import-untyped] #pylint: disable=import-error
@@ -634,17 +635,20 @@ def register_function(
 @register_function("back")
 def handle_back(timeout: int | None = None, *, _cmd_name: str = "unknown") -> None:
     """Go back in browser history."""
-    _run_subprocess(["xdotool", "key", "--clearmodifiers", "ctrl+Left"], timeout=timeout, description=_cmd_name)
+    cmd = ["xdotool", "key", "--clearmodifiers", "ctrl+Left"]
+    _run_subprocess(cmd, timeout=timeout, description=_cmd_name)
 
 @register_function("forward")
 def handle_forward(timeout: int | None = None, *, _cmd_name: str = "unknown") -> None:
     """Go forward in browser history."""
-    _run_subprocess(["xdotool", "key", "--clearmodifiers", "ctrl+Right"], timeout=timeout, description=_cmd_name)
+    cmd = ["xdotool", "key", "--clearmodifiers", "ctrl+Right"]
+    _run_subprocess(cmd, timeout=timeout, description=_cmd_name)
 
 @register_function("refresh_browser")
 def handle_refresh_browser(timeout: int | None = None, *, _cmd_name: str = "unknown") -> None:
     """Reload current page."""
-    _run_subprocess(["xdotool", "key", "--clearmodifiers", "ctrl+r"], timeout=timeout, description=_cmd_name)
+    cmd = ["xdotool", "key", "--clearmodifiers", "ctrl+r"]
+    _run_subprocess(cmd, timeout=timeout, description=_cmd_name)
 
 @register_function("launch_url", optional=["url"])
 def handle_launch_url(url: str = DEFAULT_LAUNCH_URL, timeout: int | None = None, *, _cmd_name: str = "unknown") -> None:
@@ -657,7 +661,9 @@ def handle_launch_url(url: str = DEFAULT_LAUNCH_URL, timeout: int | None = None,
         raise ValueError(f"{_cmd_name}: Invalid URL format: {url}")
     if url != "about:blank" and not url.startswith(("http://", "https://")):
         url = "http://" + url
-    _run_subprocess(["luakit", "-n",  url], timeout=timeout, description=_cmd_name)
+
+    cmd = ["luakit", "-n",  url]
+    _run_subprocess(cmd, timeout=timeout, description=_cmd_name)
 
 @register_function("display_on", optional=["blank_timeout"],
                    validators=
@@ -683,17 +689,54 @@ def handle_display_on(blank_timeout: int | None = None, timeout: int | None = No
 @register_function("display_off")
 def handle_display_off(timeout: int | None = None, *, _cmd_name: str = "unknown") -> None:
     """Force display off immediately."""
-    _run_subprocess(["xset", "dpms", "force", "off"], timeout=timeout, description=_cmd_name)
+    cmd = ["xset", "dpms", "force", "off"]
+    _run_subprocess(cmd, timeout=timeout, description=_cmd_name)
+
+SCREENSHOT_DIR: str = "/media/screenshots"  # Directory to store screenshots
+@register_function("screenshot", optional=["filename", "quality", "delay"],
+                   validators={
+                       "filename": lambda x: x is None or (x != "" and "\0" not in x and "/" not in x),
+                       "quality": lambda x: x is None or (isinstance(x, int) and 1 <= x <= 100),
+                       "delay": lambda x: x is None or (isinstance(x, int) and x >= 0),
+                   })
+def handle_screenshot(filename: str | None = None, quality: int | None = None, delay: int | None = None,
+                      timeout: int | None = None, *, _cmd_name: str = "unknown") -> None:
+    """
+    Take screen screenshot with optional filename, quality, and delay before screenshot
+    Output format is jpeg unless optional filename ends in .bmp, .png, .pnm, or .tiff
+    Quality only affects jpeg images
+    """
+    if filename is None:
+        filename = f'haoskiosk-{datetime.now().strftime("%Y%m%d_%H%M%S")}'
+    if not filename.lower().endswith((".jpg", ".jpeg", ".bmp", ".png", ".pnm", ".tiff")):
+        filename += ".jpg"
+
+    os.makedirs(SCREENSHOT_DIR, exist_ok=True)
+    full_filename = os.path.join(SCREENSHOT_DIR, filename)
+
+    if quality is None:
+        quality = 90
+
+    cmd = [ "scrot", full_filename, "-q", str(quality) ]
+    if delay is None:
+        delay = 0
+    else:
+        cmd += [ "-d", str(delay), "-c" ]
+
+    timeout = max(delay + 10, timeout or 0)
+    _run_subprocess(cmd, timeout=timeout, description=_cmd_name)
 
 @register_function("toggle_keyboard")
 def handle_toggle_keyboard(timeout: int | None = None, *, _cmd_name: str = "unknown") -> None:
     """Toggle onscreen keyboard."""
-    _run_subprocess(["dbus-send", "--type=method_call", "--dest=org.onboard.Onboard", "/org/onboard/Onboard/Keyboard", "org.onboard.Onboard.Keyboard.ToggleVisible"], timeout=timeout, description=_cmd_name)
+    cmd = ["dbus-send", "--type=method_call", "--dest=org.onboard.Onboard", "/org/onboard/Onboard/Keyboard", "org.onboard.Onboard.Keyboard.ToggleVisible"]
+    _run_subprocess(cmd, timeout=timeout, description=_cmd_name)
 
 @register_function("toggle_audio")
 def handle_toggle_audio(timeout: int | None = None, *, _cmd_name: str = "toggle_audio") -> None:
     """Toggle mute state of the default audio sink."""
-    _run_subprocess(["pactl", "set-sink-mute", "@DEFAULT_SINK@", "toggle"], timeout=timeout, description=_cmd_name)
+    cmd = ["pactl", "set-sink-mute", "@DEFAULT_SINK@", "toggle"]
+    _run_subprocess(cmd, timeout=timeout, description=_cmd_name)
 
 #-------------------------------------------------------------------------------
 #### Utility Functions

@@ -34,6 +34,7 @@
 #         REST_IP
 #         REST_BEARER_TOKEN
 #         COMMAND_WHITELIST
+#         VNC_SERVER
 #         DEBUG_MODE
 #
 #     - Hack to delete (and later restore) /dev/tty0 (needed for X to start
@@ -147,6 +148,7 @@ load_config_var REST_IP "127.0.0.1"
 load_config_var REST_BEARER_TOKEN "" 1  # Mask token in log
 load_config_var COMMAND_WHITELIST "^$"  # Default is no commands allowed
 load_config_var DEBUG_MODE false
+load_config_var VNC_SERVER ""  1 #Mask password in log
 
 # Validate environment variables set by config.yaml
 if [ -z "$HA_USERNAME" ] || [ -z "$HA_PASSWORD" ]; then
@@ -367,6 +369,59 @@ fi
 
 #### Start Window manager in the background
 WINMGR=Openbox  #Openbox window manager
+## Change key bindings
+mkdir -p ~/.config/openbox
+RC_XML=~/.config/openbox/rc.xml
+cp -a /etc/xdg/openbox/rc.xml "$RC_XML"
+# Delete selected old key bindings
+awk 'BEGIN{skip=0} /<keybind key="(C-A-Left|C-A-Right)">/{skip=1} /<\/keybind>/ && skip{skip=0; next} !skip{print}' "$RC_XML" > /tmp/rc.new.xml
+mv /tmp/rc.new.xml "$RC_XML"
+
+# Add new key bindings
+cat <<'EOF' > /tmp/new_keybinds.xml
+  <!-- Toggle Onboard onscreen keyboard: Ctrl+Alt+o -->
+  <keybind key="C-A-o">
+    <action name="Execute">
+      <command>dbus-send --type=method_call --dest=org.onboard.Onboard /org/onboard/Onboard/Keyboard org.onboard.Onboard.Keyboard.ToggleVisible</command>
+    </action>
+  </keybind>
+
+  <!-- Take screenshot: Ctrl+Alt+k -->
+  <keybind key="C-A-k">
+    <action name="Execute">
+      <command>sh -c 'scrot /media/screenshots/haoskiosk-$(date +"%y%m%d_%H%M%S") -q 90'</command>
+    </action>
+  </keybind>
+
+  <!-- Next window: Ctrl+Alt+Shift+Right -->
+  <keybind key="C-A-S-Right">
+    <action name="NextWindow">
+      <finalactions>
+        <action name="Focus"/>
+        <action name="Raise"/>
+        <action name="Unshade"/>
+      </finalactions>
+    </action>
+  </keybind>
+
+  <!-- Previous window: Ctrl+Alt+Shift+Left -->
+  <keybind key="C-A-S-Left">
+    <action name="PreviousWindow">
+      <finalactions>
+        <action name="Focus"/>
+        <action name="Raise"/>
+        <action name="Unshade"/>
+      </finalactions>
+    </action>
+  </keybind>
+
+EOF
+awk -v f=/tmp/new_keybinds.xml '/<\/keyboard>/ { system("cat " f) } { print }' \
+    "$RC_XML" > /tmp/rc.new.xml
+mv /tmp/rc.new.xml "$RC_XML"
+rm /tmp/new_keybinds.xml
+
+# Start openbox
 openbox &
 
 #WINMGR=xfwm4  #Alternately using xfwm4
@@ -578,6 +633,35 @@ python3 -u /mouse_touch_inputs.py  -d 1 -w "$COMMAND_WHITELIST" &
 #### Start  HAOSKiosk REST server
 bashio::log.info "Starting HAOSKiosk REST server..."
 python3 -u /rest_server.py &
+
+#### Optionally start vnc server
+if [ -n "$VNC_SERVER" ]; then
+    PRIMARY_DEV="$(ip route show | awk '/^default/ {print $5; exit}')"
+    HOST_IP="$(ip route show | sed -n "/\b${PRIMARY_DEV}\b/ s/.* src \([^ ]*\).*/\1/p" | head -1)"
+    VNC_PORT=5900
+
+    X11VNC_OPTS="-display :0 -rfbport $VNC_PORT -forever -bg -shared -quiet"
+    # Note caching and smoothing ("-ncache 10 -ncache_cr") not enabled since only works properly on some vnc viewers
+
+    bashio::log.info "Starting x11vnc server $([[ "$VNC_SERVER" == "-" ]] && echo "WITHOUT" || echo "WITH") password on port $VNC_PORT. Access at: $HOST_IP:$VNC_PORT"
+
+    if [ "$VNC_SERVER" != "-" ]; then  # Use password
+        VNC_PASSWD_FILE="/root/x11vnc.pass"
+
+        # Safely create obfuscated password file
+        printf '%s\n%s\ny\n' "${VNC_SERVER}" "${VNC_SERVER}" | x11vnc -storepasswd "$VNC_PASSWD_FILE" > /dev/null 2>&1
+        chown root:root "$VNC_PASSWD_FILE"
+        chmod 600 "$VNC_PASSWD_FILE"
+
+        X11VNC_OPTS="$X11VNC_OPTS -rfbauth $VNC_PASSWD_FILE"
+
+    else  # No password
+        X11VNC_OPTS="$X11VNC_OPTS -nopw"
+    fi
+
+    # shellcheck disable=SC2086
+    x11vnc $X11VNC_OPTS 2> >(grep -v 'The VNC desktop is:' >&2)
+fi
 
 #### Start browser (or debug mode)  and wait/sleep
 if [ "$DEBUG_MODE" != true ]; then

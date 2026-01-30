@@ -245,14 +245,6 @@ Optional authorization token for REST API. (Default: "") If set, then you
 must add line `-H "Authorization: Bearer <REST_BEARER_TOKEN>"` to REST API
 calls.
 
-### Debug
-
-For debugging purposes, launches `Xorg` and `openbox` and then sleeps
-without launching `luakit`.\
-Manually, launch `luakit` (e.g.,
-`luakit -U localhost:8123/<your-dashboard>`) from Docker container.\
-E.g., `sudo docker exec -it addon_haoskiosk bash`
-
 ### Gestures
 
 Editable list of JSON-like key-value pairs where the key represents a
@@ -287,6 +279,26 @@ set the regex to `^$`.
 
 Note that regardless of setting only commands found in `/bin`, `/usr/bin`,
 and `/usr/local/bin` of the HAOSKiosk Add-on container are allowed.
+
+### VNC SERVER
+
+Launch VNC Server on port 5900 if password non-blank. If password set to
+'-', then don't require any password. This can be used to view or debug the
+kiosk remotely.
+
+To view launch a vnc server (e.g., RealVNC) and point it to port 5900 on
+your homeassistant instance (e.g., `homeassistant:5900`)
+
+*Use with caution* as it runs unencrypted and is accessible anywhere on
+your network.
+
+### Debug
+
+For debugging purposes, launches `Xorg` and `openbox` and then sleeps
+without launching `luakit`.\
+Manually, launch `luakit` (e.g.,
+`luakit -U localhost:8123/<your-dashboard>`) from Docker container.\
+E.g., `sudo docker exec -it addon_haoskiosk bash`
 
 ______________________________________________________________________
 
@@ -398,6 +410,22 @@ You can format the stdout (and similarly stderr) by piping the output to:
 In the case of `run_commands`, pipe the output to:
 `jq -r '.results[]?.stdout'`
 
+### screenshot
+
+Take screen screenshot with optional filename, quality, and delay before
+screenshot. Quality only affects jpeg images
+
+Output format is jpeg unless optional filename ends in .bmp, .png, .pnm, or
+.tiff
+
+Usage:
+
+```
+curl -X POST http://localhost:8080/screenshot
+curl -X POST http://localhost:8080/screenshot -H "Content-Type: application/json"
+     -d '{"filename": "<filename>", "quality": <1-100>, "delay: <seconds>}'
+```
+
 ### current_processes
 
 Return number of currently running concurrent processes out of max allowed.
@@ -478,7 +506,13 @@ rest_command:
     url: "http://localhost:8080/display_on"
     method: POST
     content_type: "application/json"
-    payload: '{% if timeout is defined and timeout is number and timeout >= 0 %}{"timeout": {{ timeout | int }}}{% else %}{}{% endif %}'
+    payload: >-
+      {{
+        {
+          'timeout': timeout | int if timeout is defined and timeout is number and timeout >= 0 else none
+        }
+        | to_json
+      }}
 
   haoskiosk_display_off:
     url: "http://localhost:8080/display_off"
@@ -496,13 +530,42 @@ rest_command:
     url: "http://localhost:8080/run_command"
     method: POST
     content_type: "application/json"
-    payload: '{% if cmd_timeout is defined and cmd_timeout is number and cmd_timeout > 0 %}{"cmd": "{{ cmd }}", "cmd_timeout": {{ cmd_timeout | int }}}{% else %}{"cmd": "{{ cmd }}"}{% endif %}'
+    payload: >-
+      {{
+        {
+          'cmd': cmd,
+          'cmd_timeout': cmd_timeout | int if cmd_timeout is defined and cmd_timeout is number  and cmd_timeout > 0 else none
+        }
+        | to_json
+      }}
+
 
   haoskiosk_run_commands:
     url: "http://localhost:8080/run_commands"
     method: POST
     content_type: "application/json"
-    payload: '{% if cmd_timeout is defined and cmd_timeout is number and cmd_timeout > 0 %}{"cmds": {{ cmds | tojson }}, "cmd_timeout": {{ cmd_timeout | int }}}{% else %}{"cmds": {{ cmds | tojson }}}{% endif %}'
+    payload: >-
+      {{
+        {
+          'cmds': cmds,
+          'cmd_timeout': cmd_timeout | int if cmd_timeout is defined and cmd_timeout is number and cmd_timeout > 0 else none
+        }
+        | to_json
+      }}
+
+  haoskiosk_screenshot:
+    url: "http://localhost:8080/screenshot"
+    method: POST
+    content_type: "application/json"
+    payload: >-
+      {{
+        {
+          'delay': delay | int if delay is defined and delay | int(0) >= 0 else none,
+          'filename': filename if filename is defined and filename != "" and "/" not in filename and "\0" not in filename else none,
+          'quality': quality | int if quality is defined and 1 <= quality | int <= 100 else none
+        }
+        | to_json
+      }}
 
   haoskiosk_current_processes:
     url: "http://localhost:8080/current_processes"
@@ -530,7 +593,13 @@ rest_command:
     url: "http://localhost:8080/unmute_audio"
     method: POST
     content_type: "application/json"
-    payload: '{"volume": "{{ volume }}"}'
+    payload: >-
+      {{
+        {
+          'volume': volume | int if volume is defined and volume is number and 0 <= volume | int <= 150 else none
+        }
+        | to_json
+      }}
 
   haoskiosk_toggle_audio:
     url: "http://localhost:8080/toggle_audio"
@@ -845,19 +914,34 @@ ______________________________________________________________________
 
 ## KEYBOARD SHORTCUTS
 
-The following fixed keyboard shortcuts are defined (but subject to change).
+The following new fixed keyboard shortcuts are defined (but subject to
+change).
+
+- **Ctrl+o:** *Toggle Onboard onscreen keyboard*
 
 - **Ctrl+r:** *Reload page*
 
-- **Ctrl+LeftArrow:** *Go back in the browser tab history*
+- **Ctrl+Left:** *Go back in the browser tab history*
 
-- **Ctrl+RightArrow:** *Go forward in the browser tab history*
+- **Ctrl+Right:** *Go forward in the browser tab history*
 
 - **Ctrl+Alt+t:** *Open new tab*
 
 - **Ctrl+Alt+Shift+t:** *Close current tab*
 
 - **Ctrl+Alt+w:** *Open new window*
+
+- **Ctl+Alt+Left:** *Previous tab*
+
+- **Ctl+Alt+Right:** *Next tab*
+
+- **Ctl+Alt+Shift+Left:** *Previous window* (Also: **Alt+Shift+Tab**)
+
+- **Ctl+Alt+Shift+Right:** *Next window* (Also: **Alt+Tab**)
+
+- **Ctrl+Alt+k:** *Take screenshot and save to /media/screenshots*
+
+Note that the Onbox Window manager defines many other default bindings.
 
 ______________________________________________________________________
 
