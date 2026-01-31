@@ -113,12 +113,12 @@ HTTP_TIMEOUT: int = 3              # Timeout for HTTP get and posts (in seconds)
 
 #===============================================================================
 ### Setup
+if not ROTATE_URL_LIST:
+    HA_ROTATE_TOGGLE = False
+
 if HA_BINARY_SENSOR_FRIENDLY_NAME is None and HA_BINARY_SENSOR is not None:
     #Get string after last '.', replace '_' with space, capitalize words
     HA_BINARY_SENSOR_FRIENDLY_NAME = HA_BINARY_SENSOR.rsplit('.', 1)[-1].replace('_', ' ').title()
-
-if not ROTATE_URL_LIST:
-    HA_ROTATE_TOGGLE = None
 
 #Relaunch 'unbuffered' if not already unbuffered so that you can pipe output real-time if desired
 if os.environ.get('PYTHONUNBUFFERED') != '1':
@@ -494,8 +494,8 @@ def main()-> None:
                     date_time = datetime.now().strftime('%Y-%m-%d %H:%M')
                     print(f"[{date_time}] Restoring: {new_url}")
 
-            if not binary_sensor_state:
-                display_state_print()  # Set and show display state every 60 seconds
+        if not binary_sensor_state and not loop_num % 300:
+            display_state_print()  # Set and show display state every 300 seconds
 
         if display is True and HA_ROTATE_TOGGLE is not None and binary_sensor_state == HA_ROTATE_TOGGLE and not loop_num % ROTATE_FREQ: # Rotate url
             new_url = ROTATE_URL_LIST[(loop_num // ROTATE_FREQ) % len(ROTATE_URL_LIST)]

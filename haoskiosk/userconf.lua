@@ -8,6 +8,7 @@ Date: February 2026
 Code does the following:
     - Sets browser window to fullscreen
     - Sets zooms level to value of $ZOOM_LEVEL (default 100%)
+    - Sets new tab and window default to blank page (about:blank)
     - Loads every URL in 'passthrough' mode so that you can type text as needed without triggering browser commands
     - Auto login to Home Assistant using $HA_USERNAME and $HA_PASSWORD
     - Redefines key to return to normal mode (used for commands) from 'passthrough' mode to: 'Ctl+Alt+Esc'
@@ -147,6 +148,10 @@ end)
 
 -- Set zoom level for windows (default 100%)
 settings.webview.zoom_level = zoom_level
+
+-- Set default new tab and window to blank page, rather than commercial luakit page
+settings.window.home_page    = "about:blank"
+settings.window.new_tab_page = "about:blank"
 
 -- Prevent session restore by overloading 'session.restore'
 local session = require "session"
@@ -508,7 +513,7 @@ modes.add_binds("all", {
     { "<Control-Right>",                "Go forward in the browser history",    function(w, m) w:forward(m.count) end },
 
     -- New/Close tab and window
-    { "<Control-Mod1-t>",               "Open new tab",                         function(w) w:new_tab("about:blank") end },
+    { "<Control-Mod1-t>",               "Open new tab",                         function(w) w:new_tab() end },
     { "<Control-Mod1-Shift-t>",         "Close current tab",                    function(w) w:close_tab() end },
     { "<Control-Mod1-w>",               "Open new window",                      function() window.new() end },
 --    { "<Control-Mod1-Shift-w>",         "Close current window",                 function(w) w:close_win() end },

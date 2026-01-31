@@ -636,8 +636,8 @@ python3 -u /rest_server.py &
 
 #### Optionally start vnc server
 if [ -n "$VNC_SERVER" ]; then
-    PRIMARY_DEV="$(ip route show | awk '/^default/ {print $5; exit}')"
-    HOST_IP="$(ip route show | sed -n "/\b${PRIMARY_DEV}\b/ s/.* src \([^ ]*\).*/\1/p" | head -1)"
+    PRIMARY_DEV="$(ip route show | awk '/^default/ {print $5; exit}')"  # Returns name of primary device (typically Ethernet before WiFi)
+    HOST_IP="$(ip route show | sed -n "/\b${PRIMARY_DEV}\b/ s/.* src \([^ ]*\).*/\1/p" | head -1)"  # Return first IP address tied to primary device
     VNC_PORT=5900
 
     X11VNC_OPTS="-display :0 -rfbport $VNC_PORT -forever -bg -shared -quiet"
