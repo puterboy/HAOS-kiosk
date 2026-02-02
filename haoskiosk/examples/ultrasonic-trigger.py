@@ -46,7 +46,7 @@
 #     Ignore if None
 #   - If HA_INPUTS_TOGGLE is True/False then disable inputs when HA_BINARY_SENSOR is on/off;
 #     Ignore if None
-#   - If HA_ROTATE_URLS is True/False then rotate urls when HA_BINARY_SENSOR is on/off
+#   - If HA_ROTATE_TOGGLE is True/False then rotate urls when HA_BINARY_SENSOR is on/off
 #     Ignore if None
 # This can be used to make the display, input, and audio states depend on the
 # on/off state of the HA_BINARY_SENSOR sensor
@@ -113,7 +113,11 @@ HTTP_TIMEOUT: int = 3              # Timeout for HTTP get and posts (in seconds)
 
 #===============================================================================
 ### Setup
-if not ROTATE_URL_LIST:
+
+current_url: str | None = None
+if ROTATE_URL_LIST:  # Non-empty list
+    current_url = ROTATE_URL_LIST[0]
+else:  # Empty rotate list so turn off rotation
     HA_ROTATE_TOGGLE = False
 
 if HA_BINARY_SENSOR_FRIENDLY_NAME is None and HA_BINARY_SENSOR is not None:
@@ -155,23 +159,23 @@ for sig in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
 
 def cleanup() -> None:
     """Cleanup before exiting..."""
-    date_time = datetime.now().strftime('%Y-%m-%d %H:%M')
+    date_time = get_datetime()
     print()
     try:
         if display_state() is False:
             display_on_print()  # Turn display and audio back on...
 
-        binary_sensor_state = ha_binary_sensor_state(HA_BINARY_SENSOR)
-        if HA_INPUTS_TOGGLE is not None and binary_sensor_state == HA_INPUTS_TOGGLE:
-            ha_disable_inputs(False) # Restore inputs
-            print(f"[{date_time}] Restoring inputs...")
-        if (ULTRASONIC_AUDIO is True and display is False) or (HA_AUDIO_TOGGLE is not None and binary_sensor_state == HA_AUDIO_TOGGLE):
+        if current_mute is True:
             ha_mute_audio(False)  # Unmute audio
-            print(f"[{date_time}] Restoring audio...")
-        if HA_ROTATE_TOGGLE is not None and binary_sensor_state == HA_ROTATE_TOGGLE:
-            new_url = ROTATE_URL_LIST[0]  # Reset to first url
-            ha_launch_url(new_url) # Restore default (first) url
-            print(f"[{date_time}] Restoring: {new_url}")
+            print(f"[{date_time}] Unmuting audio...")
+
+        if current_inputs_disabled is True:
+            ha_disable_inputs(False) # Restore inputs
+            print(f"[{date_time}] Enabling inputs...")
+
+        if current_url is not None and current_url != ROTATE_URL_LIST[0]:
+            ha_launch_url(ROTATE_URL_LIST[0]) # Restore default (first) url
+            print(f"[{date_time}] Restoring URL: {ROTATE_URL_LIST[0]}")
 
         gpio.close()
     except Exception as e:
@@ -248,6 +252,10 @@ def measure_distance() -> float | None:
     invalid_count = 0  # Reset invalid counter
     return sum(distances) / len(distances) if distances else None
 
+def get_datetime() -> str:
+    """Return time string in format: YY-MM-DD HH:MM:SS"""
+    return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
 #===============================================================================
 ### HAOKiosk Api calls
 
@@ -267,7 +275,7 @@ def display_state() -> bool:
         )
         response.raise_for_status()
         data = response.json()
-        if not data.get("success", False):
+        if not data.get("success", False):  # Failed to get display state
             logger.error("Failed to get display state")
             return False
         return data["display_on"] is True
@@ -275,15 +283,16 @@ def display_state() -> bool:
         logger.error("HTTPRequest failed (%s)", e)
         return False
 
+current_display: bool | None  = None  # Start in unknown state
 def display_state_print() -> None:
     """Print display state"""
-    global display
+    global current_display
     try:
-        display = display_state()
-        if display is True:
-            print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M')}] Display is ON")
+        current_display = display_state()
+        if current_display is True:
+            print(f"[{get_datetime()}] Display is ON")
         else:
-            print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M')}] Display is OFF")
+            print(f"[{get_datetime()}] Display is OFF")
     except (requests.RequestException, ValueError) as e:
         logger.error("Display is INVALID (%s)", e)
 
@@ -298,8 +307,8 @@ def display_on() -> bool:
         )
         response.raise_for_status()
         data = response.json()
-        if not data.get("success", False):
-            logger.error("Failed to get display state")
+        if not data.get("success", False):  # Failed to turn on display
+            logger.error("Failed to turn on display")
             return False
         return True
     except (requests.RequestException, ValueError) as e:
@@ -317,7 +326,8 @@ def display_off() -> bool:
         )
         response.raise_for_status()
         data = response.json()
-        if not data.get("success", False):
+        if not data.get("success", False):  # Failed to turn off display
+            logger.error("Failed to turn on display")
             return False
         return True
     except (requests.RequestException, ValueError) as e:
@@ -338,9 +348,9 @@ def display_on_print(audio_too: bool=False) -> None:
         if audio_too:
             ha_mute_audio(False)  # Also umute audio
             msg = " and restoring audio"
-        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M')}] ***Turning display ON{msg}*** (Duration: {display_time_diff})")
-        global display
-        display = True
+        print(f"[{get_datetime()}] ***Turning display ON{msg}*** (Duration: {display_time_diff})")
+        global current_display
+        current_display = True
     else:
         logger.error("FAILED to turn display ON")
 
@@ -357,9 +367,9 @@ def display_off_print(audio_too: bool=False) ->None:
         if audio_too:
             ha_mute_audio(True)  # Also mute audio
             msg = " and muting audio"
-        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M')}] ***Turning display OFF{msg}*** (Duration: {display_time_diff})")
-        global display
-        display = False
+        print(f"[{get_datetime()}] ***Turning display OFF{msg}*** (Duration: {display_time_diff})")
+        global current_display
+        current_display = False
     else:
         logger.error("FAILED to turn display OFF")
 
@@ -387,6 +397,7 @@ def ha_binary_sensor_state(sensor: str | None) -> bool | None:
         logger.error("HTTP Request failed (%s)", e)
         return None
 
+current_inputs_disabled: bool | None = None  # Start in unknown state
 def ha_disable_inputs(state: bool) -> bool:
     """Disable/enable inputs"""
     if state:
@@ -401,14 +412,18 @@ def ha_disable_inputs(state: bool) -> bool:
         )
         response.raise_for_status()
         data = response.json()
-        if not data.get("success", False):
+        if not data.get("success", False):  # Failed to enable/disable inputs
+            logger.error("Failed to %s inputs", {"disable" if state else "enable"})
             return False
+        global current_inputs_disabled
+        current_inputs_disabled = state
         return True
     except (requests.RequestException, ValueError):
         return False
 
+current_mute: bool | None = None  # Start in unknown state
 def ha_mute_audio(state: bool) -> bool:
-    """Mute/unmute audio"""
+    """Mute/unmute audio. Return True on success"""
     if state:
         url = f"http://localhost:{REST_PORT}/mute_audio"
     else:
@@ -421,8 +436,11 @@ def ha_mute_audio(state: bool) -> bool:
         )
         response.raise_for_status()
         data = response.json()
-        if not data.get("success", False):
+        if not data.get("success", False):  # Failed to mute/unmute audio
+            logger.error("Failed to %s audio", {"mute" if state else "unmute"})
             return False
+        global current_mute
+        current_mute = state
         return True
     except (requests.RequestException, ValueError):
         return False
@@ -438,7 +456,7 @@ def ha_launch_url(site: str) -> bool:
         )
         response.raise_for_status()
         data = response.json()
-        if not data.get("success", False) or not data.get("result", {}).get("success", False):
+        if not data.get("success", False) or not data.get("result", {}).get("success", False):  # Failed to launch url
             logging.debug("Failed to launch_url: %s", url)
             return False
         stdout_text = data["result"].get("stdout", "")
@@ -450,7 +468,6 @@ def ha_launch_url(site: str) -> bool:
 #===============================================================================
 ### Main loop
 
-display = False
 def main()-> None:
     """Main event loop"""
 
@@ -465,6 +482,7 @@ def main()-> None:
     count = 0
     binary_sensor_state = None
 
+    global current_url
     # Main event loop
     while True:
         loop_start = time.monotonic()
@@ -474,12 +492,11 @@ def main()-> None:
             old_binary_sensor_state = binary_sensor_state
             binary_sensor_state = ha_binary_sensor_state(HA_BINARY_SENSOR)
             if binary_sensor_state is not None and binary_sensor_state != old_binary_sensor_state:  # Status of binary_sensor_state changed
-                date_time = datetime.now().strftime('%Y-%m-%d %H:%M')
+                date_time = get_datetime()
                 print(f"[{date_time}] '{HA_BINARY_SENSOR_FRIENDLY_NAME}' = {binary_sensor_state}")
                 if HA_DISPLAY_TOGGLE is not None:
                     if binary_sensor_state == HA_DISPLAY_TOGGLE:
                         display_on_print(audio_too=ULTRASONIC_AUDIO and HA_AUDIO_TOGGLE is None)  # Turn on display (because need to keep it always on)
-                date_time = datetime.now().strftime('%Y-%m-%d %H:%M')
                 if HA_INPUTS_TOGGLE is not None:
                     state = binary_sensor_state == HA_INPUTS_TOGGLE
                     ha_disable_inputs(state)
@@ -489,19 +506,17 @@ def main()-> None:
                     ha_mute_audio(state)
                     print(f"[{date_time}] ***{"Muting" if state else "Unmuting"} audio***")
                 if HA_ROTATE_TOGGLE is not None and binary_sensor_state != HA_ROTATE_TOGGLE:  # Reset to first url
-                    new_url = ROTATE_URL_LIST[0]
-                    ha_launch_url(new_url) # Restore default (first) url
-                    date_time = datetime.now().strftime('%Y-%m-%d %H:%M')
-                    print(f"[{date_time}] Restoring: {new_url}")
+                    current_url = ROTATE_URL_LIST[0]
+                    ha_launch_url(current_url) # Restore default (first) url
+                    print(f"[{date_time}] Restoring: {current_url}")
 
         if not binary_sensor_state and not loop_num % 300:
             display_state_print()  # Set and show display state every 300 seconds
 
-        if display is True and HA_ROTATE_TOGGLE is not None and binary_sensor_state == HA_ROTATE_TOGGLE and not loop_num % ROTATE_FREQ: # Rotate url
-            new_url = ROTATE_URL_LIST[(loop_num // ROTATE_FREQ) % len(ROTATE_URL_LIST)]
-            ha_launch_url(new_url)
-            date_time = datetime.now().strftime('%Y-%m-%d %H:%M')
-            print(f"[{date_time}] Rotating url: {new_url}")
+        if current_display is True and HA_ROTATE_TOGGLE is not None and binary_sensor_state == HA_ROTATE_TOGGLE and not loop_num % ROTATE_FREQ: # Rotate url
+            current_url = ROTATE_URL_LIST[(loop_num // ROTATE_FREQ) % len(ROTATE_URL_LIST)]
+            ha_launch_url(current_url)
+            print(f"[{get_datetime()}] Rotating url: {current_url}")
 
         if HA_DISPLAY_TOGGLE is not None and binary_sensor_state == HA_DISPLAY_TOGGLE:  # Avoid calculating distance & turning on/off display
             time.sleep(LOOP_TIME)
@@ -514,12 +529,12 @@ def main()-> None:
             if distance < NEAR_ON_DIST:
                 count = max(count, 0)
                 count += 1
-                if display is False and count >= COUNT_ON_THRESH:
+                if current_display is False and count >= COUNT_ON_THRESH:
                     display_on_print(audio_too=ULTRASONIC_AUDIO)  # Turn ON display
             elif distance > FAR_OFF_DIST:
                 count = min(count, 0)
                 count -= 1
-                if display is True and count <= -COUNT_OFF_THRESH:
+                if current_display is True and count <= -COUNT_OFF_THRESH:
                     display_off_print(audio_too=ULTRASONIC_AUDIO)  # Turn OFF display
         else:
             print("Distance: Invalid")
