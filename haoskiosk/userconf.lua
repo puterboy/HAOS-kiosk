@@ -306,6 +306,7 @@ webview.add_signal("init", function(view)
                     // Set theme if specified
                     const theme = '%s';
                     const currentTheme = localStorage.getItem('selectedTheme') || '';
+
                     if (theme !== currentTheme) {
                         if (theme !== "") {
                             localStorage.setItem('selectedTheme', theme);
@@ -313,8 +314,11 @@ webview.add_signal("init", function(view)
                             localStorage.removeItem('selectedTheme');
                         }
                     }
+//                    console.log("Setting sidebar: " + currentSidebar + " -> " + sidebar + " [Result=" + localStorage.getItem('dockedSidebar') +
+//		                "]; theme: " + currentTheme + " -> " + theme + " [Result=" + localStorage.getItem('selectedTheme') + "]"); // DEBUG
 
-//                  localStorage.setItem('DebugLog', "Setting sidebar: " + currentSidebar + " -> " + sidebar + "; theme: " + currentTheme + " -> " + theme); // DEBUG
+//                  localStorage.setItem('DebugLog', "Setting sidebar: " + currentSidebar + " -> " + sidebar + " [Result=" + localStorage.getItem('dockedSidebar') +
+//		                                     "]; theme: " + currentTheme + " -> " + theme + "[Result=" + localStorage.getItem('selectedTheme') + "]"); // DEBUG
                 } catch (err) {
                     console.error(err);
                     console.log("FAILED to set: Sidebar: " + sidebar + "  Theme: " + theme + " [" + err + "]"); // DEBUG

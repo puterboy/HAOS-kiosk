@@ -75,6 +75,7 @@ cleanup() {
     fi
     jobs -p | xargs -r kill
     [ -n "$TTY0_DELETED" ] && mknod -m 620 /dev/tty0 c 4 0
+    rm -f /root/.local/share/luakit/cookies.db  # Remove cookie storage (not really necessary, but just in case...)
     exit "$exit_code"
 }
 trap cleanup HUP INT QUIT ABRT TERM EXIT
