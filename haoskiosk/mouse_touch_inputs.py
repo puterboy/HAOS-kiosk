@@ -12,9 +12,9 @@
 """-------------------------------------------------------------------------------
 # HAOS Kiosk Display — Mouse & Touch Input Engine
 # File: MouseTouchInputs
-# Version: 1.2.0
+# Version: 1.3.0
 # Copyright Jeff Kosowsky
-# Date: January 2026
+# Date: February 2026
 #
 #### DESCRIPTION:
    Full-featured X11 parser and command launcher for multi-button press and
@@ -364,12 +364,13 @@ import threading
 import traceback
 import uuid
 from collections.abc import Hashable
+from datetime import datetime
 from functools import wraps
 from typing import Any, cast, Callable, ClassVar, Final, Iterator, NotRequired, Protocol, Self, Sequence, Type, TypeAlias, TypedDict, TypeVar
 from Xlib import display                  #type: ignore[import-untyped] #pylint: disable=import-error
 from Xlib.xobject.drawable import Window  #type: ignore[import-untyped] #pylint: disable=import-error
 #-------------------------------------------------------------------------------
-__version__ = "1.2.0"
+__version__ = "1.3.0"
 __author__ = "Jeff Kosowsky"
 __copyright__ = "Copyright 2025 Jeff Kosowsky"
 #-------------------------------------------------------------------------------
@@ -378,6 +379,7 @@ __copyright__ = "Copyright 2025 Jeff Kosowsky"
 XINPUT_RESTART_DELAY: int     = 5    # Seconds before restarting xinput after crash
 CMD_TIMEOUT: int | None       = 30   # Seconds before spawned action command timesout or None if no timeout
 GESTURE_CMDS_FILES: list[str] = ["/data/options.json", "gesture_commands.json"]
+DEFAULT_LAUNCH_URL = f"{(os.getenv('HA_URL') or 'about:blank').rstrip('/')}/{os.getenv('HA_DASHBOARD') or ''}".strip('/')
 
 #-------------------------------------------------------------------------------
 ## Initialization
@@ -520,7 +522,7 @@ VALID_URL_REGEX: Final[re.Pattern[str]] = re.compile(
 
 def is_valid_url(url: str) -> bool:
     """Validate URL format (allows http://, https://, bare domain/IP, path, query, fragment)."""
-    return bool(VALID_URL_REGEX.fullmatch(url.strip()))
+    return bool(url == 'about:blank' or VALID_URL_REGEX.fullmatch(url.strip()))
 
 #-------------------------------------------------------------------------------
 #### Globals
@@ -587,7 +589,8 @@ def register_function(
             if missing: # Missing parameters
                 raise ValueError(f"{fullname}: Missing required parameters: {missing}")
 
-            extra = [k for k in data if k not in allowed_params and k != "timeout"]
+            extra = [k for k in data if not k.startswith('_') and k not in allowed_params and k != "timeout"]
+            # Note always allow parameters beginning with '_' (internal) and 'timeout'
             if extra: # Extra parameters
                 raise ValueError(f"{fullname}: Unknown parameters: {extra}")
 
@@ -632,30 +635,35 @@ def register_function(
 @register_function("back")
 def handle_back(timeout: int | None = None, *, _cmd_name: str = "unknown") -> None:
     """Go back in browser history."""
-    _run_subprocess(["xdotool", "key", "--clearmodifiers", "ctrl+Left"], timeout=timeout, description=_cmd_name)
+    cmd = ["xdotool", "key", "--clearmodifiers", "ctrl+Left"]
+    _run_subprocess(cmd, timeout=timeout, description=_cmd_name)
 
 @register_function("forward")
 def handle_forward(timeout: int | None = None, *, _cmd_name: str = "unknown") -> None:
     """Go forward in browser history."""
-    _run_subprocess(["xdotool", "key", "--clearmodifiers", "ctrl+Right"], timeout=timeout, description=_cmd_name)
+    cmd = ["xdotool", "key", "--clearmodifiers", "ctrl+Right"]
+    _run_subprocess(cmd, timeout=timeout, description=_cmd_name)
 
 @register_function("refresh_browser")
 def handle_refresh_browser(timeout: int | None = None, *, _cmd_name: str = "unknown") -> None:
     """Reload current page."""
-    _run_subprocess(["xdotool", "key", "--clearmodifiers", "ctrl+r"], timeout=timeout, description=_cmd_name)
+    cmd = ["xdotool", "key", "--clearmodifiers", "ctrl+r"]
+    _run_subprocess(cmd, timeout=timeout, description=_cmd_name)
 
-@register_function("launch_url")
-def handle_launch_url(url: str, timeout: int | None = None, *, _cmd_name: str = "unknown") -> None:
-    """Launch URL  — validates URL"""
+@register_function("launch_url", optional=["url"])
+def handle_launch_url(url: str = DEFAULT_LAUNCH_URL, timeout: int | None = None, *, _cmd_name: str = "unknown") -> None:
+    """Launch (valid) URL if given otherwise HA_URL/HA_DASHBOARD if exists otherwise 'about:blank'"""
     if not isinstance(url, str):
         raise ValueError(f"{_cmd_name}: URL must be str, got {type(url).__name__}")
     if not url.strip():
-        raise ValueError("{_cmd_name}: URL cannot be empty or whitespace")
+        raise ValueError(f"{_cmd_name}: URL cannot be empty or whitespace: {url}")
     if not is_valid_url(url):
-        raise ValueError(f"{_cmd_name}: Invalid URL format")
-    if not url.startswith(("http://", "https://")):
+        raise ValueError(f"{_cmd_name}: Invalid URL format: {url}")
+    if url != "about:blank" and not url.startswith(("http://", "https://")):
         url = "http://" + url
-    _run_subprocess(["luakit", "-n",  url], timeout=timeout, description=_cmd_name)
+
+    cmd = ["luakit", "-n",  url]
+    _run_subprocess(cmd, timeout=timeout, description=_cmd_name)
 
 @register_function("display_on", optional=["blank_timeout"],
                    validators=
@@ -681,7 +689,54 @@ def handle_display_on(blank_timeout: int | None = None, timeout: int | None = No
 @register_function("display_off")
 def handle_display_off(timeout: int | None = None, *, _cmd_name: str = "unknown") -> None:
     """Force display off immediately."""
-    _run_subprocess(["xset", "dpms", "force", "off"], timeout=timeout, description=_cmd_name)
+    cmd = ["xset", "dpms", "force", "off"]
+    _run_subprocess(cmd, timeout=timeout, description=_cmd_name)
+
+SCREENSHOT_DIR: str = "/media/screenshots"  # Directory to store screenshots
+@register_function("screenshot", optional=["filename", "quality", "delay"],
+                   validators={
+                       "filename": lambda x: x is None or (x != "" and "\0" not in x and "/" not in x),
+                       "quality": lambda x: x is None or (isinstance(x, int) and 1 <= x <= 100),
+                       "delay": lambda x: x is None or (isinstance(x, int) and x >= 0),
+                   })
+def handle_screenshot(filename: str | None = None, quality: int | None = None, delay: int | None = None,
+                      timeout: int | None = None, *, _cmd_name: str = "unknown") -> None:
+    """
+    Take screen screenshot with optional filename, quality, and delay before screenshot
+    Output format is jpeg unless optional filename ends in .bmp, .png, .pnm, or .tiff
+    Quality only affects jpeg images
+    """
+    if filename is None:
+        filename = f'haoskiosk-{datetime.now().strftime("%Y%m%d_%H%M%S")}'
+    if not filename.lower().endswith((".jpg", ".jpeg", ".bmp", ".png", ".pnm", ".tiff")):
+        filename += ".jpg"
+
+    os.makedirs(SCREENSHOT_DIR, exist_ok=True)
+    full_filename = os.path.join(SCREENSHOT_DIR, filename)
+
+    if quality is None:
+        quality = 90
+
+    cmd = [ "scrot", full_filename, "-q", str(quality) ]
+    if delay is None:
+        delay = 0
+    else:
+        cmd += [ "-d", str(delay), "-c" ]
+
+    timeout = max(delay + 10, timeout or 0)
+    _run_subprocess(cmd, timeout=timeout, description=_cmd_name)
+
+@register_function("toggle_keyboard")
+def handle_toggle_keyboard(timeout: int | None = None, *, _cmd_name: str = "unknown") -> None:
+    """Toggle onscreen keyboard."""
+    cmd = ["dbus-send", "--type=method_call", "--dest=org.onboard.Onboard", "/org/onboard/Onboard/Keyboard", "org.onboard.Onboard.Keyboard.ToggleVisible"]
+    _run_subprocess(cmd, timeout=timeout, description=_cmd_name)
+
+@register_function("toggle_audio")
+def handle_toggle_audio(timeout: int | None = None, *, _cmd_name: str = "toggle_audio") -> None:
+    """Toggle mute state of the default audio sink."""
+    cmd = ["pactl", "set-sink-mute", "@DEFAULT_SINK@", "toggle"]
+    _run_subprocess(cmd, timeout=timeout, description=_cmd_name)
 
 #-------------------------------------------------------------------------------
 #### Utility Functions
@@ -1175,7 +1230,7 @@ CommandsType: TypeAlias = str | list[str | list[str]]
 # CommandsType can be:
 #    - Single command string containing either shell commands (e.g., "ls -a -l")
 #      or internally defined functions (e.g., "kiosk.back")
-#    - List of one or more commands in either of the above 2 forms
+#    - List of one or more commands in either of the following 2 forms
 #        - String form  (e.g., "ls -a -l")
 #        - List of argv-style component string (e.g., ["ls", "-a", "-l"])
 # Examples include:
@@ -1794,50 +1849,61 @@ class GestureCommand:
 
             # 1. Command = Argv-sytle list
             if isinstance(cmd, list):
+
+            # 1a: Internal Command list
+                if cmd[0] in FunctionRegistry:
+                    function = FunctionRegistry[cmd[0]]
+                    arguments = cmd[1:]
+                    descr = f"Internal List function: {cmd!r}"
+                    def run_function(time_out: int | None = None, func: Callable[..., None] = function, args: list[str] = arguments, descr: str = descr) -> None:
+                        debug(2, descr)
+                        func(*args, timeout=time_out)
+                    execs_list.append(run_function)
+                    continue
+
+            # 1b: Shell Command list
                 cmd_str = " ".join(shlex.quote(str(x)) for x in cmd)
                 allowed, reason = is_command_allowed(cmd_str)
                 if not allowed:
                     raise ValueError(f"Command '{cmd!r}' blocked: {reason}")
-                descr = f"List Command: {cmd!r}"
-
-                def run(time_out: int | None = None, args: list[str] = cmd, descr: str = descr) -> None:
-                    _run_subprocess(args, timeout=time_out, description=descr)
-                execs_list.append(run)
+                descr = f"Shell List command: {cmd!r}"
+                def run_command(time_out: int | None = None, command: str | list[str] = cmd, descr: str = descr) -> None:
+                    _run_subprocess(command, timeout=time_out, description=descr)
+                execs_list.append(run_command)
                 continue
 
             if not isinstance(cmd, str): # Should not happen since we tested validity before
                 raise TypeError(f"Command must be string or list, got {type(cmd)}: {cmd!r}")
 
             # 2. Command = string
-            cmd_str = cmd.strip()
-            if not cmd_str:  # Blank command # Should not happen since we tested validity before
+            cmd = cmd.strip()
+            if not cmd:  # Blank command # Should not happen since we tested validity before
                 continue
 
-            parts = shlex.split(cmd_str)
+            parts = shlex.split(cmd)
             cmd_name = parts[0]
 
-            # 2a: Internal Command
+            # 2a: Internal Command string
             if cmd_name in FunctionRegistry:
                 function = FunctionRegistry[cmd_name]
                 arguments = parts[1:]
-                descr = f"Internal function: {cmd_str}"
-
-                def run(time_out: int | None = None,  #type: ignore[misc] #pylint: disable=function-redefined #This is a mypy and pylint bug
-                        func: Callable[..., None] = function, args: list[str] = arguments, descr: str = descr) -> None:
+                descr = f"Internal String function: {cmd}"
+                def run_function(time_out: int | None = None,  #pylint: disable=function-redefined #This is a mypy and pylint bug
+                                 func: Callable[..., None] = function, args: list[str] = arguments, descr: str = descr) -> None:
                     debug(2, descr)
                     func(*args, timeout=time_out)
-                execs_list.append(run)
+                execs_list.append(run_function)
+                continue
 
-            # 2b: Shell Command
-            (allowed, reason) = is_command_allowed(cmd_str)
+            # 2b: Shell Command string
+            (allowed, reason) = is_command_allowed(cmd)
             if not allowed:
-                raise ValueError(f"Command '{cmd_str}' : {reason}")
-            descr = f"String command: {cmd_str}"
-
-            def run(time_out: int | None = None,  #type: ignore[misc] #pylint: disable=function-redefined #This is a mypy and pylint bug
-                    cmd: str = cmd_str, descr: str = descr) -> None:
-                _run_subprocess(cmd, timeout=time_out, description=descr)  # _run_subprocess will decide whether to use shell
-            execs_list.append(run)
+                raise ValueError(f"Command '{cmd}' : {reason}")
+            descr = f"Shell String command: {cmd}"
+            def run_command(time_out: int | None = None,  #pylint: disable=function-redefined #This is a mypy and pylint bug
+                            command: str | list[str] = cmd, descr: str = descr) -> None:
+                _run_subprocess(command, timeout=time_out, description=descr)
+            execs_list.append(run_command)
 
         return {"cmds": value, "execs": execs_list, "msg": msg, "timeout": timeout}
 
@@ -2601,7 +2667,7 @@ class XInputParser:
 class CommandError(RuntimeError):
     """ Error class for subprocess.run"""
 
-def _run_subprocess(args: str | Sequence[str], *, shell: bool | None = None, timeout: int | None = CMD_TIMEOUT, description: str) -> None:
+def _run_subprocess(args: str | Sequence[str], *, shell: bool | None = None, timeout: int | None = CMD_TIMEOUT, description: str) -> subprocess.CompletedProcess[str]:
     """Output and Debugging-enabled wrapper around subprocess_run"""
 
     if isinstance(args, str): # If string, test if needs shell
@@ -2633,6 +2699,7 @@ def _run_subprocess(args: str | Sequence[str], *, shell: bool | None = None, tim
         if result.returncode != 0:
             raise CommandError(f"Command failed (exit={result.returncode}): {description}")
         debug(2, f"Execution success: {description}")
+        return result
 
     except subprocess.TimeoutExpired as e:
         raise CommandError(f"Timeout for '{prog}' after {timeout}s [{"shell" if use_shell else "exec"}]: {description}") from e
@@ -2645,6 +2712,7 @@ def _run_subprocess(args: str | Sequence[str], *, shell: bool | None = None, tim
     except Exception as e:
         raise CommandError(f"Failed to execute '{prog}' command [{"shell" if use_shell else "exec"}]: {description}") from e
 
+    return subprocess.CompletedProcess[str](args=args, returncode=1, stdout="", stderr=str(e),)
 
 def execute_commands(cmds_dict: CommandsDict) -> None:
     """ Execute one or more executable commands from the CommandsDict"""

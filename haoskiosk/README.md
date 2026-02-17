@@ -2,51 +2,90 @@
 
 Display HA dashboards in kiosk mode directly on your HAOS server.
 
-## Author: Jeff Kosowsky (version: 1.2.0, January 2026)
+## Author: Jeff Kosowsky (version: 1.3.0, February 2026)
 
 ## Description
 
 Launches X-Windows on local HAOS server followed by OpenBox window manager
-and Luakit browser.\
-Standard mouse and keyboard interactions should work automatically.
-Supports touchscreens (including onscreen keyboard) and screen rotation.
-Includes REST API that can be used to control the display state and to send
-new URLs (e.g., dashboards) to the kiosk browser.
+and Luakit browser starting with your configured default Home Assistant
+dashboard.
 
-You can press `ctl-R` at any time to refresh ( reload) the browser./
+- Standard mouse, touchscreen, and keyboard interactions should work
+  automatically as well as audio
+- Supports touchscreens gestures, screen rotation, and onscreen keyboard
+- Includes REST API that can be used to control the display state and to
+  send new URLs (e.g., dashboards) to the kiosk browser.
+
+You can press `ctl-R` at any time to refresh ( reload) the browser. \
 Alternatively, you can right click (or long press touchscreen) to access
 browser menu that includes options for page `Back`, `Forward`, `Stop`, and
 `Reload`.
 
 **NOTE:** You must enter your HA username and password in the
-*Configuration* tab for add-on to start.
+*Configuration* tab for the Add-on to start.
 
-**NOTE:** The add-on requires a valid, connected display in order to start.
-\
-If display does not show up, try rebooting and restarting the addon with
-the display attached
-
-**Note:** Luakit browser is launched in kiosk-like (*passthrough*) mode.\
-To enter *normal* mode (similar to command mode in `vi`), press
-`ctl-alt-esc`.\
-You can then return to *passthrough* mode by pressing `ctl-Z` or enter
-*insert* mode by pressing `i`.\
-See luakit documentation for available commands.\
-In general, you want to stay in `passthrough` mode.
+**NOTE:** The Add-on requires a valid, connected display in order to
+start.\
+If your display does not show up, try rebooting and restarting the Add-on
+with the display attached
 
 **NOTE:** Should support any standard mouse, touchscreen, keypad and
-touchpad so long as their /dev/input/eventN number is less than 25.
+touchpad so long as its `/dev/input/eventN` number is less than 25.
 
-**NOTE:** If not working, please first check the bug reports (open and
+**NOTE:** If you encounter issues with the Add-on, please first check the
+HAOSKiosk github
+[issues page](https://github.com/puterboy/HAOS-kiosk/issues) (open and
 closed), then try the testing branch (add the following url to the
-repository: https://github.com/puterboy/HAOS-kiosk#testing). If still no
-solution, file an issue on github
-[bug report](https://github.com/puterboy/HAOS-kiosk/issues) and include
-full details of your setup and what you did along with a complete log.
+repository: https://github.com/puterboy/HAOS-kiosk#testing). If still
+please file an
+[issue on github](https://github.com/puterboy/HAOS-kiosk/issues) and
+\*\*include full details of your setup (including computer hardware and
+display type details)and what you did along with a complete log.
+
+You can also use the `screenshot` REST API or keybinding (`Ctl+Alt+k`) or
+touch gesture (Quadruple 3 finger tap) to save a screenshot to
+`/media/screenshots`
 
 ### If you appreciate my efforts:
 
 [![Buy Me a Coffee](https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png)](https://www.buymeacoffee.com/puterboy)
+
+______________________________________________________________________
+
+## Installation
+
+1. Click the **ADD ADD-ON REPOSITORY** button below.
+
+   [![Open your Home Assistant instance and show the add Add-on repository dialog with a specific repository URL pre-filled.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fputerboy%2FHAOS-kiosk)
+
+   - Click **Add → Close** (You might need to enter the **internal IP
+     address** of your Home Assistant instance first) *or* go to the
+     **Add-on store**.
+   - Click **⋮ → Repositories**
+   - Fill in `https://github.com/puterboy/HAOS-kiosk`
+   - Click **Add → Close**
+
+2. Click on the Add-on, press **Install** and wait until the Add-on is
+   installed.
+
+3. You must enter your HA username and password in the **Configuration**
+   tab.
+
+4. Press **Start** to run the Add-on.
+
+**If you are having trouble installing the add-on or getting displays and
+touchscreens working, please see the github issues page
+(https://github.com/puterboy/HAOS-kiosk/issues)as many common issues have
+already been addressed and resolved**
+
+### Notes
+
+- If screen is not working on an RPi3, try adding the following lines to
+  the `[pi3]` section of your `config.txt` on the boot partition:
+  ```
+  dtoverlay=vc4-fkms-v3d
+  max_framebuffers=2
+  ```
 
 ______________________________________________________________________
 
@@ -105,9 +144,14 @@ output device connected. If so, use the logs to see how they are numbered.
 ### Dark Mode
 
 Prefer dark mode where supported if `True`, otherwise prefer light mode.
-(Default: True)
+(Default: True). This preference applies to all URLs
 
-NOTE: This applies to *all* url's.
+NOTE: This preference applies to all URLs unless overridden in the URL. In
+particular, in Home Assistant web pages, This preference for light or dark
+mode only takes effect if the user profile (under 'Theme') is set to
+`auto`. Otherwise, the user profile `light` or `dark` setting takes
+precedence. Similarly, the `Primary` and `Accent` colors set in the profile
+take precedence *unless* `HA Theme` is set.
 
 ### HA Theme
 
@@ -206,16 +250,9 @@ Note for security REST server only listens on localhost (127.0.0.1)
 
 ### REST Bearer Token
 
-Optional authorization token for REST API. (Default: "") If set, then add
-line `-H "Authorization: Bearer <REST_BEARER_TOKEN>"` to REST API calls.
-
-### Debug
-
-For debugging purposes, launches `Xorg` and `openbox` and then sleeps
-without launching `luakit`.\
-Manually, launch `luakit` (e.g.,
-`luakit -U localhost:8123/<your-dashboard>`) from Docker container.\
-E.g., `sudo docker exec -it addon_haoskiosk bash`
+Optional authorization token for REST API. (Default: "") If set, then you
+must add line `-H "Authorization: Bearer <REST_BEARER_TOKEN>"` to REST API
+calls.
 
 ### Gestures
 
@@ -226,18 +263,51 @@ examples, and default gestures.
 
 ### Command Whitelist Regex
 
-Regex (Python) of shell command that can be used in creating gesture
+Regex (Python) of shell command that can be used in creating gesture action
 commands or when running the `run_command` and `run_commands` REST APIs.
 
 If left blank, then all commands are allowed except for those blacklisted
 as dangerous (otherwise, whitelist overrides internal blacklist).
+
+The pre-defined command blacklist includes commands like:
+
+```
+   python
+   ash, bash, sh, su
+   env, exec
+   kill, killall, pkill
+   cp, chmod, chown, dd, ln, mv, rm, tar
+   mount, umount
+   curl, nc, wget
+   find, xargs"
+```
 
 Note that if you want to truly allow *all* commands, then use the wildcard
 `.*` but beware that it is DANGEROUS. If you want to disallow all commands
 set the regex to `^$`.
 
 Note that regardless of setting only commands found in `/bin`, `/usr/bin`,
-and `/usr/local/bin` of the HAOSKiosk add-on container are allowed.
+and `/usr/local/bin` of the HAOSKiosk Add-on container are allowed.
+
+### VNC SERVER
+
+Launch VNC Server on port 5900 if password non-blank. If password set to
+'-', then don't require any password. This can be used to view or debug the
+kiosk remotely.
+
+To view launch a vnc server (e.g., RealVNC) and point it to port 5900 on
+your homeassistant instance (e.g., `homeassistant:5900`)
+
+*Use with caution* as it runs unencrypted and is accessible anywhere on
+your network.
+
+### Debug
+
+For debugging purposes, launches `Xorg` and `openbox` and then sleeps
+without launching `luakit`.\
+Manually, launch `luakit` (e.g.,
+`luakit -U localhost:8123/<your-dashboard>`) from Docker container.\
+E.g., `sudo docker exec -it addon_haoskiosk bash`
 
 ______________________________________________________________________
 
@@ -246,10 +316,14 @@ ______________________________________________________________________
 ### launch_url {"url": "\<url>"}
 
 Launch the specified 'url' in the kiosk display. Overwrites current active
-tab.
+tab. If no url supplied, use HA_URL/HA_DASHBOARD as default url.
 
 Usage:
-`curl -X POST http://localhost:<REST_PORT>/launch_url -H "Content-Type: application/json" -d '{"url": "<URL>"}'`
+
+```
+curl -X POST http://localhost:<REST_PORT>/launch_url
+curl -X POST http://localhost:<REST_PORT>/launch_url -H "Content-Type: application/json" -d '{"url": "<URL>"}'
+```
 
 ### refresh_browser
 
@@ -277,7 +351,7 @@ Usage:
 
 ```
 curl -X POST http://localhost:<REST_PORT>/display_on
-curl -X POST http://localhost:8080/display_on -H "Content-Type: application/json" -d '{"timeout": <timeout>}
+curl -X POST http://localhost:8080/display_on -H "Content-Type: application/json" -d '{"timeout": <timeout>}'
 ```
 
 ### display_off
@@ -291,24 +365,20 @@ Usage:
 ### xset
 
 Run `xset <args>` to get/set display information. In particular, use `-q`
-to get display information.
+to get display information. Can only be run from localhost unless
+REST_BEARER_TOKEN set and used.
 
 Usage:
 
 `curl -X POST http://localhost:<REST_PORT>/xset -H "Content-Type: application/json" -d '{"args": "<arg-string>"}'`
-
-### current_processes
-
-Return number of currently running concurrent processes out of max allowed
-
-Usage: `curl -X GET http://localhost:8080/current_processes`
 
 ### run_command {"cmd": "\<command>"}
 
 Run `command` in the HAOSKiosk Docker container where `cmd_timeout` is an
 optional timeout in seconds.
 
-Only allowed if `Allow User Commands` option is set to true.
+Commands are subject to blacklist/whitelist rules detailed above. Can only
+be run from localhost unless REST_BEARER_TOKEN set and used.
 
 Usage:
 
@@ -319,7 +389,8 @@ Usage:
 Run multiple commands in the HAOSKiosk Docker container where `cmd_timeout`
 is an optional timeout in seconds.
 
-Only allowed if `Allow User Commands` option is set to true.
+Commands are subject to blacklist/whitelist rules detailed above. Can only
+be run from localhost unless REST_BEARER_TOKEN set and used.
 
 Usage:
 
@@ -348,7 +419,75 @@ You can format the stdout (and similarly stderr) by piping the output to:
 In the case of `run_commands`, pipe the output to:
 `jq -r '.results[]?.stdout'`
 
-______________________________________________________________________
+### screenshot
+
+Take screen screenshot with optional filename, quality, and delay before
+screenshot. Quality only affects jpeg images
+
+Output format is jpeg unless optional filename ends in .bmp, .png, .pnm, or
+.tiff
+
+Screenshots are saved to `/media/screenshots`.
+
+Usage:
+
+```
+curl -X POST http://localhost:8080/screenshot
+curl -X POST http://localhost:8080/screenshot -H "Content-Type: application/json"
+     -d '{"filename": "<filename>", "quality": <1-100>, "delay: <seconds>}'
+```
+
+### current_processes
+
+Return number of currently running concurrent processes out of max allowed.
+
+Usage: `curl -X GET http://localhost:8080/current_processes`
+
+### disable_inputs
+
+Disable keyboard and pointer (e.g., mouse, touch) inputs. Can only be run
+from localhost unless REST_BEARER_TOKEN set and used.
+
+Usage:
+
+`curl -X POST http://localhost:<REST_PORT>/disable_inputs`
+
+### enable_inputs
+
+(Re)enable keyboard and pointer (e.g., mouse, touch) inputs. Can only be
+run from localhost unless REST_BEARER_TOKEN set and used.
+
+Usage:
+
+`curl -X POST http://localhost:<REST_PORT>/enable_inputs`
+
+### mute_audio
+
+Mute audio output for default audio sink. Returns final mute state.
+
+Usage:
+
+`curl -X POST http://localhost:<REST_PORT>/mute_audio`
+
+### unmute_audio {"volume": "\<volume>"}
+
+Unmute audio output for default audio sink. Optionally, set volume (integer
+between 0 and 150). Returns final volume and mute state
+
+Usage:
+
+```
+curl -X POST http://localhost:<REST_PORT>/unmute_audio
+curl -X POST http://localhost:8080/unmute_audio -H "Content-Type: application/json" -d '{"volume": <volume>}'
+```
+
+### toggle_audio
+
+Toggle mute for default audio sink. Returns final mute state.
+
+Usage:
+
+`curl -X POST http://localhost:<REST_PORT>/toggle_audio`
 
 #### HA REST Command Syntax
 
@@ -378,18 +517,19 @@ rest_command:
     url: "http://localhost:8080/display_on"
     method: POST
     content_type: "application/json"
-    payload: '{% if timeout is defined and timeout is number and timeout >= 0 %}{"timeout": {{ timeout | int }}}{% else %}{}{% endif %}'
+    payload: >-
+      {{
+        {
+          'timeout': timeout | int if timeout is defined and timeout is number and timeout >= 0 else none
+        }
+        | to_json
+      }}
 
   haoskiosk_display_off:
     url: "http://localhost:8080/display_off"
     method: POST
     content_type: "application/json"
     payload: "{}"
-
-  haoskiosk_current_processes:
-    url: "http://localhost:8080/current_processes"
-    method: GET
-    content_type: "application/json"
 
   haoskiosk_xset:
     url: "http://localhost:8080/xset"
@@ -401,13 +541,81 @@ rest_command:
     url: "http://localhost:8080/run_command"
     method: POST
     content_type: "application/json"
-    payload: '{% if cmd_timeout is defined and cmd_timeout is number and cmd_timeout > 0 %}{"cmd": "{{ cmd }}", "cmd_timeout": {{ cmd_timeout | int }}}{% else %}{"cmd": "{{ cmd }}"}{% endif %}'
+    payload: >-
+      {{
+        {
+          'cmd': cmd,
+          'cmd_timeout': cmd_timeout | int if cmd_timeout is defined and cmd_timeout is number  and cmd_timeout > 0 else none
+        }
+        | to_json
+      }}
+
 
   haoskiosk_run_commands:
     url: "http://localhost:8080/run_commands"
     method: POST
     content_type: "application/json"
-    payload: '{% if cmd_timeout is defined and cmd_timeout is number and cmd_timeout > 0 %}{"cmds": {{ cmds | tojson }}, "cmd_timeout": {{ cmd_timeout | int }}}{% else %}{"cmds": {{ cmds | tojson }}}{% endif %}'
+    payload: >-
+      {{
+        {
+          'cmds': cmds,
+          'cmd_timeout': cmd_timeout | int if cmd_timeout is defined and cmd_timeout is number and cmd_timeout > 0 else none
+        }
+        | to_json
+      }}
+
+  haoskiosk_screenshot:
+    url: "http://localhost:8080/screenshot"
+    method: POST
+    content_type: "application/json"
+    payload: >-
+      {{
+        {
+          'delay': delay | int if delay is defined and delay | int(0) >= 0 else none,
+          'filename': filename if filename is defined and filename != "" and "/" not in filename and "\0" not in filename else none,
+          'quality': quality | int if quality is defined and 1 <= quality | int <= 100 else none
+        }
+        | to_json
+      }}
+
+  haoskiosk_current_processes:
+    url: "http://localhost:8080/current_processes"
+    method: GET
+    content_type: "application/json"
+
+  haoskiosk_disable_inputs:
+    url: "http://localhost:8080/disable_inputs"
+    method: POST
+    content_type: "application/json"
+    payload: "{}"
+
+  haoskiosk_enable_inputs:
+    url: "http://localhost:8080/enable_inputs"
+    method: POST
+    content_type: "application/json"
+    payload: "{}"
+
+  haoskiosk_mute_audio:
+    url: "http://localhost:8080/mute_audio"
+    method: POST
+    content_type: "application/json"
+
+  haoskiosk_unmute_audio:
+    url: "http://localhost:8080/unmute_audio"
+    method: POST
+    content_type: "application/json"
+    payload: >-
+      {{
+        {
+          'volume': volume | int if volume is defined and volume is number and 0 <= volume | int <= 150 else none
+        }
+        | to_json
+      }}
+
+  haoskiosk_toggle_audio:
+    url: "http://localhost:8080/toggle_audio"
+    method: POST
+    content_type: "application/json"
 ```
 
 Note if optional \`REST_BEARER_TOKEN~ is set, then add the following two
@@ -426,6 +634,7 @@ The rest commands can then be referenced from automation actions as:
 ```
 actions:
   - action: rest_command.haoskiosk_launch_url
+  - action: rest_command.haoskiosk_launch_url
     data:
       url: "https://homeassistant.local/my_dashboard"
 
@@ -440,8 +649,6 @@ actions:
 
   - action: rest_command.haoskiosk_display_off
 
-  - action: rest_command.haoskiosk_current_processes
-
   - action: rest_command.haoskiosk_xset
     data:
       args: "<arg-string>"
@@ -454,11 +661,25 @@ actions:
   - action: rest_command.haoskiosk_run_commands
     data:
       cmds:
-
-- "<command1>"
+        - "<command1>"
         - "<command2>"
         ...
       cmd_timeout: <seconds>
+
+  - action: rest_command.haoskiosk_current_processes
+
+  - action: rest_command.haoskiosk_disable_inputs
+
+  - action: rest_command.haoskiosk_enable_inputs
+
+  - action: rest_command.haoskiosk_mute_audio
+
+  - action: rest_command.haoskiosk_unmute_audio
+  - action: rest_command.haoskiosk_unmute_audio
+    data:
+      volume: 100
+
+  - action: rest_command.haoskiosk_toggle_audio
 ```
 
 ### REST API Use Cases
@@ -485,7 +706,7 @@ actions:
 
 ______________________________________________________________________
 
-### GESTURE COMMANDS
+## Gesture Commands
 
 Each Gesture Command is a JSON-like key-value pair where the key is a valid
 *Gesture String* corresponding to a specific sequence of button clicks or
@@ -495,7 +716,7 @@ set of one or more commands to execute when the gesture is recognized.
 The formats of the Gesture Strings and Action Commands are precisely
 defined, so if they fail to load check your log for error messages.
 
-#### Gesture String Keys
+### Gesture String Keys
 
 Each Gesture String key is of form:
 
@@ -531,7 +752,7 @@ of the gesture
   `Long Tap`). Note the names may be device-specific (e.g., Click for
   Mouse, Tap for Touch)
 
-##### Additional notes regarding gesture naming:
+#### Additional notes regarding gesture naming:
 
 - `ANY` is a wildcard matching any gesture
 - Corners are named: CORNER_TOPLEFT, CORNER_TOPRIGHT, CORNER_BOTLEFT,
@@ -576,9 +797,9 @@ always enter keys from particular to more general when using wildcards
 1-Touch_2-Long    (Long gestures must be single contact)
 ```
 
-#### Action Command Values
+### Action Commands
 
-Action command values may be expressed in one of three forms:
+Action commands may be expressed in one of three forms:
 
 1. **Single command string** e.g., `"ls -a -l"` Note that an empty string
    acts as a No-Op -- i.e., it will be ignored and can be used with
@@ -587,14 +808,13 @@ Action command values may be expressed in one of three forms:
 2. **List of commands** - Each command may be either:
 
    - A string: `"echo hello"`
-     - An argv-style list: `["ls", "-a", "-l"]`
+   - An argv-style list: `["ls", "-a", "-l"]`
 
 Example `["echo hello", ["ls", "-a", "-l"]]`
 
 Note that the commands themselves can either be shell commands or
-kiosk-specific internal commands that begin with the prefix 'kiosk.'
-
-Examples include:
+kiosk-specific internal commands (see below) that begin with the prefix
+'kiosk.'
 
 3. **Command dictionary** with required key `"cmds":` and optional keys:
    `"msg":` and `"timeout"`
@@ -606,7 +826,19 @@ Examples:
 {"cmds": ["echo hello", ["ls", "-al"]], "msg": "echo hello and list all files", "timeout": 5}
 ```
 
-#### Defaults & Examples
+#### Kiosk-specific internal commands
+
+- **kiosk.back**: Go back in browser history
+- **kiosk.forward**: Go forward in browser history
+- **kiosk.refresh_browser**: Reload current page
+- **kiosk.launch_url <url>**: Launch <url> in existing tab/window.\
+  If no <url> given, use HA_URL/HA_DASHBOARD as default
+- **kiosk.display_on <timeout>**: Turn on display with optional timeout
+- **kiosk.display_off**: Turn off display immediately
+- **kiosk.toggle_keyboard**: Toggle onscreen keyboard
+- **kiosk.toggle_audio**: Toggle mute state of default audio sink
+
+### Defaults Gesture Command Bindings
 
 The following gestures are included by default (but can be removed by
 clicking on the `X` next to them):
@@ -614,59 +846,140 @@ clicking on the `X` next to them):
 - **Single Tap or Click in Top Right Corner**: *Toggle on-screen keyboard*
 
 ```
-"1_ANY_1_CORNER_TOPRIGHT": {"cmds": [["dbus-send", "--type=method_call", "--dest=org.onboard.Onboard", "/org/onboard/Onboard/Keyboard", "org.onboard.Onboard.Keyboard.ToggleVisible"]], "msg": "Toggling Onboard keyboard..."}
+"1_ANY_1_CORNER_TOPRIGHT": {"cmds": "kiosk.toggle_keyboard", "msg": "Toggling Onboard keyboard..."}
 ```
 
 - **Left Triple Mouse Click**: *Toggle on-screen keyboard*
 
 ```
-"[Left]_MOUSE_3_CLICK": {"cmds": [["dbus-send", "--type=method_call", "--dest=org.onboard.Onboard", "/org/onboard/Onboard/Keyboard", "org.onboard.Onboard.Keyboard.ToggleVisible"]], "msg": "Toggling Onboard keyboard..."}
+"[Left]_MOUSE_3_CLICK": {"cmds": "kiosk.toggle_keyboard", "msg": "Toggling Onboard keyboard..."}
 ```
 
 - **3-Finger Single Tap**: *Toggle on-screen keyboard*
 
 ```
-"3_TOUCH_1_TAP": {"cmds": [["dbus-send", "--type=method_call", "--dest=org.onboard.Onboard", "/org/onboard/Onboard/Keyboard", "org.onboard.Onboard.Keyboard.ToggleVisible"]], "msg": "Toggling Onboard keyboard..."}
+"3_TOUCH_1_TAP": {"cmds": "kiosk.toggle_keyboard", "msg": "Toggling Onboard keyboard..."}
 ```
 
 - **3-Finger Double Tap**: *Refresh Browser*
 
 ```
-"3_TOUCH_2_TAP": {"cmds": [["xdotool", "key", "--clearmodifiers ctrl+r"]], "msg": "Refresh Browser"}
+"3_TOUCH_2_TAP": {"cmds": "kiosk.refresh_browser", "msg": "Refresh Browser"}
 ```
 
-- **3-Finger Triple Tap**: *Restore Default HA dashboard
-  (HA_URL/HA_Dashboard)*
+- **3-Finger Triple Tap**: *Toggle audio mute*
 
 ```
-"3_TOUCH_3_TAP": {"cmds": "luakit \"$HA_URL/$HA_DASHBOARD\"", "msg": "Restore default dashboard"}
+"3_TOUCH_3_TAP": {"cmds": "kiosk.toggle_audio", "msg": "Toggle audio mute"}'
+```
+
+- **3-Finger Quadruple Tap**: *Save screenshot*
+
+```
+"3_TOUCH_4_TAP": {"cmds": "kiosk.screenshot", "msg": "Save screenshot"}'
 ```
 
 - **3-Finger Left Swipe**: *Go forward one element in browser history*
 
 ```
-"3_TOUCH_1_SWIPE_LEFT": {"cmds": [["xdotool", "key", "--clearmodifiers", "ctrl+Right"]], "msg": "Go forward in the history browser"}
+"3_TOUCH_1_SWIPE_LEFT": {"cmds": "kiosk.forward", "msg": "Go forward in the history browser"}
 ```
 
 - **3-Finger Right Swipe**: *Go back one element in browser history*
 
 ```
+"3_TOUCH_1_SWIPE_RIGHT": {"cmds": "kiosk.back", "msg": "Go back in the history browser"}
+```
+
+- **2-Finger Triple Tap**: *Restore Default HA dashboard
+  (HA_URL/HA_Dashboard)*
+
+```
+"2_TOUCH_3_TAP": {"cmds": "kiosk.launch_url", "msg": "Restore default dashboard: HA_URL/HA_DASHBOARD"}
+```
+
+- **2-Finger Quadruple Tap**: *Open Google search*
+
+```
+"2_TOUCH_4_TAP": {"cmds": [["kiosk.lauch_url", "www.google.com"]], "msg": "Open Google search"}'
+```
+
+Note if you didn't have the built-in functions, you could have manually
+implemented the above as:
+
+```
+"1_ANY_1_CORNER_TOPRIGHT": {"cmds": [["dbus-send", "--type=method_call", "--dest=org.onboard.Onboard", "/org/onboard/Onboard/Keyboard", "org.onboard.Onboard.Keyboard.ToggleVisible"]], "msg": "Toggling Onboard keyboard..."}
+
+"[Left]_MOUSE_3_CLICK": {"cmds": [["dbus-send", "--type=method_call", "--dest=org.onboard.Onboard", "/org/onboard/Onboard/Keyboard", "org.onboard.Onboard.Keyboard.ToggleVisible"]], "msg": "Toggling Onboard keyboard..."}
+
+"3_TOUCH_1_TAP": {"cmds": [["dbus-send", "--type=method_call", "--dest=org.onboard.Onboard", "/org/onboard/Onboard/Keyboard", "org.onboard.Onboard.Keyboard.ToggleVisible"]], "msg": "Toggling Onboard keyboard..."}
+
+"3_TOUCH_2_TAP": {"cmds": [["xdotool", "key", "--clearmodifiers ctrl+r"]], "msg": "Refresh Browser"}
+
+"3_TOUCH_3_TAP": {"cmds": [["pactl", "set-sink-mute", "@DEFAULT_SINK@", "toggle"]], "msg": "Toggle audio mute"}'
+
+"3_TOUCH_1_SWIPE_LEFT": {"cmds": [["xdotool", "key", "--clearmodifiers", "ctrl+Right"]], "msg": "Go forward in the history browser"}
+
 "3_TOUCH_1_SWIPE_RIGHT": {"cmds": [["xdotool", "key", "--clearmodifiers", "ctrl+Left"]], "msg": "Go back in the history browser"}
+
+"2_TOUCH_3_TAP": {"cmds": "luakit \"$HA_URL/$HA_DASHBOARD\"", "msg": "Restore default dashboard"}
+
+"2_TOUCH_4_TAP": {"cmds": "luakit \"www.google.com\"", "msg": "Open Google search"}'
 ```
 
-- **2-Finger Triple Tap**: *Open Google search*
+______________________________________________________________________
 
-```
-"2_TOUCH_3_TAP": {"cmds": "luakit \"www.google.com\"", "msg": "Open Google search"}'
-```
+## KEYBOARD SHORTCUTS
+
+The following new fixed keyboard shortcuts are defined (but subject to
+change).
+
+- **Ctrl+o:** *Toggle Onboard onscreen keyboard*
+
+- **Ctrl+r:** *Reload page*
+
+- **Ctrl+Left:** *Go back in the browser tab history*
+
+- **Ctrl+Right:** *Go forward in the browser tab history*
+
+- **Ctrl+Alt+t:** *Open new tab*
+
+- **Ctrl+Alt+Shift+t:** *Close current tab*
+
+- **Ctrl+Alt+w:** *Open new window*
+
+- **Ctrl+Alt+Shift+w:** *Close current window* (except for last window)
+
+- **Ctl+Alt+Left:** *Previous tab*
+
+- **Ctl+Alt+Right:** *Next tab*
+
+- **Ctl+Alt+Shift+Left:** *Previous window* (Also: **Alt+Shift+Tab**)
+
+- **Ctl+Alt+Shift+Right:** *Next window* (Also: **Alt+Tab**)
+
+- **Ctrl+Alt+k:** *Take screenshot and save to /media/screenshots*
+
+Note that the Onbox Window manager defines many other default bindings.
 
 ______________________________________________________________________
 
 ## MISCELLANEOUS NOTES
 
-- If screen is not working on an RPi3, try adding the following lines to
-  the `[pi3]` section of your `config.txt` on the boot partition:
-  ```
-  dtoverlay=vc4-fkms-v3d
-  max_framebuffers=2
-  ```
+#### Luakit browser
+
+The Luakit browser is launched in kiosk-like (*passthrough*) mode. In
+general, you want to stay in `passthrough` mode to preserve the kiosk-like
+experience and pass all keystrokes to the browser page (except for explicit
+bindings as defined above)
+
+Luakit modes and commands are similar to vi
+
+- To enter *normal* mode (similar to command mode in `vi`), press
+  `ctl-alt-esc`.
+
+- To return to *passthrough* mode, press `ctl-Z` or alternatively, press
+  `i` to enter *insert*
+
+See [luakit documentation](https://wiki.archlinux.org/title/Luakit) for
+further usage information and available commands.

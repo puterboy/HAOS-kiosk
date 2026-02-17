@@ -114,11 +114,6 @@ configuration:
       Optional authorization token for REST API. [Default: ""]
       If set add the line `-H "Authorization: Bearer <REST_BEARER_TOKEN>"`
       to your REST API calls.
-  debug_mode:
-    name: "Debug Mode"
-    description: |
-      Launch X and Openbox but not Luakit browser. [Default: False]
-      Manually access using: sudo docker -exec -it addon_haoskiosk bash
   gestures:
     name: Gesture Command List
     description: |
@@ -129,3 +124,13 @@ configuration:
     description: |
       Regex of runnable user commands for the REST API and for use in
       gesture commands. See README for details
+  vnc_server:
+    name: "VNC Server Password"
+    description: |
+      Launch VNC Server on port 5900 if password non-blank. If password
+      set to '-', then don't require any password. *Use with caution*
+  debug_mode:
+    name: "Debug Mode"
+    description: |
+      Launch X and Openbox but not Luakit browser. [Default: False]
+      Manually access using: sudo docker -exec -it addon_haoskiosk bash

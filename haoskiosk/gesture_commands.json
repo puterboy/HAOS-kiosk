@@ -1,9 +1,9 @@
 # ==============================================================================
 # HAOS Kiosk Display — Mouse & Touch Input Engine
 # File: gesture_commands.json
-# Version: 1.2.0
+# Version: 1.3.0
 # Copyright Jeff Kosowsky
-# Date: January 2026
+# Date: February 2026
 # ------------------------------------------------------------------------------
 # USER CUSTOMIZABLE  GESTURES — loaded BEFORE built-in
 # defaults in CMD_DICTand thus have higher precedence since

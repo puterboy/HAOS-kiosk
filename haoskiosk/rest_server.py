@@ -1,9 +1,9 @@
 """-------------------------------------------------------------------------------
 # Add-on: HAOS Kiosk Display (haoskiosk)
 # File: services.py
-# Version: 1.2.0
+# Version: 1.3.0
 # Copyright Jeff Kosowsky
-# Date: January 2026
+# Date: February 2026
 
  Launch REST API server with following commands:
    POST /launch_url        {"url": "<url>"}
@@ -11,14 +11,22 @@
    GET  /is_display_on
    POST /display_on        (optional) {"timeout": <non-negative integer>}
    POST /display_off
-   GET  /current_processes
    POST /xset              {"args": "..."}
+   POST /screenshot        (optional) {"filename: <file name>,
+                                       "quality": <integer between 1 and 100>,
+                                       "delay": <non-negative integer>}
+   GET  /current_processes
    POST /run_command       {"cmd": "<command>", "cmd_timeout": <seconds>}
    POST /run_commands      {"cmds": ["cmd1", "cmd2", ...], "cmd_timeout": <seconds>}
+   POST /disable_inputs
+   POST /enable_inputs
+   POST /mute_audio
+   POST /unmute_audio      (optional) {"timeout": <integer between 0 and 150>}
+   POST /toggle_audio
 
  For security:
    - Defaults to listening only on 127.0.0.1 (localhost)
-   - Requires REST_BEARER_TOKEN if caller is not localhost
+   - Requires REST_BEARER_TOKEN for protected commands if caller is not localhost
    - Commands must:
        - Satisfy whitelist regex
        - Not be on blacklist
@@ -47,19 +55,23 @@ from __future__ import annotations
 import asyncio
 import inspect
 import ipaddress
+import json
 import logging
 import os
 import re
 import shlex
 import shutil
+import signal
+import subprocess
 import sys
 from contextlib import suppress
+from datetime import datetime
 from functools import wraps
 from typing import Any, Awaitable, cast, Callable, Final, Literal, TypedDict, TypeVar
 from aiohttp import web  #type: ignore[import-not-found] #pylint: disable=import-error
 
 #-------------------------------------------------------------------------------
-__version__ = "1.2.0"
+__version__ = "1.3.0"
 __author__ = "Jeff Kosowsky"
 __copyright__ = "Copyright 2025 Jeff Kosowsky"
 
@@ -79,6 +91,8 @@ ALLOW_ALL_USER_COMMANDS: bool = os.getenv("ALLOW_ALL_USER_COMMANDS", "false").lo
 ### Other Globals
 MAX_CONCURRENT_COMMANDS: int = 5
 SHORT_TIMEOUT: int = 5  # Timeout used for simple commands
+
+DEFAULT_LAUNCH_URL = f"{(os.getenv('HA_URL') or 'about:blank').rstrip('/')}/{os.getenv('HA_DASHBOARD') or ''}".strip('/')
 
 
 # --------------------------------------------------------------------------- #
@@ -148,7 +162,7 @@ VALID_URL_REGEX: Final[re.Pattern[str]] = re.compile(
 
 def is_valid_url(url: str) -> bool:
     """Validate URL format (allows http://, https://, bare domain/IP, path, query, fragment)."""
-    return bool(VALID_URL_REGEX.fullmatch(url.strip()))
+    return bool(url == 'about:blank' or VALID_URL_REGEX.fullmatch(url.strip()))
 
 # --------------------------------------------------------------------------- #
 # Setup
@@ -159,7 +173,7 @@ logging.basicConfig(
     stream  = sys.stdout,
     level   =  logging.INFO,
 #    level   = logging.DEBUG,
-    format  = "[%(asctime)s] %(levelname)s: [%(filename)s:%(lineno)d] %(message)s",
+    format  = "[%(asctime)s] %(levelname)s: [%(filename)s:%(funcName)s] %(message)s",
     datefmt = "%H:%M:%S",
 )
 logger = logging.getLogger(__name__)
@@ -384,7 +398,8 @@ def register_function(
             if missing: # Missing parameters
                 raise ValueError(f"{fullname}: Missing required parameters: {missing}")
 
-            extra = [k for k in data if k not in allowed_params and k != "timeout"]
+            extra = [k for k in data if not k.startswith('_') and k not in allowed_params and k != "timeout"]
+            # Note always allow parameters beginning with '_' (internal) and 'timeout'
             if extra: # Extra parameters
                 raise ValueError(f"{fullname}: Unknown parameters: {extra}")
 
@@ -430,6 +445,8 @@ def register_function(
 # --------------------------------------------------------------------------- #
 
 PROTECTED_COMMANDS = {  # These commands can only be run on localhost unless REST_BEARER_TOKEN set and used
+    "disable_inputs",
+    "enable_inputs",
     "run_command",
     "run_commands",
     "xset",  # if you want
@@ -440,13 +457,15 @@ HTTP_GET_COMMANDS = {  # Commands using GET (rather than POST) method
     "current_processes"
 }
 
-@register_function("launch_url", required=["url"], validators={"url": is_valid_url})
+### URL & Refresh
+@register_function("launch_url", optional=["url"], validators={"url": is_valid_url})
 async def handle_launch_url(data: Payload) -> dict[str, Any]:
     """Launch browser with given URL."""
-    url = str(data["url"])
-    if not url.startswith(("http://", "https://")):
+    url = str(data["url"]) if data.get("url") else DEFAULT_LAUNCH_URL
+    if url != "about:blank" and not url.startswith(("http://", "https://")):
         url = "http://" + url
-    result = await execute_command(f"luakit -n '{url}' &", log_prefix="launch_url", allow_command=True)
+    asyncio.create_task(execute_command(["luakit", "-n", url], log_prefix="launch_url", allow_command=True))  # Run in the background
+    result = {"success": True, "stdout": "", "stderr": "", "returncode": 0}
     return {"success": result["success"], "result": result}
 
 @register_function("refresh_browser")
@@ -456,6 +475,7 @@ async def handle_refresh_browser(data: Payload) -> dict[str, Any]:  # pylint: di
                                     timeout=SHORT_TIMEOUT, log_prefix="refresh_browser", allow_command=True)
     return {"success": result["success"]}
 
+### Display
 @register_function("is_display_on")  # GET endpoint – we register manually below
 async def handle_is_display_on(data: Payload) -> dict[str, Any]:  # pylint: disable=unused-argument
     """Return boolean whether monitor is currently on."""
@@ -496,6 +516,57 @@ async def handle_display_off(data: Payload) -> dict[str, Any]:  # pylint: disabl
                                    timeout=SHORT_TIMEOUT, log_prefix="display_off", allow_command=True)
     return {"success": result["success"]}
 
+@register_function("xset", required=["args"], validators={"args": lambda x: isinstance(x, str) and bool(x.strip())})
+async def handle_xset(data: Payload) -> dict[str, Any]:
+    """Run arbitrary xset command (sanitized)."""
+    args = data["args"]
+    # Block dangerous shell metacharacters — even with allow_all_user_commands=False
+    dangerous_tokens = [tok for tok in DANGEROUS_SHELL_TOKENS if tok in args]
+    if dangerous_tokens:
+        return {"success": False, "error": "Forbidden shell metacharacters in xset args: {dangerous_tokens}"}
+    args_list = shlex.split(args)  # Convert to list for safer execution
+    result = await execute_command(["xset"] + args_list, timeout=SHORT_TIMEOUT, log_prefix="xset", allow_command=True)
+    return {"success": result["success"], "result": result}
+
+SCREENSHOT_DIR: str = "/media/screenshots"  # Directory to store screenshots
+@register_function("screenshot", optional=["filename", "quality", "delay"],
+                   validators={
+                       "filename": lambda x: x is None or (x != "" and "\0" not in x and "/" not in x),
+                       "quality": lambda x: x is None or (isinstance(x, int) and 1 <= x <= 100),
+                       "delay": lambda x: x is None or (isinstance(x, int) and x >= 0),
+                   })
+async def handle_screenshot(data: Payload) -> dict[str, Any]:
+    """
+    Take screen screenshot with optional filename, quality, and delay before screenshot
+    Output format is jpeg unless optional filename ends in .bmp, .png, .pnm, or .tiff
+    Quality only affects jpeg images
+    """
+    filename = data.get("filename")
+    delay = data.get("delay")
+    quality = data.get("quality")
+
+    if filename is None:
+        filename = f'haoskiosk-{datetime.now().strftime("%Y%m%d_%H%M%S")}'
+    if not filename.lower().endswith((".jpg", ".jpeg", ".bmp", ".png", ".pnm", ".tiff")):
+        filename += ".jpg"
+
+    os.makedirs(SCREENSHOT_DIR, exist_ok=True)
+    full_filename = os.path.join(SCREENSHOT_DIR, filename)
+
+    if quality is None:
+        quality = 90
+
+    cmd = [ "scrot", full_filename, "-q", str(quality) ]
+    if delay is None:
+        delay = 0
+    else:
+        cmd += [ "-d", str(delay), "-c" ]
+
+    logging.info("[screenshot] Saving screenshot to %s (quality=%d)%s", full_filename, quality, f" in {delay} seconds..." if delay else "")
+    result = await execute_command(cmd, timeout=delay + 10, log_prefix="screenshot", allow_command=True)
+    return {"success": result["success"], "result": result}
+
+### Commands and processes
 @register_function("current_processes")  # GET endpoint
 async def handle_current_processes(data: Payload) -> dict[str, Any]:  # pylint: disable=unused-argument
     """Report number of currently running subprocesses."""
@@ -508,18 +579,6 @@ async def handle_current_processes(data: Payload) -> dict[str, Any]:  # pylint: 
         "current_processes": count,
         "max_allowed": MAX_CONCURRENT_COMMANDS,
     }
-
-@register_function("xset", required=["args"], validators={"args": lambda x: isinstance(x, str) and bool(x.strip())})
-async def handle_xset(data: Payload) -> dict[str, Any]:
-    """Run arbitrary xset command (sanitized)."""
-    args = data["args"]
-    # Block dangerous shell metacharacters — even with allow_all_user_commands=False
-    dangerous_tokens = [tok for tok in DANGEROUS_SHELL_TOKENS if tok in args]
-    if dangerous_tokens:
-        return {"success": False, "error": "Forbidden shell metacharacters in xset args: {dangerous_tokens}"}
-    args_list = shlex.split(args)  # Convert to list for safer execution
-    result = await execute_command(["xset"] + args_list, timeout=SHORT_TIMEOUT, log_prefix="xset", allow_command=True)
-    return {"success": result["success"], "result": result}
 
 @register_function("run_command", required=["cmd"], optional=["cmd_timeout"],
               validators={"cmd_timeout": lambda x: x is None or (isinstance(x, int) and x > 0)})
@@ -549,6 +608,225 @@ async def handle_run_commands(data: Payload) -> dict[str, Any]:
 
     return {"success": all(r["success"] for r in results), "results": results}
 
+### Turn on/off inputs
+# List of inputs to skip when enabling/disabling inputs
+INPUT_IGNORE_LIST = [ "XTEST", "Power Button", "Video Bus", "Sleep Button", "Consumer Control", "System Control" ]
+
+def get_input_devices() -> dict[str, str]:
+    """Returns a dict of {device_name: /dev/input/eventN}, excluding devices in IGNORE_LIST."""
+    devices = {}
+    result = subprocess.run(["libinput", "list-devices"], capture_output=True, text=True, check=True)
+
+    dev_name = None
+
+    for line in result.stdout.splitlines():
+        line = line.strip()
+        if line.startswith("Device:"):
+            dev_name = line.split("Device:", 1)[1].strip()
+        elif line.startswith("Kernel:") and dev_name:
+            kernel_path = line.split("Kernel:", 1)[1].strip()
+            if not any(ignore in dev_name for ignore in INPUT_IGNORE_LIST): # pylint: disable=unsupported-membership-test
+                devices[kernel_path] = dev_name
+            dev_name = None
+
+    return devices
+
+async def get_running_evtest_processes(timeout: int = SHORT_TIMEOUT) -> dict[str, list[int]]:
+    """Returns { '/dev/input/eventX': [pid1, pid2, ...] } for active evtest --grab processes."""
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "ps", "ax", "-o", "pid,args",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout)
+        if proc.returncode != 0:
+            logger.warning("ps failed with code %d: %s", proc.returncode, stderr.decode(errors="replace"))
+            return {}
+        output = stdout.decode(errors="replace")
+    except asyncio.TimeoutError:
+        logger.warning("ps timed out after %s seconds", timeout)
+        return {}
+    except (OSError, subprocess.SubprocessError) as e:
+        logger.warning("Failed to get ps output: %s", e)
+        return {}
+
+    result: dict[str, list[int]] = {}
+    pattern = re.compile(r'^\s*(\d+)\s+evtest\s+--grab\s+(/dev/input/event\d+)(?:\s|$)', re.MULTILINE)
+    matches = pattern.findall(output)
+
+    for pid_str, path in matches:
+        try:
+            result.setdefault(path, []).append(int(pid_str))
+        except ValueError:
+            continue
+
+    return result
+
+@register_function("disable_inputs")
+async def handle_disable_inputs(data: Payload) -> dict[str, Any]:  # pylint: disable=unused-argument
+    """Disable inputs by blocking each input with 'evtest'"""
+    devices = get_input_devices()
+    running = await get_running_evtest_processes()
+
+    new_pids = []
+    skipped_devices = 0
+    for path, name in devices.items():
+        if path in running and running[path]:  # Already disabled by running evtest process
+            skipped_devices += 1
+            continue
+        if not os.path.exists(path):
+            logger.error("Input event path not found: %s (%s)", path, name)
+            continue
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                "evtest", "--grab", path,
+                stdout=asyncio.subprocess.DEVNULL,
+                stderr=asyncio.subprocess.DEVNULL,
+                start_new_session=True,
+            )
+            new_pids.append(proc.pid)
+            logger.info("DISABLED: %s [%s] (pid=%d)", name, path, proc.pid)
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.error("Couldn't start evtest and disable input '%s' [%s] (%s)", name, path, e)
+
+    return {
+        "success": True,
+        "new_pids": new_pids,
+        "skipped_devices" : skipped_devices,
+    }
+
+@register_function("enable_inputs")
+async def handle_enable_inputs(data: Payload) -> dict[str, Any]:  # pylint: disable=unused-argument
+    """Re-enable inputs by killing corresponding 'evtest' processes"""
+    devices = get_input_devices()
+    running = await get_running_evtest_processes()
+
+    killed_pids = []
+    skipped_devices = 0
+    for path, name in devices.items():
+        pids = running.get(path, [])
+        if not pids:
+            skipped_devices += 1
+            continue
+        for pid in pids:
+            try:
+                os.killpg(os.getpgid(pid), signal.SIGTERM)
+                killed_pids.append(pid)
+                logger.info ("ENABLED: %s [%s] (evtest pid=%d)", name, path, pid)
+            except Exception as e:  # pylint: disable=broad-exception-caught
+                logger.warning("Failed to kill pid %d for %s [%s]: %s", pid, name, path, e)
+
+    return {
+        "success": True,
+        "killed_pids": killed_pids,
+        "skipped_devices": skipped_devices,
+    }
+
+#### Audio
+@register_function("mute_audio")
+async def handle_mute_audio(data: Payload) -> dict[str, Any]:  # pylint: disable=unused-argument
+    """Mute the default audio sink."""
+
+    commands = [
+        ["pactl", "set-sink-mute", "@DEFAULT_SINK@", "1"],
+        ["pactl", "get-sink-mute", "@DEFAULT_SINK@"],  # End with a state check
+    ]
+
+    results = []
+    success = True
+    for cmd in commands:
+        result = await execute_command(cmd, print_stdout=False, timeout=SHORT_TIMEOUT,
+                                       log_prefix="mute_audio", allow_command=True)
+        results.append(result)
+        success = success and result["success"]
+        if not success:
+            break  # Stop early on failure
+
+    if success and "Mute: yes" in results[-1]["stdout"]:
+        logger.info("Audio muted")
+    else:
+        logger.error("Failed to mute audio")
+
+    return {
+        "success": success,
+        "mute_state": "muted" if "Mute: yes" in results[-1]["stdout"] else "unmuted" if results[-1]["stdout"] else "NA",  #pylint: disable=multiple-statements
+        "results": results,
+    }
+
+@register_function("unmute_audio", optional=["volume"],
+    validators={"volume": lambda x: x is None or (isinstance(x, int) and 0 <= x <= 150)})
+async def handle_unmute_audio(data: Payload) -> dict[str, Any]:
+    """Unmute the default audio sink, optionally set volume level (0-150%)."""
+    set_volume = data.get("volume")
+
+    commands=[["pactl", "set-sink-mute", "@DEFAULT_SINK@", "0"]]  # Unmute first
+    if set_volume is not None:  # If volume provided, set it after unmute
+        commands.append(["pactl", "set-sink-volume", "@DEFAULT_SINK@", f"{int(set_volume)}%"])
+    commands.append(["pactl", "get-sink-volume", "@DEFAULT_SINK@"])
+    commands.append(["pactl", "get-sink-mute", "@DEFAULT_SINK@"])  # End with a state check
+
+    results = []
+    success = True
+    for cmd in commands:
+        result = await execute_command(cmd, print_stdout=False, timeout=SHORT_TIMEOUT,
+                                       log_prefix="unmute_audio", allow_command=True)
+        results.append(result)
+        success = success and result["success"]
+        if not success:
+            break  # Stop early on failure
+
+    if success and "Mute: no" in results[-1]["stdout"]:
+        msg = "Audio unmuted"
+        volume_raw = results[-2]["stdout"]
+        if volume_raw.startswith("Volume"):
+            vol_pattern = re.compile(r"(\S+):\s*\d+\s*/\s*(\d+)%\s*/")
+            volumes = {name: int(pct) for name, pct in vol_pattern.findall(volume_raw)}
+            msg = f"{msg}: {volumes}"
+        logger.info(msg)
+    else:
+        logger.error("Failed to unmute/set volume")
+
+    return {
+        "success": success,
+        "volumes": volumes,
+        "mute_state": "muted" if "Mute: yes" in results[-1]["stdout"] else "unmuted" if results[-1]["stdout"] else "NA",  #pylint: disable=multiple-statements
+        "results": results,
+    }
+
+@register_function("toggle_audio")
+async def handle_toggle_audio(data: Payload) -> dict[str, Any]:  # pylint: disable=unused-argument
+    """Toggle mute state of the default audio sink."""
+
+    commands = [
+        ["pactl", "get-sink-mute", "@DEFAULT_SINK@"],  # End with a state check
+        ["pactl", "set-sink-mute", "@DEFAULT_SINK@", "toggle"],
+        ["pactl", "get-sink-mute", "@DEFAULT_SINK@"],  # End with a state check
+    ]
+
+    results = []
+    success = True
+    for cmd in commands:
+        result = await execute_command(cmd, print_stdout=False, timeout=SHORT_TIMEOUT,
+                                       log_prefix="toggle_audio", allow_command=True)
+        results.append(result)
+        success = success and result["success"]
+        if not success:
+            break  # Stop early on failure
+
+    if success and len(results) == 3 and ( # Check if pre and post mute state differ
+            ("Mute: yes" in results[0]["stdout"]) != ("Mute: yes" in results[-1]["stdout"])):
+        logger.info("Audio mute state toggled")
+    else:
+        logger.error("Failed to toggle audio mute state")
+
+    return {
+        "success": success,
+        "mute_state": "muted" if "Mute: yes" in results[-1]["stdout"] else "unmuted" if results[-1]["stdout"] else "NA",  #pylint: disable=multiple-statements
+
+        "results": results,
+    }
+
 # --------------------------------------------------------------------------- #
 # Security middleware
 # --------------------------------------------------------------------------- #
@@ -560,7 +838,7 @@ async def security_middleware(
     """
     aiohttp middleware that:
     - Enforces Bearer token authentication.
-    - Blocks PROTECTED_COMMANDS if not calling from localhost/127.0.0.1
+    - Blocks PROTECTED_COMMANDS if not calling from localhost/127.0.0.1 or REST_BEARER_TOKEN not set
 
     Note: If REST_BEARER_TOKEN environment variable is set (non-empty), every incoming request must contain the header:
         Authorization: Bearer <token>
@@ -568,19 +846,21 @@ async def security_middleware(
     If the token is missing or invalid → returns HTTP 401 immediately.
     Otherwise passes the request to the next handler.
     """
+    remote_ip = request.remote or request.headers.get("X-Forwarded-For", "unknown").split(",")[0].strip()
+    logging.debug("[request] %s %s from %s", request.method, request.path, remote_ip)  # Log every request for debug
+
     if REST_BEARER_TOKEN:
         auth_header = request.headers.get("Authorization", "")
         if auth_header != f"Bearer {REST_BEARER_TOKEN}":
-            logging.warning("[auth] Invalid REST_BEARER_TOKEN from %s", request.remote or "unknown")
+            logging.warning("[auth] Invalid REST_BEARER_TOKEN from %s", remote_ip)
             return web.json_response(
                 {"success": False, "error": "Invalid or missing REST_BEARER_TOKEN Authorization token"},
                 status=401,)
 
     cmd_name = getattr(handler, "cmd_name")
     if cmd_name in PROTECTED_COMMANDS:
-        remote_ip = request.remote or "unknown"
         if  remote_ip not in ("127.0.0.1", "::1", "localhost") and REST_BEARER_TOKEN is None:
-            logging.warning("[security] Blocked protected REST command from %s: %s", remote_ip, cmd_name)
+            logging.warning("[security] Blocked protected REST command '%s' from non-localhost IP: %s", cmd_name, remote_ip)
             return web.json_response({
                 "success": False,
                 "error": "Protected REST commands require localhost or bearer token"
@@ -601,13 +881,22 @@ async def create_app() -> web.Application:
         route = f"/{fullname}"
 
         async def make_handler(request: web.Request, function: Callable[..., Any] = func, name: str = fullname) -> web.Response:
-            payload = await request.json() if request.can_read_body else {}
+            try:
+                payload = await request.json() if request.can_read_body else {}
+            except (json.JSONDecodeError, ValueError):  # Malformed JSON from client
+                return web.json_response({"success": False, "error": "Invalid JSON payload"}, status=400)
+
             try:
                 result = await function(payload)
+                logging.debug("Handler success for %s from %s", name, request.remote)  # Debug to avoid noise
                 return web.json_response(result)
+            except (web.HTTPBadRequest, json.JSONDecodeError, ValueError) as e:
+                # Expected validation / input errors from registered functions
+                logging.debug("Handler error: validation error in %s: %s", name, str(e))  # Debug to avoid noise
+                return web.json_response({"success": False, "error": "Invalid JSON payload"}, status=400)
             except Exception as e:
-                logging.exception("Handler error: %s", name)
-                return web.json_response({"success": False, "error": str(e)}, status=500)
+                logging.exception("Handler error for %s: %s", name, str(e))
+                return web.json_response({"success": False, "Internal server error": str(e)}, status=500)
 
         make_handler.cmd_name = fullname  # type: ignore[attr-defined]
 
