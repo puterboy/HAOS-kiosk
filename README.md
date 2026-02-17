@@ -146,7 +146,7 @@ output device connected. If so, use the logs to see how they are numbered.
 Prefer dark mode where supported if `True`, otherwise prefer light mode.
 (Default: True). This preference applies to all URLs
 
-NOTE: This preference applies to all URLs unless overriden in the URL. In
+NOTE: This preference applies to all URLs unless overridden in the URL. In
 particular, in Home Assistant web pages, This preference for light or dark
 mode only takes effect if the user profile (under 'Theme') is set to
 `auto`. Otherwise, the user profile `light` or `dark` setting takes
