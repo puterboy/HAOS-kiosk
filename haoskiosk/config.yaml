@@ -5,6 +5,7 @@ description: |
   kiosk mode (Jeff Kosowsky)
 version: "1.3.0"
 slug: "haoskiosk"
+url: https://github.com/puterboy/HAOS-kiosk/tree/main/haoskiosk
 
 arch:
   - aarch64
