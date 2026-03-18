@@ -87,6 +87,17 @@ already been addressed and resolved**
   max_framebuffers=2
   ```
 
+- If you see black borders (underscan) around the display on a Raspberry Pi
+  you can disable overscan in the boot partition's `config.txt`. From the
+  **Advanced SSH & Web Terminal** add-on (with Protection Mode off):
+  ```bash
+  nsenter --target 1 --mount -- s6-mkdir -p /mnt/boot
+  nsenter --target 1 --mount -- s6-mount -t vfat /dev/mmcblk0p1 /mnt/boot
+  nano /mnt/boot/config.txt
+  # Add: disable_overscan=1
+  # Then reboot
+  ```
+
 ______________________________________________________________________
 
 ## Configuration Options
