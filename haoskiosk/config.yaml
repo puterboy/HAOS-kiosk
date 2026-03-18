@@ -77,6 +77,7 @@ options:
   dark_mode: true
   ha_theme: ""
   ha_sidebar: "none"
+  underscan_compensation: 0
   rotate_display: "normal"
   map_touch_inputs: true
   keyboard_layout: us
@@ -117,6 +118,7 @@ schema:
   dark_mode: bool
   ha_theme: str?
   ha_sidebar: list(full|narrow|none)
+  underscan_compensation: int(0,20)?
   rotate_display: list(normal|left|right|inverted)
   map_touch_inputs: bool
   cursor_timeout: int

@@ -135,6 +135,7 @@ load_config_var OUTPUT_NUMBER 1  # Which *CONNECTED* Physical video output to us
 load_config_var DARK_MODE true
 load_config_var HA_THEME ""
 load_config_var HA_SIDEBAR "none"
+load_config_var UNDERSCAN_COMPENSATION 0  # Percentage (0-20) to compensate for TV underscan
 load_config_var ROTATE_DISPLAY normal
 load_config_var MAP_TOUCH_INPUTS true
 load_config_var CURSOR_TIMEOUT 5  # Default to 5 seconds
@@ -515,6 +516,31 @@ if [[ -n "$SCREEN_WIDTH" && -n "$SCREEN_HEIGHT" ]]; then
     bashio::log.info "Screen: Width=$SCREEN_WIDTH  Height=$SCREEN_HEIGHT"
 else
     bashio::log.error "Could not determine screen size for output $OUTPUT_NAME"
+fi
+
+#### Apply underscan compensation if configured
+# On Raspberry Pi 4, the VC4 driver often enables underscan by default for
+# HDMI outputs, adding black borders around the content. This disables it.
+# If the borders persist after enabling this, the issue is likely your TV's
+# overscan setting -- look for "Screen Fit", "Just Scan", "1:1", or
+# "Overscan Off" in your TV's picture/display settings.
+# Alternatively, add 'disable_overscan=1' to HAOS boot config
+# (/mnt/boot/config.txt via USB) for a firmware-level fix.
+if [[ "$UNDERSCAN_COMPENSATION" -gt 0 ]]; then
+    bashio::log.info "Attempting to disable underscan on $OUTPUT_NAME..."
+    if xrandr --output "$OUTPUT_NAME" --set underscan off 2>/dev/null; then
+        bashio::log.info "Underscan disabled via xrandr property on $OUTPUT_NAME"
+    elif xrandr --output "$OUTPUT_NAME" --set "underscan" "off" 2>/dev/null; then
+        bashio::log.info "Underscan disabled via xrandr property on $OUTPUT_NAME"
+    else
+        bashio::log.warning "Could not set underscan property via xrandr on $OUTPUT_NAME"
+        bashio::log.warning "Your display driver may not support this property."
+        bashio::log.warning "Try: 1) Check TV settings for 'Screen Fit'/'Just Scan'/'Overscan Off'"
+        bashio::log.warning "     2) Add 'disable_overscan=1' to /mnt/boot/config.txt (via USB)"
+    fi
+    # Also try setting underscan border to 0 if the property exists
+    xrandr --output "$OUTPUT_NAME" --set "underscan hborder" 0 2>/dev/null
+    xrandr --output "$OUTPUT_NAME" --set "underscan vborder" 0 2>/dev/null
 fi
 
 #### Launch Onboard onscreen keyboard per configuration

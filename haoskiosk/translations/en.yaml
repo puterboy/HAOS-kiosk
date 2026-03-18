@@ -49,6 +49,12 @@ configuration:
       full: "Full"
       narrow: "Narrow"
       none: "None"
+  underscan_compensation:
+    name: "Disable Underscan"
+    description: |
+      Set to non-zero to disable HDMI underscan (black borders around content).
+      Common on Raspberry Pi 4 with TVs. If borders persist, check your TV
+      settings for 'Screen Fit', 'Just Scan', or 'Overscan Off'. [Default: 0]
   rotate_display:
     name: "Rotate Display"
     description: "Rotate display [Default: Normal]"
