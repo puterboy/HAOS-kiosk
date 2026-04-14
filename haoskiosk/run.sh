@@ -664,6 +664,11 @@ if [ -n "$VNC_SERVER" ]; then
     x11vnc $X11VNC_OPTS 2> >(grep -v 'The VNC desktop is:' >&2)
 fi
 
+#### Start internal VNC server and noVNC Web Client
+bashio::log.info "Starting noVNC Web Access for Home Assistant UI integration"
+x11vnc -display :0 -rfbport 5901 -localhost -forever -bg -shared -nopw -quiet 2> >(grep -v 'The VNC desktop is:' >&2)
+novnc_server --vnc localhost:5901 --listen 6080 > /dev/null 2>&1 &
+
 #### Start browser (or debug mode)  and wait/sleep
 if [ "$DEBUG_MODE" != true ]; then
     ### Run browser in the background and wait for process to exit
