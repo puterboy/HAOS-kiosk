@@ -6,8 +6,7 @@
 # Date: April 2026
 ################################################################################
 
-ARG BUILD_FROM
-FROM $BUILD_FROM
+FROM ghcr.io/home-assistant/base:latest
 
 ARG BUILD_VERSION
 ENV ADDON_VERSION=${BUILD_VERSION}
