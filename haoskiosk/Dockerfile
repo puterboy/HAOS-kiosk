@@ -62,6 +62,7 @@ RUN apk update && apk add --no-cache \
 #     gst-libav \
 ### VNC (for debugging) - run: x11vnc -display :0 -forever & \
       x11vnc \
+      novnc \
 # Browser
 #    luakit \
    && apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/v3.21/community luakit=2.3.6-r0 \

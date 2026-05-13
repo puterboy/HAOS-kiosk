@@ -18,6 +18,8 @@ startup: application
 host_network: true
 init: false
 ingress: true
+ingress_port: 6080
+ingress_entry: vnc.html?autoconnect=true
 homeassistant_api: true
 auth_api: true
 audio: true
