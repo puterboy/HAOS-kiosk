@@ -82,7 +82,6 @@ trap cleanup HUP INT QUIT ABRT TERM EXIT
 
 ################################################################################
 #### Variables
-BROWSER="luakit"
 BROWSER_FLAGS=
 
 ################################################################################
@@ -128,6 +127,37 @@ load_config_var HA_DASHBOARD ""
 load_config_var LOGIN_DELAY 1.0
 load_config_var ZOOM_LEVEL 100
 load_config_var BROWSER_REFRESH 600
+load_config_var BROWSER luakit
+
+#### Per-browser launch flags + process-liveness match pattern
+case "$BROWSER" in
+    chromium)
+        if command -v chromium >/dev/null 2>&1; then
+            BROWSER="chromium"
+        elif command -v chromium-browser >/dev/null 2>&1; then
+            BROWSER="chromium-browser"
+        fi
+        # Suppress first-run / sign-in / promo screens for unattended kiosk use
+        mkdir -p /etc/chromium/policies/managed
+        cat > /etc/chromium/policies/managed/wall-kiosk.json << 'KIOSK_POLICY'
+{
+  "BrowserSignin": 0,
+  "SyncDisabled": true,
+  "MetricsReportingEnabled": false,
+  "DefaultBrowserSettingEnabled": false,
+  "PromotionalTabsEnabled": false,
+  "SearchEngineChoiceScreenEnabled": false
+}
+KIOSK_POLICY
+        BROWSER_FLAGS="--kiosk --ozone-platform=x11 --touch-events=enabled --ignore-gpu-blocklist --enable-gpu-rasterization --enable-zero-copy --enable-features=VaapiVideoDecoder --no-sandbox --no-first-run --no-default-browser-check --disable-search-engine-choice-screen --password-store=basic --user-data-dir=/data/chromium --remote-debugging-port=9222"
+        BROWSER_MATCH="chromium"
+        ;;
+    *)
+        BROWSER="luakit"
+        BROWSER_FLAGS=""
+        BROWSER_MATCH="^luakit "
+        ;;
+esac
 load_config_var SCREEN_TIMEOUT 600  # Default to 600 seconds
 load_config_var OUTPUT_NUMBER 1  # Which *CONNECTED* Physical video output to use (Defaults to 1)
 #NOTE: By only considering *CONNECTED* output, this maximizes the chance of finding an output
@@ -670,9 +700,18 @@ if [ "$DEBUG_MODE" != true ]; then
     $BROWSER ${BROWSER_FLAGS:+$BROWSER_FLAGS} "$HA_URL/$HA_DASHBOARD" &
     bashio::log.info "Launching $BROWSER browser(PID=$!): $HA_URL/$HA_DASHBOARD"
 
+    # Chromium: self-healing auth -- inject a session token via the debug port
+    # so the kiosk lands on the dashboard authenticated (no on-screen login).
+    case "$BROWSER" in
+        chromium|chromium-browser)
+            ( python3 /cdp_auth.py >/tmp/cdp_auth.log 2>&1 || true ) &
+            ( python3 /kiosk_overlay.py >/tmp/kiosk_overlay.log 2>&1 || true ) &
+            ;;
+    esac
+
     count=0
     while true; do  # Wait for all browser processes to exit
-        if pgrep -f -- "^$BROWSER " > /dev/null 2>&1; then
+        if pgrep -f -- "$BROWSER_MATCH" > /dev/null 2>&1; then
             count=0
         else
             count=$((count + 1))
