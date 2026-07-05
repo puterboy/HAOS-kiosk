@@ -170,6 +170,13 @@ load_config_var MAP_TOUCH_INPUTS true
 load_config_var CURSOR_TIMEOUT 5  # Default to 5 seconds
 load_config_var KEYBOARD_LAYOUT us
 load_config_var ONSCREEN_KEYBOARD false
+# Chromium sandboxes its renderer and stays silent to assistive tech until
+# accessibility is explicitly forced. Onboard auto-show needs those events, so
+# add the flag ONLY when the onscreen keyboard is enabled (keeps the a11y-tree
+# CPU/RAM cost off systems that do not use it, e.g. keyboard-less Pi kiosks).
+if [ "$BROWSER" = "chromium" ] && [ "$ONSCREEN_KEYBOARD" = true ]; then
+    BROWSER_FLAGS="$BROWSER_FLAGS --force-renderer-accessibility=complete"
+fi
 load_config_var SAVE_ONSCREEN_CONFIG true
 load_config_var XORG_CONF ""
 load_config_var XORG_APPEND_REPLACE append
@@ -190,7 +197,14 @@ fi
 ################################################################################
 ### GTK and DBUS-related environment variables to improve stability
 
-export NO_AT_BRIDGE=1                 # Stop GTK from touching at-spi bus
+# at-spi bridge: luakit/GTK is stabler with it OFF, but Onboard auto-show on
+# Chromium REQUIRES the bridge ON to receive text-field focus events. Only keep
+# NO_AT_BRIDGE=1 when NOT relying on Chromium + onscreen keyboard together.
+if [ "$BROWSER" = "chromium" ] && [ "$ONSCREEN_KEYBOARD" = true ]; then
+    unset NO_AT_BRIDGE               # Allow at-spi so Onboard auto-show hears focus events
+else
+    export NO_AT_BRIDGE=1            # Stop GTK from touching at-spi bus (luakit stability)
+fi
 export GTK_USE_PORTAL=0               # Disable portals
 export GIO_USE_VFS=local              # Local-only GIO
 export DBUS_SESSION_BUS_TIMEOUT=5000  # Shorten DBUS timeouts
