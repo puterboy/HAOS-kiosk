@@ -50,11 +50,15 @@
 # pylint: disable=too-many-lines
 
 #-------------------------------------------------------------------------------
-from __future__ import annotations
+#WAYLAND
+import urllib.request
+import urllib.error
+import json
 import asyncio
+# ORIGINAL in X11 CONFIG
+from __future__ import annotations
 import inspect
 import ipaddress
-import json
 import logging
 import os
 import re
@@ -70,9 +74,9 @@ from typing import Any, Awaitable, cast, Callable, Final, Literal, TypedDict, Ty
 from aiohttp import web  #type: ignore[import-not-found] #pylint: disable=import-error
 
 #-------------------------------------------------------------------------------
-__version__ = "1.3.2"
-__author__ = "Jeff Kosowsky"
-__copyright__ = "Copyright 2025-2026 Jeff Kosowsky"
+__version__ = "2.0"
+__author__ = "TrooperThorn"
+__copyright__ = "Copyright 2025-2026 Jeff Kosowsky, 2026 work by TrooperThorn"
 
 # ----------------------------------------------------------------------------- #
 # Global variables
@@ -458,74 +462,108 @@ HTTP_GET_COMMANDS = {  # Commands using GET (rather than POST) method
 }
 
 ### URL & Refresh
+#NO X11
 @register_function("launch_url", optional=["url"], validators={"url": is_valid_url})
 async def handle_launch_url(data: Payload) -> dict[str, Any]:
-    """Launch browser with given URL."""
+    """Launch or redirect browser with given URL via Chrome DevTools Protocol."""
     url = str(data["url"]) if data.get("url") else DEFAULT_LAUNCH_URL
     if url != "about:blank" and not url.startswith(("http://", "https://")):
         url = "http://" + url
-    asyncio.create_task(execute_command(["luakit", "-n", url], log_prefix="launch_url", allow_command=True))  # Run in the background
-    result = {"success": True, "stdout": "", "stderr": "", "returncode": 0}
-    return {"success": result["success"], "result": result}
+        
+    def _send_cdp_request():
+        try:
+            # Fetch active tabs
+            req = urllib.request.Request("http://localhost:9222/json")
+            with urllib.request.urlopen(req) as response:
+                pages = json.loads(response.read())
+            
+            if not pages:
+                return False
+                
+            target_id = pages[0]['id']
+            
+            # Activate tab
+            activate_req = urllib.request.Request(f"http://localhost:9222/json/activate/{target_id}", method='PUT')
+            urllib.request.urlopen(activate_req)
+            return True
+        except urllib.error.URLError as e:
+            logging.error(f"CDP Request failed: {e}")
+            return False
 
+    # Execute the blocking HTTP request in an async thread to prevent halting the API
+    success = await asyncio.to_thread(_send_cdp_request)
+    
+    return {"success": success}
+#NO X11
 @register_function("refresh_browser")
 async def handle_refresh_browser(data: Payload) -> dict[str, Any]:  # pylint: disable=unused-argument
-    """Send Ctrl+R to refresh browser."""
-    result = await execute_command( ["xdotool", "key", "--clearmodifiers", "ctrl+r"],
-                                    timeout=SHORT_TIMEOUT, log_prefix="refresh_browser", allow_command=True)
+    """Send F5 to refresh browser via wtype."""
+    result = await execute_command(["wtype", "-k", "F5"],
+                                   timeout=SHORT_TIMEOUT, log_prefix="refresh_browser", allow_command=True)
     return {"success": result["success"]}
 
 ### Display
+#NO X11
 @register_function("is_display_on")  # GET endpoint – we register manually below
 async def handle_is_display_on(data: Payload) -> dict[str, Any]:  # pylint: disable=unused-argument
     """Return boolean whether monitor is currently on."""
-    result = await execute_command(["xset", "-q"], print_stdout=False,
+    result = await execute_command(["wlr-randr"], print_stdout=False,
                                    timeout=SHORT_TIMEOUT, log_prefix="is_display_on", allow_command=True)
     if not result["success"]:
         return {"success": False, "error": "Failed to query display state"}
 
-    is_on = "Monitor is On" in result["stdout"]
+    is_on = "Enabled: yes" in result["stdout"]
     logging.info("[is_display_on] Monitor is %s", "ON" if is_on else "OFF")
     return {"success": True, "display_on": is_on}
-
+#NO X11
 @register_function("display_on", optional=["timeout"], validators={"timeout": lambda x: x is None or (isinstance(x, int) and x >= 0)})
 async def handle_display_on(data: Payload) -> dict[str, Any]:
     """Turn display on, optionally set blanking timeout. If 0, then disables timeout"""
     blank_timeout = data.get("timeout")
 
-    cmds = [ ["xset", "dpms", "force", "on"] ]
+    # Always turn the display on
+    cmds = [["wlr-randr", "--output", "*", "--on"]]
     log_msg = ""
+    
     if blank_timeout is None:
         pass
     elif blank_timeout == 0:
-        cmds += [ ["xset", "s", "off"], ["xset", "-dpms"] ]
+        # Disable timeout by killing swayidle daemon
+        cmds += [["killall", "swayidle"]]
         log_msg = " Screen timeout disabled"
     elif blank_timeout > 0:
         t = str(blank_timeout)
-        cmds += [ ["xset", "s", t], ["xset", "dpms", t, t, t] ]
+        # Kill old daemon and spawn a new one with updated timeout
+        idle_cmd = f"swayidle -w timeout {t} 'wlr-randr --output * --off' resume 'wlr-randr --output * --on' &"
+        cmds += [
+            ["killall", "swayidle"],
+            ["sh", "-c", idle_cmd]
+        ]
         log_msg = f" Screen timeout: {blank_timeout}s"
 
     results = [await execute_command(cmd, timeout=SHORT_TIMEOUT, log_prefix="display_on", allow_command=True) for cmd in cmds]
     logging.info("[display_on]%s", log_msg)
     return {"success": all(r["success"] for r in results), "results": results}
-
+#NO X11
 @register_function("display_off")
 async def handle_display_off(data: Payload) -> dict[str, Any]:  # pylint: disable=unused-argument
-    """Force display off immediately."""
-    result = await execute_command(["xset", "dpms", "force", "off"],
+    """Force display off immediately using Wayland."""
+    result = await execute_command(["wlr-randr", "--output", "*", "--off"],
                                    timeout=SHORT_TIMEOUT, log_prefix="display_off", allow_command=True)
     return {"success": result["success"]}
 
-@register_function("xset", required=["args"], validators={"args": lambda x: isinstance(x, str) and bool(x.strip())})
-async def handle_xset(data: Payload) -> dict[str, Any]:
-    """Run arbitrary xset command (sanitized)."""
+#NO X11
+@register_function("wlr_randr", required=["args"], validators={"args": lambda x: isinstance(x, str) and bool(x.strip())})
+async def handle_wlr_randr(data: Payload) -> dict[str, Any]:
+    """Run arbitrary wlr-randr command (sanitized)."""
     args = data["args"]
-    # Block dangerous shell metacharacters — even with allow_all_user_commands=False
+    # Block dangerous shell metacharacters
     dangerous_tokens = [tok for tok in DANGEROUS_SHELL_TOKENS if tok in args]
     if dangerous_tokens:
-        return {"success": False, "error": "Forbidden shell metacharacters in xset args: {dangerous_tokens}"}
-    args_list = shlex.split(args)  # Convert to list for safer execution
-    result = await execute_command(["xset"] + args_list, timeout=SHORT_TIMEOUT, log_prefix="xset", allow_command=True)
+        return {"success": False, "error": f"Forbidden shell metacharacters: {dangerous_tokens}"}
+    
+    args_list = shlex.split(args)  
+    result = await execute_command(["wlr-randr"] + args_list, timeout=SHORT_TIMEOUT, log_prefix="wlr_randr", allow_command=True)
     return {"success": result["success"], "result": result}
 
 SCREENSHOT_DIR: str = "/media/screenshots"  # Directory to store screenshots
@@ -535,6 +573,8 @@ SCREENSHOT_DIR: str = "/media/screenshots"  # Directory to store screenshots
                        "quality": lambda x: x is None or (isinstance(x, int) and 1 <= x <= 100),
                        "delay": lambda x: x is None or (isinstance(x, int) and x >= 0),
                    })
+
+#NOT MODIFIED to OVERCOME XX11
 async def handle_screenshot(data: Payload) -> dict[str, Any]:
     """
     Take screen screenshot with optional filename, quality, and delay before screenshot
