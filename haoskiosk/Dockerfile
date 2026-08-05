@@ -5,6 +5,7 @@
 # Original Copyright Jeff Kosowsky
 # updated to support fonts, chrome, remove static lua version from alpine that is not used by HA.
 # Corrections by TrooperThorn
+# REMOVED openbox, luakit, onboard, and xdotool are completely removed.
 # Date: August 2026
 ################################################################################
 # 64 Bit systems ONLY
@@ -23,7 +24,10 @@ RUN apk add --no-cache \
     seatd \
     wayland \
     font-noto \
-    font-noto-emoji
+    font-noto-emoji \
+    wlr-randr \
+    wtype \
+    wlopm
 
 # Copy the execution script into the container
 COPY run.sh /run.sh
