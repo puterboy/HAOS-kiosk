@@ -1,22 +1,26 @@
 ---
-name: "HAOS Kiosk Display"
-description: |
-  Start X server and browser on local HAOS server and display dashboards in
-  kiosk mode (TrooperThorn)
-version: "1.3.2.2"
-slug: "haoskiosk"
-url: https://github.com/trooperthorn/HAOS-kiosk/tree/main/haoskiosk
-
+name: "HAOS Wayland Kiosk"
+description: "A Wayland-native kiosk dashboard using Cage and Chromium (TrooperThorn)"
+version: "2.0"
+slug: "haos_wayland_kiosk"
+url: https://github.com/trooperthorn/HAOS-kiosk/tree/Wayland
+init: false
 arch:
   - aarch64
   - amd64
-  - armhf
   - armv7
-  - i386
-
-startup: application
+# Required for hardware acceleration and Wayland direct rendering
+video: true
+udev: true
+# Required to map touchscreens, mice, and keyboards
+devices:
+  - /dev/input:/dev/input
+# Host network allows Chromium to resolve internal mDNS if needed
+network_description: "host"
 host_network: true
-init: false
+
+#UNMODIFIED ORIGINAL
+startup: application
 ingress: true
 homeassistant_api: true
 auth_api: true
@@ -28,38 +32,6 @@ ulimits:
     soft: 65536
     hard: 65536
 
-devices:
-  - /dev/dri/card0
-  - /dev/dri/card1
-  - /dev/dri/renderD128
-
-  - /dev/input/event0
-  - /dev/input/event1
-  - /dev/input/event2
-  - /dev/input/event3
-  - /dev/input/event4
-  - /dev/input/event5
-  - /dev/input/event6
-  - /dev/input/event7
-  - /dev/input/event8
-  - /dev/input/event9
-  - /dev/input/event10
-  - /dev/input/event11
-  - /dev/input/event12
-  - /dev/input/event13
-  - /dev/input/event14
-  - /dev/input/event15
-  - /dev/input/event16
-  - /dev/input/event17
-  - /dev/input/event18
-  - /dev/input/event19
-  - /dev/input/event20
-  - /dev/input/event21
-  - /dev/input/event22
-  - /dev/input/event23
-  - /dev/input/event24
-  - /dev/input/event25
-
 map:
   - addon_config:rw
   - media:rw
@@ -70,13 +42,13 @@ privileged:
 options:
   browser: "chromium"
   # Screen Hygene
-  rotate_display: "normal"
+  rotate_display: "right"
   output_number: 1
   screen_timeout: 0
   login_delay: 1.0
   browser_refresh: 43200
   # Configure Home Assistant
-  ha_url: "http://localhost:8123"
+  ha_url: "http://supervisor/core"
   ha_dashboard: ""
   dark_mode: true
   ha_theme: ""
@@ -110,6 +82,7 @@ options:
   # IF Browser MOD is in use, only need xset|luakit or xset|chromium
   vnc_server: ""
   debug_mode: false
+  ignore_certificate_errors: false
 
 schema:
   browser: list(luakit|chromium)
@@ -142,6 +115,7 @@ schema:
   command_whitelist: str
   vnc_server: password
   debug_mode: bool
+  ignore_certificate_errors: bool
 
 translations:
   - en
