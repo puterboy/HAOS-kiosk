@@ -1,15 +1,16 @@
-# HAOS-kiosk v 1.3.2.3 Chromium release with support for BrowserMod
+# HAOS-kiosk v 2 Wayland Chromium release with support for BrowserMod
 
 Display HA dashboards in kiosk mode directly on your HAOS server.
 
-## Original Author: Jeff Kosowsky (version: 1.3.2, April 2026)
-## Updated for x86 AMD64 TrooperThorn (v: 1.3.2.3 August 2026)
+COMPLETE REWORK IN PROGRESS. 
+- DROPPING x86 ARM32
+- no more X11 xOrg
+- Lua renders poorly, replace with Chromium.
+## Updated for 64 bit only TrooperThorn (v: 1.3.2.3 August 2026)
 
 ## Description
 
-Launches X-Windows on local HAOS server followed by OpenBox window manager
-and Chrome or Luakit browser starting with your configured default Home Assistant
-dashboard.
+Launches Wayland and Chrome... thats it.
 
 - Designed for Touchscreens directly attached to Home Assistant Server.
 - Standard mouse, touchscreen, and keyboard interactions should work
