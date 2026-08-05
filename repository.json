@@ -1,5 +1,5 @@
 {
-  "name": "HAOS Display Kiosk ARM/x64 Add-on Repository",
-  "url": "https://github.com/trooperthorn/HAOS-kiosk",
+  "name": "HAOS Display Kiosk Wayland",
+  "url": "https://github.com/trooperthorn/HAOS-kiosk/tree/Wayland",
   "maintainer": "TrooperThorn"
 }
