@@ -536,8 +536,9 @@ async def handle_display_on(data: Payload) -> dict[str, Any]:
         # Kill old daemon and spawn a new one with updated timeout
         idle_cmd = f"swayidle -w timeout {t} 'wlr-randr --output * --off' resume 'wlr-randr --output * --on' &"
         cmds += [
-            ["killall", "swayidle"],
-            ["sh", "-c", idle_cmd]
+        # Use this safer array structure in your handle_display_on function
+        ["killall", "swayidle"],
+        ["swayidle", "-w", "timeout", str(blank_timeout), "wlr-randr --output * --off", "resume", "wlr-randr --output * --on"]
         ]
         log_msg = f" Screen timeout: {blank_timeout}s"
 
