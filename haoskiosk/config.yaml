@@ -40,7 +40,6 @@ privileged:
   - SYS_ADMIN
 
 options:
-  browser: "chromium"
   # Screen Hygene
   rotate_display: "right"
   output_number: 1
@@ -65,8 +64,6 @@ options:
   cursor_timeout: 5
   save_onscreen_config: true
   audio_sink: "auto"
-  xorg_conf: ""
-  xorg_append_replace: "append"
   gestures:
     - '"1_ANY_1_CORNER_TOPRIGHT": {"cmds": "kiosk.toggle_keyboard", "msg": "Toggling Onboard keyboard..."}'
     - '"[Left]_MOUSE_3_CLICK": {"cmds": "kiosk.toggle_keyboard", "msg": "Toggling Onboard keyboard..."}'
@@ -78,14 +75,13 @@ options:
     - '"3+_TOUCH_1_SWIPE_RIGHT": {"cmds": "kiosk.back", "msg": "Go back in the history browser"}'
     - '"2_TOUCH_3_TAP": {"cmds": "kiosk.launch_url", "msg": "Restore default dashboard: HA_URL/HA_DASHBOARD"}'
     - '"2_TOUCH_4_TAP": {"cmds": [["kiosk.launch_url", "www.google.com"]], "msg": "Open Google search"}'
-  command_whitelist: "xset|xdotool|luakit|chromium-browser"
+  command_whitelist: "wlr-randr|wtype|killall|swayidle"
   # IF Browser MOD is in use, only need xset|luakit or xset|chromium
   vnc_server: ""
   debug_mode: false
   ignore_certificate_errors: false
 
 schema:
-  browser: list(luakit|chromium)
   rotate_display: list(normal|left|right|inverted)
   ha_username: str
   ha_password: password
@@ -110,8 +106,6 @@ schema:
   rest_bearer_token: password
   gestures:
     - str
-  xorg_conf: str?
-  xorg_append_replace: list(append|replace)
   command_whitelist: str
   vnc_server: password
   debug_mode: bool
