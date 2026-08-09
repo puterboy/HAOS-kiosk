@@ -1,0 +1,28 @@
+name: "[!Version] Bump all version notes"
+on:
+    workflow_dispatch:
+        inputs:
+            version:
+                description: 'Version number to bump to (e.g. 1.2.3)'
+                required: true
+                default: '1.3.3'
+
+concurrency:
+    group: 'bump-version'
+    cancel-in-progress: true
+
+jobs:
+    bump-version:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v3
+
+            - name: Bump version in config.yaml
+              run: |
+                VERSION="${{ github.event.inputs.version }}"
+                sed -i -E "s/^version:.*/version: \"${VERSION}\"/" haoskiosk/config.yaml
+                find haoskiosk/* -type f -exec sed -i -E "s/^# Version: [0-9]+\.[0-9]+\.[0-9]+$/# Version: ${VERSION}/" {} +
+                git add haoskiosk/*
+                git commit -m "[skip ci] Bump version to ${VERSION}" || echo "No changes to commit"
+                git push || echo "No changes to push"
