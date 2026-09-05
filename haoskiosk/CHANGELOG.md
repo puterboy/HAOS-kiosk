@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+- Added a `browser` option to choose the rendering engine: `luakit` (default,
+  unchanged) or `chromium`.
+- Chromium is driven over the DevTools protocol - `launch_url` and
+  `refresh_browser` use CDP instead of the luakit `-n`/xdotool paths.
+- Added `cdp_auth.py` (self-healing login via the `trusted_networks` loopback)
+  and `kiosk_overlay.py` (in-page back-to-dashboard button on kiosk-out pages).
+- Added a Chromium managed policy to suppress the first-run sign-in prompt.
+- Motivation: WebKitGTK (luakit) hard-hangs some Intel GPUs (e.g. Iris Xe -
+  kernel `i915` GPU HANG); Chromium renders cleanly on that hardware.
+
 ## v1.3.2 - April 2026
 
 - Added explicit BUILD_FROM location to Dockerfile for ha core 2026.04+

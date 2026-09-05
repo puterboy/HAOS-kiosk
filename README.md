@@ -112,6 +112,21 @@ Delay in seconds to allow login page to load.\
 Level of zoom with `100` being 100%.\
 (Default: 100%)
 
+### Browser
+
+Selects the browser engine used to render the dashboard.
+
+- `luakit` (default) - the original lightweight WebKitGTK browser. Recommended
+  for Raspberry Pi and most hardware; existing installs are unchanged.
+- `chromium` - a full Chromium engine driven over the DevTools protocol. Use
+  this if Luakit fails to render on your hardware. In particular, WebKitGTK's
+  threaded compositor can hard-hang some Intel GPUs (e.g. Iris Xe - the kernel
+  logs an `i915` GPU HANG and the display freezes); Chromium renders cleanly on
+  that hardware and also handles WebRTC/H.264 camera streams well.
+
+See the [Chromium Browser Engine](#chromium-browser-engine) section for how it
+works, the auth requirement, and how to extend it. (Default: `luakit`)
+
 ### Browser Refresh
 
 Time between browser refreshes. Set to `0` to disable.\
@@ -304,6 +319,78 @@ Manually, launch `luakit` (e.g.,
 E.g., `sudo docker exec -it addon_haoskiosk bash`
 
 ______________________________________________________________________
+
+## Chromium Browser Engine
+
+Setting `Browser` to `chromium` swaps the Luakit/WebKitGTK engine for a full
+Chromium engine. This exists because WebKitGTK's threaded compositor hard-hangs
+some Intel GPUs (notably Iris Xe / Gen12): the kernel logs an `i915` GPU HANG and
+the display freezes, with no Luakit setting that avoids it. Chromium drives the
+same GPU without issue.
+
+### What changes in chromium mode
+
+- **Launch** - Chromium starts in `--kiosk` on X11/Ozone with GPU rasterization
+  and `--remote-debugging-port=9222` (the DevTools/CDP port). Flags live in the
+  `case "$BROWSER"` block in `run.sh`.
+- **Control** - Chromium has no Luakit `-n` single-instance trick or xdotool
+  keybindings, so the REST API talks to it over CDP instead: `launch_url` issues
+  `Page.navigate` and `refresh_browser` issues `Page.reload` (see
+  `_cdp_command()` in `rest_server.py`). The Luakit paths are untouched.
+- **First-run prompt** - a managed policy written to
+  `/etc/chromium/policies/managed/haoskiosk.json` disables the "Sign in to
+  Chromium" / sync nag so the kiosk boots straight to the dashboard.
+
+### Helpers
+
+Two stdlib-only Python daemons start alongside Chromium. Both read `HA_URL`,
+`HA_DASHBOARD`, and `REMOTE_DEBUG_PORT` from the environment that `run.sh`
+exports:
+
+- **`cdp_auth.py`** - self-healing login. If Chromium lands on the HA login page,
+  it mints a session token over the trusted loopback and injects it into
+  `localStorage`, then navigates to the dashboard. It is a no-op once the profile
+  is authenticated (the persistent `--user-data-dir` keeps the token across
+  restarts).
+- **`kiosk_overlay.py`** - injects a fixed, always-visible "back to dashboard"
+  button into the DOM whenever Chromium is on a non-dashboard page (a game, or an
+  external site like Google Maps/Earth). It is composited in-page over CDP, so it
+  works even on third-party pages without a second X window.
+
+### Auth requirement (important)
+
+The hands-off login in `cdp_auth.py` currently relies on the **`trusted_networks`
+auth provider** trusting the loopback address. With that in place the kiosk
+authenticates itself from a cold profile with no keyboard. Add it to
+`configuration.yaml`, for example:
+
+```yaml
+homeassistant:
+  auth_providers:
+    - type: homeassistant      # keep first so normal password login still works
+    - type: trusted_networks
+      trusted_networks:
+        - 127.0.0.1/32
+        - ::1
+      trusted_users:
+        127.0.0.1: <your-kiosk-user-id>
+        ::1: <your-kiosk-user-id>
+      allow_bypass_login: true
+```
+
+Without `trusted_networks`, Chromium reaches the login page and stops there: a
+username/password **form-fill fallback is not yet implemented** and is the main
+open design question for this feature. The `ha_username` / `ha_password` options
+are accepted but unused on the chromium path today.
+
+### Extending
+
+- Change kiosk flags: edit the `chromium)` arm of the `case "$BROWSER"` block in
+  `run.sh`.
+- Add a new kiosk-out target: nothing special is needed - `kiosk_overlay.py`
+  shows the back button on any URL that is not the dashboard.
+- Restyle the back button: edit the inline `style` string in `kiosk_overlay.py`.
+- Add new CDP-driven controls: follow `_cdp_command()` in `rest_server.py`.
 
 ## REST APIs
 

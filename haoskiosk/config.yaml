@@ -70,6 +70,7 @@ privileged:
 options:
   ha_url: "http://localhost:8123"
   ha_dashboard: ""
+  browser: luakit
   login_delay: 1.0
   zoom_level: 100
   browser_refresh: 600
@@ -110,6 +111,7 @@ schema:
   ha_password: password
   ha_url: str
   ha_dashboard: str?
+  browser: list(luakit|chromium)
   login_delay: float(0,)
   zoom_level: int(10,1000)
   browser_refresh: int(0,)

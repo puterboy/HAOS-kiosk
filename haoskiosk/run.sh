@@ -82,7 +82,6 @@ trap cleanup HUP INT QUIT ABRT TERM EXIT
 
 ################################################################################
 #### Variables
-BROWSER="luakit"
 BROWSER_FLAGS=
 
 ################################################################################
@@ -128,6 +127,37 @@ load_config_var HA_DASHBOARD ""
 load_config_var LOGIN_DELAY 1.0
 load_config_var ZOOM_LEVEL 100
 load_config_var BROWSER_REFRESH 600
+load_config_var BROWSER luakit
+
+#### Per-browser launch flags + process-liveness match pattern
+case "$BROWSER" in
+    chromium)
+        if command -v chromium >/dev/null 2>&1; then
+            BROWSER="chromium"
+        elif command -v chromium-browser >/dev/null 2>&1; then
+            BROWSER="chromium-browser"
+        fi
+        # Suppress first-run / sign-in / promo screens for unattended kiosk use
+        mkdir -p /etc/chromium/policies/managed
+        cat > /etc/chromium/policies/managed/haoskiosk.json << 'KIOSK_POLICY'
+{
+  "BrowserSignin": 0,
+  "SyncDisabled": true,
+  "MetricsReportingEnabled": false,
+  "DefaultBrowserSettingEnabled": false,
+  "PromotionalTabsEnabled": false,
+  "SearchEngineChoiceScreenEnabled": false
+}
+KIOSK_POLICY
+        BROWSER_FLAGS="--kiosk --ozone-platform=x11 --touch-events=enabled --ignore-gpu-blocklist --enable-gpu-rasterization --enable-zero-copy --enable-features=VaapiVideoDecoder --no-sandbox --no-first-run --no-default-browser-check --disable-search-engine-choice-screen --password-store=basic --user-data-dir=/data/chromium --remote-debugging-port=9222"
+        BROWSER_MATCH="chromium"
+        ;;
+    *)
+        BROWSER="luakit"
+        BROWSER_FLAGS=""
+        BROWSER_MATCH="^luakit "
+        ;;
+esac
 load_config_var SCREEN_TIMEOUT 600  # Default to 600 seconds
 load_config_var OUTPUT_NUMBER 1  # Which *CONNECTED* Physical video output to use (Defaults to 1)
 #NOTE: By only considering *CONNECTED* output, this maximizes the chance of finding an output
@@ -140,6 +170,13 @@ load_config_var MAP_TOUCH_INPUTS true
 load_config_var CURSOR_TIMEOUT 5  # Default to 5 seconds
 load_config_var KEYBOARD_LAYOUT us
 load_config_var ONSCREEN_KEYBOARD false
+# Chromium sandboxes its renderer and stays silent to assistive tech until
+# accessibility is explicitly forced. Onboard auto-show needs those events, so
+# add the flag ONLY when the onscreen keyboard is enabled (keeps the a11y-tree
+# CPU/RAM cost off systems that do not use it, e.g. keyboard-less Pi kiosks).
+if [ "$BROWSER" = "chromium" ] && [ "$ONSCREEN_KEYBOARD" = true ]; then
+    BROWSER_FLAGS="$BROWSER_FLAGS --force-renderer-accessibility=complete"
+fi
 load_config_var SAVE_ONSCREEN_CONFIG true
 load_config_var XORG_CONF ""
 load_config_var XORG_APPEND_REPLACE append
@@ -160,7 +197,14 @@ fi
 ################################################################################
 ### GTK and DBUS-related environment variables to improve stability
 
-export NO_AT_BRIDGE=1                 # Stop GTK from touching at-spi bus
+# at-spi bridge: luakit/GTK is stabler with it OFF, but Onboard auto-show on
+# Chromium REQUIRES the bridge ON to receive text-field focus events. Only keep
+# NO_AT_BRIDGE=1 when NOT relying on Chromium + onscreen keyboard together.
+if [ "$BROWSER" = "chromium" ] && [ "$ONSCREEN_KEYBOARD" = true ]; then
+    unset NO_AT_BRIDGE               # Allow at-spi so Onboard auto-show hears focus events
+else
+    export NO_AT_BRIDGE=1            # Stop GTK from touching at-spi bus (luakit stability)
+fi
 export GTK_USE_PORTAL=0               # Disable portals
 export GIO_USE_VFS=local              # Local-only GIO
 export DBUS_SESSION_BUS_TIMEOUT=5000  # Shorten DBUS timeouts
@@ -670,9 +714,18 @@ if [ "$DEBUG_MODE" != true ]; then
     $BROWSER ${BROWSER_FLAGS:+$BROWSER_FLAGS} "$HA_URL/$HA_DASHBOARD" &
     bashio::log.info "Launching $BROWSER browser(PID=$!): $HA_URL/$HA_DASHBOARD"
 
+    # Chromium: self-healing auth -- inject a session token via the debug port
+    # so the kiosk lands on the dashboard authenticated (no on-screen login).
+    case "$BROWSER" in
+        chromium|chromium-browser)
+            ( python3 /cdp_auth.py >/tmp/cdp_auth.log 2>&1 || true ) &
+            ( python3 /kiosk_overlay.py >/tmp/kiosk_overlay.log 2>&1 || true ) &
+            ;;
+    esac
+
     count=0
     while true; do  # Wait for all browser processes to exit
-        if pgrep -f -- "^$BROWSER " > /dev/null 2>&1; then
+        if pgrep -f -- "$BROWSER_MATCH" > /dev/null 2>&1; then
             count=0
         else
             count=$((count + 1))
