@@ -480,6 +480,32 @@ async def _cdp_command(method: str, params: dict[str, Any] | None = None) -> dic
     return {}
 
 
+async def _cdp_hard_refresh() -> None:
+    """Full hard refresh for chromium. HA serves /local/ with max-age 31d, so a
+    plain ignoreCache reload is defeated by the frontend service worker; clear the
+    HTTP cache + service workers + cache storage first, then reload. One WS session."""
+    base = f"http://127.0.0.1:{CDP_PORT}"
+    origin = (os.getenv("HA_URL") or "http://127.0.0.1:8123").rstrip("/")
+    async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=8)) as session:
+        async with session.get(f"{base}/json") as resp:
+            targets = await resp.json()
+        page = next((t for t in targets if t.get("type") == "page"), None)
+        if not page or "webSocketDebuggerUrl" not in page:
+            raise RuntimeError("no chromium page target on the debug port")
+        async with session.ws_connect(page["webSocketDebuggerUrl"]) as ws:
+            async def cmd(mid: int, method: str, params: dict[str, Any] | None = None) -> None:
+                await ws.send_json({"id": mid, "method": method, "params": params or {}})
+                async for msg in ws:
+                    if msg.type == aiohttp.WSMsgType.TEXT and json.loads(msg.data).get("id") == mid:
+                        return
+            await cmd(1, "Network.enable")
+            await cmd(2, "Network.clearBrowserCache")
+            await cmd(3, "Storage.clearDataForOrigin",
+                      {"origin": origin, "storageTypes": "service_workers,cache_storage"})
+            await cmd(4, "Page.enable")
+            await cmd(5, "Page.reload", {"ignoreCache": True})
+
+
 @register_function("launch_url", optional=["url"], validators={"url": is_valid_url})
 async def handle_launch_url(data: Payload) -> dict[str, Any]:
     """Launch browser with given URL."""
@@ -497,7 +523,7 @@ async def handle_launch_url(data: Payload) -> dict[str, Any]:
 async def handle_refresh_browser(data: Payload) -> dict[str, Any]:  # pylint: disable=unused-argument
     """Refresh the browser: CDP reload for chromium, Ctrl+R for luakit."""
     if BROWSER in ("chromium", "chromium-browser"):
-        await _cdp_command("Page.reload", {"ignoreCache": True})
+        await _cdp_hard_refresh()
         return {"success": True}
     result = await execute_command( ["xdotool", "key", "--clearmodifiers", "ctrl+r"],
                                     timeout=SHORT_TIMEOUT, log_prefix="refresh_browser", allow_command=True)
