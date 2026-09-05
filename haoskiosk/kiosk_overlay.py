@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-# On-screen "back to the Wall" button for chromium kiosk-out pages.
+# On-screen "back to dashboard" button for chromium kiosk-out pages.
 # Watches the DevTools port; when chromium is on a non-dashboard page (a game or
 # an external site like Maps/Earth) it injects a fixed, always-visible back button
-# into the DOM. Tapping it returns to the dashboard. No-op on the Wall itself.
+# into the DOM. Tapping it returns to the dashboard. No-op on the dashboard itself.
 # Consistent across every kiosk-out target; composited in-page (no extra X window).
 import socket, base64, os, json, struct, time, urllib.request
 
@@ -12,18 +12,18 @@ PORT = int(os.environ.get("REMOTE_DEBUG_PORT", "9222"))
 DASH_URL = HA + "/" + DASH if DASH else HA + "/"
 
 INJECT = """(function(){
-  var onWall = location.href.indexOf('%URL%') === 0;
-  var b = document.getElementById('wall-kiosk-back');
-  if (onWall) { if (b) b.remove(); return 'wall'; }
+  var onDash = location.href.indexOf('%URL%') === 0;
+  var b = document.getElementById('haoskiosk-back');
+  if (onDash) { if (b) b.remove(); return 'dashboard'; }
   if (b) return 'exists';
   b = document.createElement('div');
-  b.id = 'wall-kiosk-back';
+  b.id = 'haoskiosk-back';
   b.setAttribute('style','position:fixed;top:50%;left:18px;transform:translateY(-50%);z-index:2147483647;'+
-    'background:#0E1116;color:#fff;font:700 22px/1 Lato,Segoe UI,Arial,sans-serif;'+
+    'background:#1c1c1c;color:#fff;font:700 22px/1 system-ui,Segoe UI,Arial,sans-serif;'+
     'padding:18px 24px;display:flex;align-items:center;gap:12px;cursor:pointer;'+
     'letter-spacing:.04em;box-shadow:0 3px 14px rgba(0,0,0,.55);user-select:none;'+
     '-webkit-tap-highlight-color:transparent;');
-  b.innerHTML = '<span style="font-size:30px;font-weight:400;line-height:1">&#8249;</span><span>WALL</span>';
+  b.innerHTML = '<span style="font-size:30px;font-weight:400;line-height:1">&#8249;</span><span>DASHBOARD</span>';
   b.addEventListener('click', function(){ location.href = '%URL%'; });
   (document.body || document.documentElement).appendChild(b);
   return 'added';

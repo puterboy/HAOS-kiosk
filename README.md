@@ -338,7 +338,7 @@ same GPU without issue.
   `Page.navigate` and `refresh_browser` issues `Page.reload` (see
   `_cdp_command()` in `rest_server.py`). The Luakit paths are untouched.
 - **First-run prompt** - a managed policy written to
-  `/etc/chromium/policies/managed/wall-kiosk.json` disables the "Sign in to
+  `/etc/chromium/policies/managed/haoskiosk.json` disables the "Sign in to
   Chromium" / sync nag so the kiosk boots straight to the dashboard.
 
 ### Helpers

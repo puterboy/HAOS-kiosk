@@ -139,7 +139,7 @@ case "$BROWSER" in
         fi
         # Suppress first-run / sign-in / promo screens for unattended kiosk use
         mkdir -p /etc/chromium/policies/managed
-        cat > /etc/chromium/policies/managed/wall-kiosk.json << 'KIOSK_POLICY'
+        cat > /etc/chromium/policies/managed/haoskiosk.json << 'KIOSK_POLICY'
 {
   "BrowserSignin": 0,
   "SyncDisabled": true,
