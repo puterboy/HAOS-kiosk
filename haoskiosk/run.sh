@@ -488,11 +488,12 @@ done
 if [ "$MAP_TOUCH_INPUTS" = true ]; then  #Map touch devices to physical output
     while IFS= read -r id; do  #Loop through all xinput devices
         name=$(xinput list --name-only "$id" 2>/dev/null)
-        [[ "${name,,}" =~ (^|[^[:alnum:]_])(touch|touchscreen|stylus)([^[:alnum:]_]|$) ]] || continue  #Not touch-like input
         xinput_line=$(xinput list "$id" 2>/dev/null)
         [[ "$xinput_line" =~ \[(slave|master)[[:space:]]+keyboard[[:space:]]+\([0-9]+\)\] ]] && continue
         props="$(xinput list-props "$id" 2>/dev/null)"
         [[ "$props" = *"Coordinate Transformation Matrix"* ]] ||  continue  #No transformation matrix
+        [[ "${name,,}" =~ (^|[^[:alnum:]_])(touch|touchscreen|stylus)([^[:alnum:]_]|$) ||
+           "$props" = *"libinput Calibration Matrix"* ]] || continue  #Not touch-like input
         xinput map-to-output "$id" "$OUTPUT_NAME" && RESULT="SUCCESS" || RESULT="FAILED"
         bashio::log.info "Mapping: input device [$id|$name] -->  $OUTPUT_NAME [$RESULT]"
 
