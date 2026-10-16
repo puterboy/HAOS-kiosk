@@ -138,6 +138,9 @@ msg.info("USERNAME=%s; URL=%s; DARK_MODE=%s; SIDEBAR=%s; THEME=%s; LOGIN_DELAY=%
 -- Forward console messages to stdout
 settings.set_setting("webview.enable_write_console_messages_to_stdout", true)
 
+-- Enable WebGL for graphics-heavy pages such as Windy.
+settings.webview.enable_webgl = true
+
 -- Prefer Dark mode if set to true
 settings.application.prefer_dark_mode = dark_mode
 
