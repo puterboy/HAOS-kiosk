@@ -23,6 +23,11 @@ configuration:
   zoom_level:
     name: "Zoom Level"
     description: "Zoom factor 100 = 100% [Default: 100]"
+  browser:
+    name: "Browser"
+    description: |
+      Rendering engine: luakit (default) or chromium. Use chromium if luakit
+      fails to render on your hardware, e.g. Intel Iris Xe. [Default: luakit]
   browser_refresh:
     name: "Browser Refresh"
     description: |

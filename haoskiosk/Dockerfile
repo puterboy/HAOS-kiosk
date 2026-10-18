@@ -69,6 +69,14 @@ RUN apk update && apk add --no-cache \
 
 #===============================================================================
 
+##### Optional: bake in Chromium at build time (opt-in via BUILD_BROWSER=chromium).
+##### Default 'luakit' pulls nothing in, so the luakit image is unchanged.
+ARG BUILD_BROWSER=luakit
+RUN if [ "$BUILD_BROWSER" = "chromium" ]; then \
+        apk add --no-cache chromium \
+        && rm -rf /var/cache/apk/*; \
+    fi
+
 ##### Set the display variable
 ENV DISPLAY=:0
 
@@ -82,6 +90,8 @@ RUN chmod a+x /run.sh
 
 COPY mouse_touch_inputs.py gesture_commands.json /
 COPY rest_server.py /
+COPY cdp_auth.py /
+COPY kiosk_overlay.py /
 
 #### Patches
 # Need to patch 'unique_instance.lua' so that new instance urls overwrite active url rather than add new tab
