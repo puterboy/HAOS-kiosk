@@ -158,6 +158,17 @@ if [ -z "$HA_USERNAME" ] || [ -z "$HA_PASSWORD" ]; then
 fi
 
 ################################################################################
+#### Load optional fonts from the persistent add-on config directory
+CUSTOM_FONTS_DIR="/config/fonts"
+mkdir -p "$CUSTOM_FONTS_DIR"
+if [ -n "$(find "$CUSTOM_FONTS_DIR" -type f -print -quit)" ]; then
+    bashio::log.info "Updating Fontconfig cache for custom fonts in $CUSTOM_FONTS_DIR"
+    if ! fc-cache "$CUSTOM_FONTS_DIR"; then
+        bashio::log.warning "Failed to cache custom fonts in $CUSTOM_FONTS_DIR"
+    fi
+fi
+
+################################################################################
 ### GTK and DBUS-related environment variables to improve stability
 
 export NO_AT_BRIDGE=1                 # Stop GTK from touching at-spi bus
