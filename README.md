@@ -193,6 +193,28 @@ seconds)
 
 Set the keyboard layout and language. (Default: us)
 
+### Custom Fonts
+
+The add-on only bundles a basic font set. If some characters (e.g., Chinese,
+Japanese, or Korean) appear as boxes, you can supply your own fonts without
+installing packages or increasing the add-on's image size.
+
+1. Create a `fonts` directory in this add-on's **persistent configuration**
+   folder. In the HAOS `addon_configs` share, this is
+   `addon_configs/<add-on-slug>/fonts/` (the slug depends on the repository).
+   Inside the add-on container, the directory is `/config/fonts/`.
+2. Copy `.ttf`, `.otf`, `.ttc`, or `.otc` files into the directory, using
+   Samba or a file management add-on with access to `addon_configs`.
+   For example, Noto Sans CJK provides Chinese, Japanese, and Korean glyphs.
+3. **Restart HAOS Kiosk Display.** The add-on registers this directory with
+   Fontconfig and refreshes its font cache before launching the browser.
+   The browser can then use the fonts as fallbacks for missing glyphs.
+
+Fonts remain in the add-on's configuration directory across restarts and
+updates. Remove unwanted font files and restart to stop using them. No fonts
+are downloaded or installed by default, and this only affects text display
+(not keyboard input).
+
 ### Onscreen Keyboard
 
 Display an on-screen keyboard when keyboard input expected if set to

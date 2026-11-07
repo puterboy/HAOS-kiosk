@@ -43,6 +43,7 @@ RUN apk update && apk add --no-cache \
      onboard \
      unclutter-xfixes \
      ttf-dejavu \
+     fontconfig \
 ### Linux utils
      bash \
      util-linux \
@@ -75,6 +76,8 @@ ENV DISPLAY=:0
 ##### Copy over 'xorg.conf.default' and lua 'userconf.lua' file
 COPY xorg.conf.default /etc/X11/
 COPY userconf.lua /root/.config/luakit/
+# Register persistent, optional user fonts with Fontconfig.
+COPY user-fonts.conf /etc/fonts/conf.d/99-haoskiosk-user-fonts.conf
 COPY translations/*.yaml /translations/
 
 COPY run.sh /
